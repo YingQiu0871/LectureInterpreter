@@ -24,6 +24,8 @@ namespace LiveCaptionsTranslator.utils
 
         private static readonly object audioLock = new();
         private static readonly List<byte> pending = new();
+        // Reused by OnAudio for the resampled 16-bit samples of one callback; only the capture thread touches it.
+        private static byte[] resampled = Array.Empty<byte>();
         private static bool isMicrophone = false;
 
         // Box-filter resampler state.
@@ -218,8 +220,10 @@ namespace LiveCaptionsTranslator.utils
 
         public static void Stop()
         {
-            cts?.Cancel();
+            var running = cts;
             cts = null;
+            running?.Cancel();
+            running?.Dispose();
             EndCapture();
             lock (audioLock)
             {
@@ -325,7 +329,11 @@ namespace LiveCaptionsTranslator.utils
 
             // Our own speech on the computer's output would be recognized again as the lecture: send silence then.
             bool mute = !isMicrophone && Speaker.SuppressCaptions;
-            var output = new List<byte>(count / blockAlign / Math.Max((int)step, 1) * 2 + 4);
+            // At most one output sample per input frame, two bytes each.
+            int capacity = (count / blockAlign + 1) * 2;
+            if (resampled.Length < capacity)
+                resampled = new byte[capacity];
+            int written = 0;
             for (int offset = 0; offset + blockAlign <= count; offset += blockAlign)
             {
                 double sum = 0;
@@ -341,12 +349,14 @@ namespace LiveCaptionsTranslator.utils
                 accumulated = 0;
                 accumulatedCount = 0;
                 short pcm = (short)Math.Round(value * short.MaxValue);
-                output.Add((byte)(pcm & 0xFF));
-                output.Add((byte)((pcm >> 8) & 0xFF));
+                resampled[written++] = (byte)(pcm & 0xFF);
+                resampled[written++] = (byte)((pcm >> 8) & 0xFF);
             }
+            if (written == 0)
+                return;
             lock (audioLock)
             {
-                pending.AddRange(output);
+                pending.AddRange(new ArraySegment<byte>(resampled, 0, written));
                 // Never keep more than 10 s if the connection is down.
                 int max = SAMPLE_RATE * 2 * 10;
                 if (pending.Count > max)
@@ -610,6 +620,9 @@ namespace LiveCaptionsTranslator.utils
                     }
                 }
             }, token);
+            // The socket is closed when this method returns; a receive still pending then fails on its own and nobody
+            // awaits it any more, so its exception is observed here rather than left to the finalizer.
+            _ = receiver.ContinueWith(t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted);
 
             var first = await Task.WhenAny(started.Task, receiver, Task.Delay(TimeSpan.FromSeconds(10), token));
             if (first == receiver)

@@ -235,7 +235,7 @@ namespace LiveCaptionsTranslator.utils
             if (string.IsNullOrWhiteSpace(lecture.AsrApiKey))
                 throw new InvalidOperationException("还没有填阿里云 API Key。");
             string json = JsonSerializer.Serialize(new { model = "speech-biasing", input });
-            var request = new HttpRequestMessage(HttpMethod.Post, CustomizationUrl())
+            using var request = new HttpRequestMessage(HttpMethod.Post, CustomizationUrl())
             {
                 Content = new StringContent(json, Encoding.UTF8, "application/json"),
             };
@@ -243,21 +243,25 @@ namespace LiveCaptionsTranslator.utils
 
             using var response = await client.SendAsync(request, token);
             string body = await response.Content.ReadAsStringAsync(token);
-            JsonElement root;
+            JsonDocument document;
             try
             {
-                root = JsonDocument.Parse(body).RootElement;
+                document = JsonDocument.Parse(body);
             }
             catch (JsonException)
             {
                 throw new InvalidOperationException($"热词接口返回了无法识别的内容（HTTP {(int)response.StatusCode}）。");
             }
-            if (!response.IsSuccessStatusCode)
+            using (document)
             {
-                string message = root.TryGetProperty("message", out var m) ? m.GetString() ?? string.Empty : string.Empty;
-                throw new InvalidOperationException($"热词接口出错（HTTP {(int)response.StatusCode}）：{message}");
+                var root = document.RootElement;
+                if (!response.IsSuccessStatusCode)
+                {
+                    string message = root.TryGetProperty("message", out var m) ? m.GetString() ?? string.Empty : string.Empty;
+                    throw new InvalidOperationException($"热词接口出错（HTTP {(int)response.StatusCode}）：{message}");
+                }
+                return root.TryGetProperty("output", out var output) ? output.Clone() : default;
             }
-            return root.TryGetProperty("output", out var output) ? output.Clone() : default;
         }
     }
 }

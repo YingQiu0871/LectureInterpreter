@@ -6,7 +6,6 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 
-using LiveCaptionsTranslator.apis;
 using LiveCaptionsTranslator.models;
 using LiveCaptionsTranslator.utils;
 
@@ -18,18 +17,6 @@ namespace LiveCaptionsTranslator
         private const string AUTO_VOICE = "自动（按目标语言选择）";
         private const string AUTO_OCR = "自动";
         private const string DEFAULT_OUTPUT = "系统默认输出设备";
-
-        private record Provider(string Name, string ApiUrl, string[] Models);
-
-        // Index matches the items of `ProviderBox`. The last one is "any OpenAI-compatible API".
-        private static readonly Provider[] PROVIDERS =
-        {
-            new("DeepSeek", "https://api.deepseek.com/chat/completions",
-                new[] { "deepseek-chat" }),
-            new("Qwen", "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
-                new[] { "qwen-plus", "qwen-turbo", "qwen-max" }),
-            new("Custom", string.Empty, Array.Empty<string>()),
-        };
 
         public record Choice(string Tag, string Name)
         {
@@ -45,14 +32,6 @@ namespace LiveCaptionsTranslator
             .Select(l => new Choice(l.Code, l.Name))
             .Append(new Choice(LectureLanguages.AUTO, "自动判断"))
             .ToArray();
-
-        // Display names for the translation APIs. DeepSeek / Qwen go through the OpenAI-compatible config of card ①.
-        private static readonly Dictionary<string, string> API_NAMES = new()
-        {
-            [Summarizer.SUMMARY_API] = "DeepSeek / 通义千问（用 ① 的设置）",
-            ["Google"] = "Google 翻译（免费）",
-            ["Google2"] = "Google 翻译 2（免费）",
-        };
 
         private bool initializing = true;
         private bool fillingKeyBox = false;
@@ -298,21 +277,12 @@ namespace LiveCaptionsTranslator
             if (config == null)
                 return;
 
-            int index = PROVIDERS.Length - 1;
-            for (int i = 0; i < PROVIDERS.Length - 1; i++)
-            {
-                if (string.IsNullOrEmpty(config.ApiUrl) ||
-                    config.ApiUrl.Contains(new Uri(PROVIDERS[i].ApiUrl).Host, StringComparison.OrdinalIgnoreCase))
-                {
-                    index = i;
-                    break;
-                }
-            }
+            int index = ApiProviders.IndexOf(config.ApiUrl);
             ProviderBox.SelectedIndex = index;
-            ModelBox.ItemsSource = PROVIDERS[index].Models;
+            ModelBox.ItemsSource = ApiProviders.All[index].Models;
             // Fill in DeepSeek defaults on first use.
             if (string.IsNullOrEmpty(config.ApiUrl))
-                ApplyProvider(PROVIDERS[index], config);
+                ApiProviders.Apply(ApiProviders.All[index], config);
 
             ShowApiFields();
             FillKeyBox();
@@ -359,21 +329,13 @@ namespace LiveCaptionsTranslator
             });
         }
 
-        private static void ApplyProvider(Provider provider, OpenAIConfig config)
-        {
-            if (!string.IsNullOrEmpty(provider.ApiUrl))
-                config.ApiUrl = provider.ApiUrl;
-            if (provider.Models.Length > 0 && !provider.Models.Contains(config.ModelName))
-                config.ModelName = provider.Models[0];
-        }
-
         private void ProviderBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
         {
             if (initializing || ProviderBox.SelectedIndex < 0 || ApiConfig == null)
                 return;
-            var provider = PROVIDERS[ProviderBox.SelectedIndex];
+            var provider = ApiProviders.All[ProviderBox.SelectedIndex];
             ModelBox.ItemsSource = provider.Models;
-            ApplyProvider(provider, ApiConfig);
+            ApiProviders.Apply(provider, ApiConfig);
             Fill(ShowApiFields);
             TestApiResult.Text = string.Empty;
         }
@@ -384,7 +346,7 @@ namespace LiveCaptionsTranslator
         {
             if (fillingKeyBox || ApiConfig == null)
                 return;
-            string key = CleanKey(ApiKeyBox.Text ?? string.Empty);
+            string key = ApiProviders.CleanKey(ApiKeyBox.Text ?? string.Empty);
             // Only the user clearing the box may erase a saved key, never a control reloading itself.
             if (key.Length == 0 && ApiConfig.ApiKey.Length > 0 && !ApiKeyBox.IsKeyboardFocusWithin)
             {
@@ -425,19 +387,8 @@ namespace LiveCaptionsTranslator
             string key = ApiConfig?.ApiKey ?? string.Empty;
             ApiKeyStatus.Text = key.Length == 0
                 ? "还没有保存 API Key。"
-                : $"已保存：{MaskKey(key)}，" +
+                : $"已保存：{ApiProviders.MaskKey(key)}，" +
                   $"保存在 {AppPaths.SettingFile}";
-        }
-
-        // Pasted keys sometimes carry spaces, line breaks or invisible characters.
-        private static string CleanKey(string text)
-        {
-            return new string(text.Where(c => c > ' ' && c < 0x7F).ToArray());
-        }
-
-        private static string MaskKey(string key)
-        {
-            return $"{key[..Math.Min(3, key.Length)]}…{key[Math.Max(0, key.Length - 4)..]}（{key.Length} 位）";
         }
 
         private void ShowSaveFolder()
@@ -479,7 +430,7 @@ namespace LiveCaptionsTranslator
         {
             if (fillingAsrKeyBox)
                 return;
-            string key = CleanKey(AsrKeyBox.Text ?? string.Empty);
+            string key = ApiProviders.CleanKey(AsrKeyBox.Text ?? string.Empty);
             if (key.Length == 0 && Lecture.AsrApiKey.Length > 0 && !AsrKeyBox.IsKeyboardFocusWithin)
             {
                 LoadEngine();
@@ -495,7 +446,7 @@ namespace LiveCaptionsTranslator
             string key = Lecture.AsrApiKey;
             AsrKeyStatus.Text = key.Length == 0
                 ? "还没有保存阿里云 API Key。"
-                : $"已保存：{MaskKey(key)}";
+                : $"已保存：{ApiProviders.MaskKey(key)}";
         }
 
         private async void TestAsr_Click(object? sender, RoutedEventArgs e)
@@ -511,8 +462,8 @@ namespace LiveCaptionsTranslator
         {
             var keys = Translator.Setting.Configs.Keys.ToList();
             var choices = keys
-                .OrderBy(key => key == Summarizer.SUMMARY_API ? 0 : API_NAMES.ContainsKey(key) ? 1 : 2)
-                .Select(key => new ApiChoice(key, API_NAMES.TryGetValue(key, out var name) ? name : key))
+                .OrderBy(key => key == Summarizer.SUMMARY_API ? 0 : ApiProviders.ApiNames.ContainsKey(key) ? 1 : 2)
+                .Select(key => new ApiChoice(key, ApiProviders.ApiNames.TryGetValue(key, out var name) ? name : key))
                 .ToList();
             TranslateApiBox.ItemsSource = choices;
             TranslateApiBox.SelectedItem = choices.FirstOrDefault(c => c.Key == Translator.Setting.ApiName);
