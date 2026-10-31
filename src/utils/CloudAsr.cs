@@ -273,6 +273,9 @@ namespace LiveCaptionsTranslator.utils
                 Unskip(model);
                 if (isConfigured)
                     return unsupported;
+                // A substitute for an unsupported language is not saved: the setting stays for other languages.
+                if (unsupported != null)
+                    return $"{unsupported}；{configured} 额度已用完，本节课改用 {model}";
                 lecture.AsrModel = model;
                 return $"{configured} 额度已用完，已改用 {model}";
             }

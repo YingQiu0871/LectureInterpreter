@@ -41,15 +41,12 @@ namespace LiveCaptionsTranslator.utils
             return code == "auto" ? AUTO : code;
         }
 
-        // The entry for a code or culture tag ("de", "de-DE", "zh-Hans-CN"); null for auto or an unknown language.
+        // The entry for a code or culture tag ("de", "de-DE", "zh-Hant-TW" -> Chinese; Cantonese only for "yue"); null for auto or an unknown language.
         public static LectureLanguage? Find(string? language)
         {
             string code = Code(language);
             if (code.Length == 0)
                 return null;
-            string tag = (language ?? string.Empty).Trim().ToLowerInvariant();
-            if (tag.StartsWith("zh-hant") || tag is "zh-tw" or "zh-hk" or "zh-mo")
-                return All.First(l => l.Code == "yue");
             return All.FirstOrDefault(l => l.Code == code);
         }
 

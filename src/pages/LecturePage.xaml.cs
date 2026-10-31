@@ -15,7 +15,7 @@ namespace LiveCaptionsTranslator
     public partial class LecturePage : Page
     {
         public const int MIN_HEIGHT = 520;
-        private const string AUTO_VOICE = "自动（按目标语言选择）";
+        private const string AUTO_VOICE = "自动（按朗读的语言选择）";
         private const string AUTO_OCR = "自动";
         private const string AUTO_LANGUAGE = "自动判断";
         private const string DEFAULT_OUTPUT = "Windows 默认输出设备";
@@ -178,6 +178,7 @@ namespace LiveCaptionsTranslator
         }
 
         private bool fillingAsrKeyBox = false;
+        private bool fillingLanguageBox = false;
 
         private void ShowSaveFolder()
         {
@@ -214,8 +215,10 @@ namespace LiveCaptionsTranslator
             EngineBox.SelectedIndex = (int)lecture.Engine;
             AliyunPanel.Visibility = lecture.Engine == RecognitionEngine.Aliyun ? Visibility.Visible : Visibility.Collapsed;
             var languages = LectureLanguages.All.Cast<object>().Append(AUTO_LANGUAGE).ToList();
+            fillingLanguageBox = true;
             AsrLanguageBox.ItemsSource = languages;
             AsrLanguageBox.SelectedItem = LectureLanguages.Find(lecture.AsrLanguage) ?? (object)AUTO_LANGUAGE;
+            fillingLanguageBox = false;
             ShowLanguageHint();
             fillingAsrKeyBox = true;
             AsrKeyBox.Password = lecture.AsrApiKey;
@@ -255,7 +258,7 @@ namespace LiveCaptionsTranslator
 
         private void AsrLanguageBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (initializing)
+            if (initializing || fillingLanguageBox)
                 return;
             Translator.Setting.Lecture.AsrLanguage =
                 AsrLanguageBox.SelectedItem is LectureLanguage language ? language.Code : LectureLanguages.AUTO;

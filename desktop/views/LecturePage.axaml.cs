@@ -14,7 +14,7 @@ namespace LiveCaptionsTranslator
     public partial class LecturePage : UserControl
     {
         public const int MIN_HEIGHT = 520;
-        private const string AUTO_VOICE = "自动（按目标语言选择）";
+        private const string AUTO_VOICE = "自动（按朗读的语言选择）";
         private const string AUTO_OCR = "自动";
         private const string DEFAULT_OUTPUT = "系统默认输出设备";
 

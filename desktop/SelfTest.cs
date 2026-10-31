@@ -119,7 +119,7 @@ namespace LiveCaptionsTranslator
                     CloudAsr.CandidateModels("paraformer-realtime-v2", "").Count != 3 ||
                     CloudAsr.CandidateModels("paraformer-realtime-v2", "de-DE")[0] != "paraformer-realtime-v2")
                     throw new InvalidOperationException("language filtering is wrong");
-                if (LectureLanguages.Find("de-DE")?.Tesseract != "deu" || LectureLanguages.Find("zh-Hant-TW")?.Code != "yue" ||
+                if (LectureLanguages.Find("de-DE")?.Tesseract != "deu" || LectureLanguages.Find("zh-Hant-TW")?.Code != "zh" ||
                     LectureLanguages.Find("") != null || LectureLanguages.EnglishName("xx") != "the original language of the lecture")
                     throw new InvalidOperationException("language table lookup is wrong");
                 string message = CloudAsr.QuotaMessage("AllocationQuota.FreeTierOnly",
