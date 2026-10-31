@@ -41,11 +41,10 @@ namespace LiveCaptionsTranslator
             public override string ToString() => Name;
         }
 
-        private static readonly Choice[] ASR_LANGUAGES =
-        {
-            new("en", "英语"), new("zh", "中文"), new("ja", "日语"), new("ko", "韩语"), new("de", "德语"),
-            new("fr", "法语"), new("ru", "俄语"), new("yue", "粤语"), new("", "自动判断"),
-        };
+        private static readonly Choice[] ASR_LANGUAGES = LectureLanguages.All
+            .Select(l => new Choice(l.Code, l.Name))
+            .Append(new Choice(LectureLanguages.AUTO, "自动判断"))
+            .ToArray();
 
         // Display names for the translation APIs. DeepSeek / Qwen go through the OpenAI-compatible config of card ①.
         private static readonly Dictionary<string, string> API_NAMES = new()
@@ -469,7 +468,7 @@ namespace LiveCaptionsTranslator
         // Live Captions does not exist here, so the cloud recognizer is the only engine.
         private void LoadEngine()
         {
-            AsrLanguageBox.SelectedItem = ASR_LANGUAGES.FirstOrDefault(c => c.Tag == Lecture.AsrLanguage);
+            AsrLanguageBox.SelectedItem = ASR_LANGUAGES.FirstOrDefault(c => c.Tag == LectureLanguages.Code(Lecture.AsrLanguage));
             fillingAsrKeyBox = true;
             AsrKeyBox.Text = Lecture.AsrApiKey;
             fillingAsrKeyBox = false;

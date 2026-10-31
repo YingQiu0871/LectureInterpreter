@@ -17,6 +17,7 @@ namespace LiveCaptionsTranslator
         public const int MIN_HEIGHT = 520;
         private const string AUTO_VOICE = "自动（按目标语言选择）";
         private const string AUTO_OCR = "自动";
+        private const string AUTO_LANGUAGE = "自动判断";
         private const string DEFAULT_OUTPUT = "Windows 默认输出设备";
 
         private record Provider(string Name, string ApiUrl, string[] Models);
@@ -260,6 +261,10 @@ namespace LiveCaptionsTranslator
             var lecture = Translator.Setting.Lecture;
             EngineBox.SelectedIndex = (int)lecture.Engine;
             AliyunPanel.Visibility = lecture.Engine == RecognitionEngine.Aliyun ? Visibility.Visible : Visibility.Collapsed;
+            var languages = LectureLanguages.All.Cast<object>().Append(AUTO_LANGUAGE).ToList();
+            AsrLanguageBox.ItemsSource = languages;
+            AsrLanguageBox.SelectedItem = LectureLanguages.Find(lecture.AsrLanguage) ?? (object)AUTO_LANGUAGE;
+            ShowLanguageHint();
             fillingAsrKeyBox = true;
             AsrKeyBox.Password = lecture.AsrApiKey;
             fillingAsrKeyBox = false;
@@ -273,6 +278,7 @@ namespace LiveCaptionsTranslator
             var engine = (RecognitionEngine)EngineBox.SelectedIndex;
             Translator.Setting.Lecture.Engine = engine;
             AliyunPanel.Visibility = engine == RecognitionEngine.Aliyun ? Visibility.Visible : Visibility.Collapsed;
+            ShowLanguageHint();
             // LiveCaptions is only needed by the system engine; with the cloud engine it is closed to save power
             // (it is started again when a class with the system engine starts).
             if (engine == RecognitionEngine.Aliyun && !ClassSession.IsRunning)
@@ -293,6 +299,23 @@ namespace LiveCaptionsTranslator
             }
             if (ClassSession.IsRunning)
                 SnackbarHost.Show("识别方式已更改。", "点“停止”再点“开始”后生效。", SnackbarType.Info, timeout: 3);
+        }
+
+        private void AsrLanguageBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (initializing)
+                return;
+            Translator.Setting.Lecture.AsrLanguage =
+                AsrLanguageBox.SelectedItem is LectureLanguage language ? language.Code : LectureLanguages.AUTO;
+        }
+
+        // With the system engine the language is chosen inside Live Captions; ours is for everything after.
+        private void ShowLanguageHint()
+        {
+            AsrLanguageHint.Text = Translator.Setting.Lecture.Engine == RecognitionEngine.Aliyun
+                ? "识别按这个语言进行（“自动判断”交给模型）；“只用课程原语言”时，小结、笔记、OCR 和播报也用它。"
+                : "系统实时字幕的识别语言要在它自己的 ⚙️ 设置里选（点下面“显示系统实时辅助字幕”），并关掉它自带的翻译。" +
+                  "这里选的语言用于小结、笔记、课件 OCR 和“只用课程原语言”时的播报。";
         }
 
         private void AsrKeyBox_PasswordChanged(object sender, RoutedEventArgs e)

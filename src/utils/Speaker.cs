@@ -293,12 +293,10 @@ namespace LiveCaptionsTranslator.utils
                     return;
             }
 
-            // No voice chosen: pick one that speaks the target language.
+            // No voice chosen: pick one that speaks the target language (the lecture's own in 原语言模式).
             try
             {
-                var culture = new CultureInfo(Translator.Setting?.Lecture.EnglishOnly == true
-                    ? "en-US"
-                    : Translator.Setting?.TargetLanguage ?? "zh-CN");
+                var culture = new CultureInfo(SpeechLanguage());
                 if (!synth.Voice.Culture.Name.Equals(culture.Name, StringComparison.OrdinalIgnoreCase))
                     synth.SelectVoiceByHints(VoiceGender.NotSet, VoiceAge.NotSet, 0, culture);
             }
@@ -307,6 +305,11 @@ namespace LiveCaptionsTranslator.utils
                 // Best effort: keep the current voice if none matches the language.
             }
         }
+
+        // The culture of what is spoken: the lecture language in 原语言模式, otherwise the target language.
+        private static string SpeechLanguage() => Translator.Setting?.Lecture.OriginalOnly == true
+            ? LectureLanguages.Current?.Culture ?? "en-US"
+            : Translator.Setting?.TargetLanguage ?? "zh-CN";
 
         private static string CleanForSpeech(string text)
         {

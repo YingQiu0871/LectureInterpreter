@@ -95,7 +95,8 @@ namespace LiveCaptionsTranslator
         // original and loses sentences, so tell the user when the target is Chinese and so is everything we read.
         private static void CheckAlreadyTranslated(string sentence)
         {
-            if (Setting?.Lecture.EnglishOnly == true ||
+            if (Setting?.Lecture.OriginalOnly == true ||
+                LectureLanguages.Code(Setting?.Lecture.AsrLanguage) is "zh" or "yue" ||
                 !(Setting?.TargetLanguage ?? string.Empty).StartsWith("zh", StringComparison.OrdinalIgnoreCase))
             {
                 recentChinese.Clear();

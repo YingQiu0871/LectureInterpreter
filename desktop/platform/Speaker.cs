@@ -267,8 +267,9 @@ namespace LiveCaptionsTranslator.utils
             int rate = lecture?.SpeechRate ?? 0;
             int volume = lecture?.SpeechVolume ?? 100;
             string voice = lecture?.VoiceName ?? string.Empty;
-            string language = Translator.Setting?.Lecture.EnglishOnly == true
-                ? "en-US"
+            // The lecture's own language in 原语言模式, otherwise the target language.
+            string language = Translator.Setting?.Lecture.OriginalOnly == true
+                ? LectureLanguages.Current?.Culture ?? "en-US"
                 : Translator.Setting?.TargetLanguage ?? "zh-CN";
 
             ProcessStartInfo? info;
