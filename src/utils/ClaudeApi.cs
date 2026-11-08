@@ -93,8 +93,8 @@ namespace LiveCaptionsTranslator.utils
             {
                 if (sharedClient == null || sharedKey != key || sharedBaseUrl != baseUrl)
                 {
-                    // Requests still running on the old client finish on their own handler.
-                    sharedClient?.Dispose();
+                    // The old client is not disposed: requests still running on it would fail. Keys and URLs
+                    // change rarely, and the garbage collector releases it once those requests finish.
                     sharedClient = new AnthropicClient { ApiKey = key, BaseUrl = baseUrl };
                     sharedKey = key;
                     sharedBaseUrl = baseUrl;
