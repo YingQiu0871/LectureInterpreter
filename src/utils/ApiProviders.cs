@@ -74,6 +74,20 @@ namespace LiveCaptionsTranslator.utils
                 config.ModelName = provider.Models[0];
         }
 
+        // Config names must be non-empty and unique within an API; null when the name is fine. `except` is the slot
+        // being renamed.
+        public static string? ValidateConfigName(string apiName, string? name, TranslateAPIConfig? except = null)
+        {
+            name = (name ?? string.Empty).Trim();
+            if (name.Length == 0)
+                return "配置名称不能为空。";
+            if (Translator.Setting.Configs.TryGetValue(apiName, out var configs) &&
+                configs.Any(c => !ReferenceEquals(c, except) &&
+                                 string.Equals(c.ConfigName?.Trim(), name, StringComparison.OrdinalIgnoreCase)))
+                return "已有同名配置，请换一个名称。";
+            return null;
+        }
+
         // Pasted keys sometimes carry spaces, line breaks or invisible characters.
         public static string CleanKey(string text)
         {

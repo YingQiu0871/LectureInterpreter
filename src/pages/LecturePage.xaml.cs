@@ -47,6 +47,7 @@ namespace LiveCaptionsTranslator
             {
                 (App.Current.MainWindow as MainWindow)?.AutoHeightAdjust(minHeight: MIN_HEIGHT);
                 Summarizer.CurrentPageChanged += OnCurrentPageChanged;
+                Translator.Setting.MainWindow.PropertyChanged += OnMainWindowStateChanged;
                 BindApiCard();
                 initializing = true;
                 // One failing loader (e.g. an audio device that can't be read) must not leave the page read-only.
@@ -70,6 +71,7 @@ namespace LiveCaptionsTranslator
             Unloaded += (s, e) =>
             {
                 Summarizer.CurrentPageChanged -= OnCurrentPageChanged;
+                Translator.Setting.MainWindow.PropertyChanged -= OnMainWindowStateChanged;
                 if (subscribedConfig != null)
                 {
                     subscribedConfig.PropertyChanged -= OnApiConfigChanged;
@@ -85,6 +87,23 @@ namespace LiveCaptionsTranslator
             ThemeBox.SelectedItem = ThemeBox.Items.Cast<ComboBoxItem>().FirstOrDefault(item =>
                 (string)item.Tag == state.Theme);
             UiScaleSlider.Value = state.UiScale;
+        }
+
+        // Ctrl+wheel on the main window changes the scale too: keep the slider in step.
+        private void OnMainWindowStateChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != "UiScale")
+                return;
+            Dispatcher.InvokeAsync(() =>
+            {
+                double scale = Translator.Setting.MainWindow.UiScale;
+                if (Math.Abs(UiScaleSlider.Value - scale) < 0.001)
+                    return;
+                bool wasInitializing = initializing;
+                initializing = true;
+                UiScaleSlider.Value = scale;
+                initializing = wasInitializing;
+            });
         }
 
         private void ThemeBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -223,9 +242,15 @@ namespace LiveCaptionsTranslator
             var provider = ApiProviders.All[ProviderBox.SelectedIndex];
             if (!string.IsNullOrWhiteSpace(ApiConfig.ConfigName))
             {
-                var draft = new OpenAIConfig { ApiKey = ApiConfig.ApiKey };
-                Translator.Setting.Configs[Summarizer.SUMMARY_API].Add(draft);
-                Translator.Setting.ConfigIndices[Summarizer.SUMMARY_API] = Translator.Setting.Configs[Summarizer.SUMMARY_API].Count - 1;
+                // Reuse an existing unnamed slot instead of piling up one draft per provider switch.
+                var list = Translator.Setting.Configs[Summarizer.SUMMARY_API];
+                int draftIndex = list.FindIndex(c => string.IsNullOrWhiteSpace(c.ConfigName));
+                if (draftIndex < 0)
+                {
+                    list.Add(new OpenAIConfig { ApiKey = ApiConfig.ApiKey });
+                    draftIndex = list.Count - 1;
+                }
+                Translator.Setting.ConfigIndices[Summarizer.SUMMARY_API] = draftIndex;
                 Translator.Setting.Lecture.SummaryConfigName = string.Empty;
                 BindApiCard();
                 RefreshProviders(ProviderBox.SelectedIndex);
@@ -339,10 +364,10 @@ namespace LiveCaptionsTranslator
             string? name = NameConfigDialog.Ask(Window.GetWindow(this), "保存模型配置", current.ConfigName);
             if (name == null) return;
             name = name.Trim();
-            if (name.Length == 0 || Translator.Setting.OpenAIConfigs.Any(c =>
-                    string.Equals(c.ConfigName, name, StringComparison.OrdinalIgnoreCase)))
+            string? nameError = ApiProviders.ValidateConfigName(Summarizer.SUMMARY_API, name);
+            if (nameError != null)
             {
-                TestApiResult.Text = "配置名称不能为空，也不能与已有配置重名。";
+                TestApiResult.Text = nameError;
                 return;
             }
             var saved = new OpenAIConfig

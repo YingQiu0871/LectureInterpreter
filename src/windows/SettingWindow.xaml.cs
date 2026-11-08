@@ -66,7 +66,12 @@ namespace LiveCaptionsTranslator
 
                 // Ask for a name right away so the new slot is identifiable in the drop-down.
                 string newName = NameConfigDialog.Ask(this, "命名配置", "");
-                if (newName != null)
+                string? newError = newName == null ? null
+                    : LiveCaptionsTranslator.utils.ApiProviders.ValidateConfigName(apiName, newName, configs[configIndex + 1]);
+                if (newError != null)
+                    System.Windows.MessageBox.Show(newError, "命名配置",
+                        System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                else if (newName != null)
                 {
                     configs[configIndex + 1].ConfigName = newName;
                     configs[configIndex + 1].OnPropertyChanged("ConfigName");
@@ -293,6 +298,13 @@ namespace LiveCaptionsTranslator
             string newName = NameConfigDialog.Ask(this, "命名配置", current);
             if (newName == null)
                 return;
+            string? nameError = LiveCaptionsTranslator.utils.ApiProviders.ValidateConfigName(apiName, newName, configs[index]);
+            if (nameError != null)
+            {
+                System.Windows.MessageBox.Show(nameError, "命名配置",
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                return;
+            }
 
             configs[index].ConfigName = newName;
             configs[index].OnPropertyChanged("ConfigName");

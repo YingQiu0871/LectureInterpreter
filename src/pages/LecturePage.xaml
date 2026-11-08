@@ -182,7 +182,7 @@
                         <ComboBox
                             x:Name="SummaryConfigBox"
                             SelectionChanged="SummaryConfigBox_SelectionChanged" />
-                        <TextBlock Style="{StaticResource Hint}" Text="小结、课堂纪要和“测试连接”都用这个档位的模型。字幕翻译用哪个档位在“⑤ 翻译”里选；翻译专用配置不能做摘要，请为摘要选择支持对话的模型。" />
+                        <TextBlock Style="{StaticResource Hint}" Text="小结、课堂纪要和“测试连接”都用这个档位的模型。字幕翻译用哪个档位在卡片 ① 的“服务商”下拉里选（“⑤ 翻译”只选翻译接口）；翻译专用配置不能做摘要，请为摘要选择支持对话的模型。" />
 
                         <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
                             <ui:Button

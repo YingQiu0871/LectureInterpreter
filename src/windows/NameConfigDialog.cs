@@ -20,8 +20,9 @@ namespace LiveCaptionsTranslator
                 ResizeMode = ResizeMode.NoResize,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 ShowInTaskbar = false,
-                Background = SystemColors.WindowBrush,
-            };
+                };
+            dialog.SetResourceReference(Control.BackgroundProperty, "ApplicationBackgroundBrush");
+            dialog.SetResourceReference(Control.ForegroundProperty, "TextFillColorPrimaryBrush");
 
             var panel = new StackPanel { Margin = new Thickness(16) };
             panel.Children.Add(new TextBlock
