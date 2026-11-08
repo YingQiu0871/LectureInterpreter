@@ -513,7 +513,7 @@
                                     Margin="10"
                                     FontSize="20"
                                     FontWeight="Medium"
-                                    Text="DeepSeek / 通义千问 / OpenAI 兼容接口" />
+                                    Text="DeepSeek / 通义千问 / Claude / Gemini / OpenAI 兼容接口" />
 
                                 <ui:Card Padding="15">
                                     <StackPanel>
@@ -1044,6 +1044,11 @@
                                                     <ComboBoxItem Content="fr" />
                                                     <ComboBoxItem Content="ko" />
                                                     <ComboBoxItem Content="de" />
+                                                    <ComboBoxItem Content="es" />
+                                                    <ComboBoxItem Content="it" />
+                                                    <ComboBoxItem Content="pt" />
+                                                    <ComboBoxItem Content="ru" />
+                                                    <ComboBoxItem Content="zh" />
                                                 </ComboBox>
                                             </StackPanel>
                                             <StackPanel
