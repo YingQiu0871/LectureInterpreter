@@ -380,6 +380,7 @@ namespace LiveCaptionsTranslator
                     lowEffort ? Effort.Low : Effort.Medium);
             }
 
+            bool gemini = ApiProviders.IsGemini(config.ApiUrl);
             var requestData = new Dictionary<string, object>
             {
                 ["model"] = config.ModelName,
@@ -389,9 +390,12 @@ namespace LiveCaptionsTranslator
                     new BaseLLMConfig.Message { role = "user", content = user }
                 },
                 ["temperature"] = temperature,
-                ["max_tokens"] = maxTokens,
+                // Gemini 3 always thinks, and the thinking may count toward the output limit.
+                ["max_tokens"] = gemini ? maxTokens + 2048 : maxTokens,
                 ["stream"] = false,
             };
+            if (gemini)
+                requestData["reasoning_effort"] = lowEffort ? "minimal" : "low";
             if (json)
                 requestData["response_format"] = new { type = "json_object" };
 

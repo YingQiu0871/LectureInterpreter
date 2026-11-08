@@ -126,6 +126,28 @@ namespace LiveCaptionsTranslator.apis
             HttpResponseMessage response;
             try
             {
+                if (ApiProviders.IsGemini(config.ApiUrl))
+                {
+                    // Gemini 3 always thinks: ask for the least, which only a plain request can carry.
+                    var turns = messages.Where(m => !string.IsNullOrWhiteSpace(m.content))
+                        .Select(m => new { m.role, m.content }).ToList();
+                    var geminiData = new Dictionary<string, object>
+                    {
+                        ["model"] = config.ModelName,
+                        ["messages"] = turns,
+                        ["temperature"] = config.Temperature,
+                        ["max_tokens"] = 512 + 2048,
+                        ["reasoning_effort"] = "minimal",
+                        ["stream"] = false,
+                    };
+                    var geminiRequest = new HttpRequestMessage(HttpMethod.Post, TextUtil.NormalizeUrl(config.ApiUrl))
+                    {
+                        Content = new StringContent(JsonSerializer.Serialize(geminiData), Encoding.UTF8, "application/json")
+                    };
+                    geminiRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", config.ApiKey.Trim());
+                    response = await client.SendAsync(geminiRequest, token);
+                }
+                else
                 while (true)
                 {
                     var requestData = LLMRequestDataFactory.Create(openai_fallback_index,
