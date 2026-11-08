@@ -30,7 +30,11 @@ namespace LiveCaptionsTranslator.utils
         // Claude goes through the Anthropic SDK instead of the OpenAI-compatible request.
         public static bool IsClaude(string? apiUrl)
         {
-            return apiUrl?.Contains("anthropic.com", StringComparison.OrdinalIgnoreCase) == true;
+            if (string.IsNullOrWhiteSpace(apiUrl))
+                return false;
+            // Relays keep the path of the Messages API.
+            return apiUrl.Contains("anthropic.com", StringComparison.OrdinalIgnoreCase) ||
+                   apiUrl.TrimEnd('/').EndsWith("/v1/messages", StringComparison.OrdinalIgnoreCase);
         }
 
         // The provider the configured URL belongs to: the first one when nothing is configured yet, the custom
@@ -50,6 +54,11 @@ namespace LiveCaptionsTranslator.utils
         {
             if (!string.IsNullOrEmpty(provider.ApiUrl))
                 config.ApiUrl = provider.ApiUrl;
+            // Custom: do not stay on the URL of a known provider (it would keep routing to it).
+            else if (IsClaude(config.ApiUrl) ||
+                     All.Take(All.Length - 1).Any(p => config.ApiUrl.Contains(new Uri(p.ApiUrl).Host,
+                         StringComparison.OrdinalIgnoreCase)))
+                config.ApiUrl = string.Empty;
             if (provider.Models.Length > 0 && !provider.Models.Contains(config.ModelName))
                 config.ModelName = provider.Models[0];
         }

@@ -3,6 +3,8 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
+using Anthropic.Models.Messages;
+
 using LiveCaptionsTranslator.models;
 using LiveCaptionsTranslator.utils;
 
@@ -303,7 +305,7 @@ namespace LiveCaptionsTranslator
             for (int i = 0; i < lines.Count; i++)
                 transcript.AppendLine($"{i + 1}. {lines[i].SourceText}");
 
-            string output = await Chat(system.ToString(), transcript.ToString(), maxTokens: 200, temperature: 0, json: true);
+            string output = await Chat(system.ToString(), transcript.ToString(), maxTokens: 200, temperature: 0, json: true, lowEffort: true);
             var match = JsonObject().Match(output);
             if (!match.Success)
                 throw new FormatException($"Unexpected reply: {output}");
@@ -359,10 +361,10 @@ namespace LiveCaptionsTranslator
         }
 
         public static Task<string> TestConnection() =>
-            Chat("Reply with the single word OK.", "ping", maxTokens: 16, temperature: 0);
+            Chat("Reply with the single word OK.", "ping", maxTokens: 16, temperature: 0, lowEffort: true);
 
         internal static async Task<string> Chat(string system, string user, int maxTokens, double temperature,
-            bool json = false, bool longRequest = false)
+            bool json = false, bool longRequest = false, bool lowEffort = false)
         {
             var config = Translator.Setting[SUMMARY_API] as OpenAIConfig;
             if (config == null || string.IsNullOrWhiteSpace(config.ApiUrl))
@@ -374,7 +376,8 @@ namespace LiveCaptionsTranslator
                 if (string.IsNullOrWhiteSpace(config.ApiKey))
                     throw new InvalidOperationException("还没有填 Claude 的 API Key，请到“设置”页的“模型与 API”里填写。");
                 return await ClaudeApi.Complete(config, system, [("user", user)], maxTokens,
-                    longRequest ? TimeSpan.FromMinutes(10) : TimeSpan.FromSeconds(40));
+                    longRequest ? TimeSpan.FromMinutes(10) : TimeSpan.FromSeconds(40),
+                    lowEffort ? Effort.Low : Effort.Medium);
             }
 
             var requestData = new Dictionary<string, object>

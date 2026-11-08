@@ -23,6 +23,20 @@ namespace LiveCaptionsTranslator.utils
         public static bool IsArrears(string? body) =>
             body != null && body.Contains("Arrearage", StringComparison.OrdinalIgnoreCase);
 
+        // Some models wrap a whole Markdown answer in one code fence.
+        public static string StripCodeFence(string text)
+        {
+            text = text.Trim();
+            if (!text.StartsWith("```") || !text.EndsWith("```") || text.Length < 6)
+                return text;
+            int firstLineEnd = text.IndexOf('\n');
+            if (firstLineEnd < 0)
+                return text;
+            string inner = text[(firstLineEnd + 1)..^3];
+            // Another fence inside means the answer is not one wrapped block.
+            return inner.Contains("```") ? text : inner.Trim();
+        }
+
         public const int SHORT_THRESHOLD = 10;
         public const int MEDIUM_THRESHOLD = 40;
         public const int VERYLONG_THRESHOLD = 220;

@@ -50,6 +50,7 @@ namespace LiveCaptionsTranslator.apis
         {
             Timeout = TimeSpan.FromSeconds(8)
         };
+        private static readonly TimeSpan CLAUDE_TIMEOUT = TimeSpan.FromSeconds(15);
         private static int openai_fallback_index = 0;
 
         private static string HttpError(HttpResponseMessage response)
@@ -95,14 +96,26 @@ namespace LiveCaptionsTranslator.apis
 
             if (ApiProviders.IsClaude(config.ApiUrl))
             {
-                var turns = messages.Skip(1).Select(m => (m.role, m.content)).ToList();
+                // Claude rejects empty text blocks.
+                var turns = new List<(string role, string content)>();
+                for (int i = 1; i < messages.Count - 1; i += 2)
+                {
+                    if (string.IsNullOrWhiteSpace(messages[i].content) ||
+                        string.IsNullOrWhiteSpace(messages[i + 1].content))
+                        continue;
+                    turns.Add((messages[i].role, messages[i].content));
+                    turns.Add((messages[i + 1].role, messages[i + 1].content));
+                }
+                turns.Add(("user", messages[^1].content));
                 try
                 {
-                    return await ClaudeApi.Complete(config, messages[0].content, turns, 512, client.Timeout, token);
+                    return await ClaudeApi.Complete(config, messages[0].content, turns, 512,
+                        CLAUDE_TIMEOUT, Anthropic.Models.Messages.Effort.Low, 0, token);
                 }
                 catch (OperationCanceledException) when (!token.IsCancellationRequested)
                 {
-                    return "[ERROR] 翻译失败：请求超时（超过 8 秒），请换一个更快的接口或检查网络。";
+                    return $"[ERROR] 翻译失败：请求超时（超过 {CLAUDE_TIMEOUT.TotalSeconds:0} 秒），" +
+                           $"请换一个更快的接口或检查网络。";
                 }
                 catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException)
                 {

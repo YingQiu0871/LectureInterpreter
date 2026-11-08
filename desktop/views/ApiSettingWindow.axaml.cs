@@ -38,7 +38,7 @@ namespace LiveCaptionsTranslator
             new("OpenAI", "DeepSeek / 通义千问 / Claude / OpenAI 兼容接口", "DeepSeek / OpenAI 兼容", new[]
             {
                 new Field("模型名称", "ModelName"),
-                new Field("温度", "Temperature", Kind.Number),
+                new Field("温度", "Temperature", Kind.Number, Info: "Claude 不使用这个设置。"),
                 new Field("接口地址", "ApiUrl",
                     Info: "请填完整地址（通常以`v1/chat/completions`结尾），不要只填基础地址（通常只以`v1`结尾）。"),
                 new Field("API Key", "ApiKey"),

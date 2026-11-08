@@ -97,7 +97,7 @@ namespace LiveCaptionsTranslator.utils
             var file = new StringBuilder();
             file.AppendLine($"<!-- 课堂同传助手自动生成的笔记初稿：{lecture.CourseName} / {lecture.Name}，请自行核对。 -->");
             file.AppendLine();
-            file.AppendLine(notes.Trim());
+            file.AppendLine(TextUtil.StripCodeFence(notes));
             await File.WriteAllTextAsync(path, file.ToString(), new UTF8Encoding(false));
             return path;
         }
