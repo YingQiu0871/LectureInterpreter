@@ -61,7 +61,10 @@ namespace LiveCaptionsTranslator.utils
         public static void Apply(Provider provider, OpenAIConfig config)
         {
             if (!string.IsNullOrEmpty(provider.ApiUrl))
+            {
                 config.ApiUrl = provider.ApiUrl;
+                config.ApiStyle = "standard";
+            }
             // Custom: do not stay on the URL of a known provider (it would keep routing to it).
             else if (IsClaude(config.ApiUrl) ||
                      All.Take(All.Length - 1).Any(p => config.ApiUrl.Contains(new Uri(p.ApiUrl).Host,
