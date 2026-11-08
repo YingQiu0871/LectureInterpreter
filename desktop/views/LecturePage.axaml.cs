@@ -43,7 +43,7 @@ namespace LiveCaptionsTranslator
         // The default output device, read when the devices are listed (asking costs a call to `pactl`).
         private string? renderDefaultId;
 
-        private static OpenAIConfig? ApiConfig => Translator.Setting[Summarizer.SUMMARY_API] as OpenAIConfig;
+        private static OpenAIConfig? ApiConfig => Summarizer.Config;
         private static LectureState Lecture => Translator.Setting.Lecture;
 
         public LecturePage()
@@ -520,8 +520,7 @@ namespace LiveCaptionsTranslator
 
             await RunBusy(TestApiButton, TestApiResult, "测试中……", async () =>
             {
-                await Summarizer.TestConnection();
-                return "连接成功";
+                return await Summarizer.TestConnection();
             });
         }
 
