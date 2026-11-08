@@ -97,7 +97,7 @@ namespace LiveCaptionsTranslator.models
     /// <summary>
     /// Qwen-MT style dedicated translation endpoint.
     /// Such endpoints reject `system` messages and only accept exactly one `user` message,
-    /// so the source/target languages and the interpreter instruction are passed through
+    /// so the source/target languages and the glossary are passed through
     /// `translation_options` instead.
     /// </summary>
     public class QwenMTRequestData(string model, List<BaseLLMConfig.Message> messages, double temperature)

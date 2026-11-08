@@ -48,13 +48,6 @@ namespace LiveCaptionsTranslator.models
             }
         }
 
-        /// <summary>
-        /// Display label for this slot: the user-set name when present, otherwise "配置 N".
-        /// </summary>
-        [JsonIgnore]
-        public string DisplayName =>
-            string.IsNullOrWhiteSpace(configName) ? "" : configName;
-
         public void OnPropertyChanged([CallerMemberName] string propName = "")
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
@@ -169,7 +162,7 @@ namespace LiveCaptionsTranslator.models
         /// "standard"  – regular OpenAI-compatible chat completion (system + user messages).
         /// "qwen-mt"   – Qwen-MT style dedicated translation endpoint. It rejects `system`
         ///              messages and only accepts a single `user` message, so the source/target
-        ///              languages and the interpreter instruction have to travel in
+        ///              languages and the glossary have to travel in
         ///              `translation_options` instead.
         /// </summary>
         private string apiStyle = "standard";
@@ -192,6 +185,11 @@ namespace LiveCaptionsTranslator.models
                 OnPropertyChanged("ApiUrl");
             }
         }
+        // Qwen-MT models only speak the translation protocol, whatever the style says.
+        public bool IsQwenMT =>
+            string.Equals(ApiStyle, "qwen-mt", StringComparison.OrdinalIgnoreCase) ||
+            (ModelName ?? string.Empty).Trim().StartsWith("qwen-mt", StringComparison.OrdinalIgnoreCase);
+
         public string ApiStyle
         {
             get => apiStyle;

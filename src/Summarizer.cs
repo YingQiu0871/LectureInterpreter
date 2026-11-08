@@ -408,7 +408,7 @@ namespace LiveCaptionsTranslator
 
             var responseObj = JsonSerializer.Deserialize<OpenAIConfig.Response>(body);
             string output = responseObj?.choices?.FirstOrDefault()?.message?.content?.Trim() ?? string.Empty;
-            return string.IsNullOrEmpty(output) ? "(空回复)" : output;
+            return string.IsNullOrEmpty(output) ? "（空回复）" : output;
         }
 
         // Summaries may use a different slot from translation-only configurations.
@@ -427,7 +427,7 @@ namespace LiveCaptionsTranslator
         internal static bool CanChat => !IsTranslateOnly(Config);
 
         private static bool IsTranslateOnly(OpenAIConfig? config) =>
-            string.Equals(config?.ApiStyle, "qwen-mt", StringComparison.OrdinalIgnoreCase);
+            config?.IsQwenMT == true;
 
         private static string Describe(OpenAIConfig config)
         {

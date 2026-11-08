@@ -13,7 +13,7 @@ namespace LiveCaptionsTranslator.utils
             new("DeepSeek", "https://api.deepseek.com/chat/completions",
                 new[] { "deepseek-chat" }),
             new("Qwen", "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
-                new[] { "qwen-plus", "qwen-turbo", "qwen-max" }),
+                new[] { "qwen-plus", "qwen-turbo", "qwen-max", "qwen-mt-turbo", "qwen-mt-plus" }),
             new("Claude", "https://api.anthropic.com/v1/messages",
                 new[] { "claude-sonnet-5-5", "claude-opus-5-5", "claude-haiku-5-5" }),
             new("Gemini", "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",

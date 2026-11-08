@@ -73,7 +73,7 @@ namespace LiveCaptionsTranslator.apis
 
             // Qwen-MT style endpoints reject `system` messages and accept
             // exactly one `user` message, so they take a different wire format entirely.
-            bool isQwenMT = string.Equals(config.ApiStyle, "qwen-mt", StringComparison.OrdinalIgnoreCase);
+            bool isQwenMT = config.IsQwenMT;
 
             var messages = new List<BaseLLMConfig.Message>
             {
@@ -312,7 +312,27 @@ namespace LiveCaptionsTranslator.apis
                 "vi" => "Vietnamese",
                 "th" => "Thai",
                 "tr" => "Turkish",
-                _ => tag
+                "id" => "Indonesian",
+                "ms" => "Malay",
+                "hi" => "Hindi",
+                "uk" => "Ukrainian",
+                "he" => "Hebrew",
+                "el" => "Greek",
+                "hu" => "Hungarian",
+                "ro" => "Romanian",
+                "da" => "Danish",
+                "fi" => "Finnish",
+                "nb" or "no" => "Norwegian",
+                "fa" => "Persian",
+                "bn" => "Bengali",
+                "ta" => "Tamil",
+                "ur" => "Urdu",
+                "km" => "Khmer",
+                "lo" => "Lao",
+                "my" => "Burmese",
+                "tl" or "fil" => "Filipino",
+                // DashScope takes English language names, not tags; "auto" is the safe fallback.
+                _ => LectureLanguages.Find(tag)?.EnglishName ?? "auto"
             };
         }
 
