@@ -513,7 +513,7 @@
                                     Margin="10"
                                     FontSize="20"
                                     FontWeight="Medium"
-                                    Text="DeepSeek / 通义千问 / OpenAI 兼容接口" />
+                                    Text="DeepSeek / 通义千问 / Claude / Gemini / OpenAI 兼容接口" />
 
                                 <ui:Card Padding="15">
                                     <StackPanel>

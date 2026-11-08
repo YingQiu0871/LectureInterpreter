@@ -3,6 +3,8 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
+using Anthropic.Models.Messages;
+
 using LiveCaptionsTranslator.models;
 using LiveCaptionsTranslator.utils;
 
@@ -303,7 +305,7 @@ namespace LiveCaptionsTranslator
             for (int i = 0; i < lines.Count; i++)
                 transcript.AppendLine($"{i + 1}. {lines[i].SourceText}");
 
-            string output = await Chat(system.ToString(), transcript.ToString(), maxTokens: 200, temperature: 0, json: true);
+            string output = await Chat(system.ToString(), transcript.ToString(), maxTokens: 200, temperature: 0, json: true, lowEffort: true);
             var match = JsonObject().Match(output);
             if (!match.Success)
                 throw new FormatException($"Unexpected reply: {output}");
@@ -359,16 +361,26 @@ namespace LiveCaptionsTranslator
         }
 
         public static Task<string> TestConnection() =>
-            Chat("Reply with the single word OK.", "ping", maxTokens: 16, temperature: 0);
+            Chat("Reply with the single word OK.", "ping", maxTokens: 16, temperature: 0, lowEffort: true);
 
         internal static async Task<string> Chat(string system, string user, int maxTokens, double temperature,
-            bool json = false, bool longRequest = false)
+            bool json = false, bool longRequest = false, bool lowEffort = false)
         {
             var config = Translator.Setting[SUMMARY_API] as OpenAIConfig;
             if (config == null || string.IsNullOrWhiteSpace(config.ApiUrl))
                 throw new InvalidOperationException(
                     "请先在 API 设置的 \"OpenAI\" 一项里填好接口地址、密钥和模型（例如 DeepSeek）。");
 
+            if (ApiProviders.IsClaude(config.ApiUrl))
+            {
+                if (string.IsNullOrWhiteSpace(config.ApiKey))
+                    throw new InvalidOperationException("还没有填 Claude 的 API Key，请到“设置”页的“模型与 API”里填写。");
+                return await ClaudeApi.Complete(config, system, [("user", user)], maxTokens,
+                    longRequest ? TimeSpan.FromMinutes(10) : TimeSpan.FromSeconds(40),
+                    lowEffort ? Effort.Low : Effort.Medium);
+            }
+
+            bool gemini = ApiProviders.IsGemini(config.ApiUrl);
             var requestData = new Dictionary<string, object>
             {
                 ["model"] = config.ModelName,
@@ -378,9 +390,12 @@ namespace LiveCaptionsTranslator
                     new BaseLLMConfig.Message { role = "user", content = user }
                 },
                 ["temperature"] = temperature,
-                ["max_tokens"] = maxTokens,
+                // Gemini 3 always thinks, and the thinking may count toward the output limit.
+                ["max_tokens"] = gemini ? maxTokens + 2048 : maxTokens,
                 ["stream"] = false,
             };
+            if (gemini)
+                requestData["reasoning_effort"] = lowEffort ? "minimal" : "low";
             if (json)
                 requestData["response_format"] = new { type = "json_object" };
 
@@ -405,9 +420,16 @@ namespace LiveCaptionsTranslator
                     throw new HttpRequestException(TextUtil.QuotaExhaustedMessage, null, response.StatusCode);
                 if (response.StatusCode == System.Net.HttpStatusCode.BadRequest && TextUtil.IsArrears(responseString))
                     throw new HttpRequestException(TextUtil.ArrearageMessage, null, response.StatusCode);
+                if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                    throw new HttpRequestException(TextUtil.RateLimitMessage, null, response.StatusCode);
                 if (!response.IsSuccessStatusCode)
-                    throw new HttpRequestException($"HTTP Error - {(int)response.StatusCode} {response.StatusCode}",
-                        null, response.StatusCode);
+                {
+                    string detail = response.StatusCode is System.Net.HttpStatusCode.BadRequest
+                        or System.Net.HttpStatusCode.Forbidden ? TextUtil.ErrorDetail(responseString) : string.Empty;
+                    throw new HttpRequestException(
+                        $"HTTP Error - {(int)response.StatusCode} {response.StatusCode}" +
+                        (detail.Length > 0 ? "：" + detail : string.Empty), null, response.StatusCode);
+                }
 
                 var responseObj = JsonSerializer.Deserialize<OpenAIConfig.Response>(responseString);
                 string output = responseObj?.choices?.FirstOrDefault()?.message?.content ?? string.Empty;

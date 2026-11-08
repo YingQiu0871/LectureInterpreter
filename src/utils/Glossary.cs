@@ -39,7 +39,7 @@ namespace LiveCaptionsTranslator.utils
             foreach (var rawLine in (text ?? string.Empty).Split('\n'))
             {
                 string line = rawLine.Trim().TrimStart('-', '*', '•').Trim();
-                if (line.Length == 0 || line.StartsWith('#'))
+                if (line.Length == 0 || line.StartsWith('#') || line.StartsWith("```"))
                     continue;
                 string term = line, translation = string.Empty;
                 int separator = line.IndexOfAny(SEPARATORS);

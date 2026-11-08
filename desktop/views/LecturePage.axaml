@@ -104,6 +104,8 @@
                         <ComboBox x:Name="ProviderBox" SelectionChanged="ProviderBox_SelectionChanged">
                             <ComboBoxItem Content="DeepSeek" />
                             <ComboBoxItem Content="通义千问（阿里云百炼）" />
+                            <ComboBoxItem Content="Claude 官方（Anthropic）" />
+                            <ComboBoxItem Content="Gemini（Google）" />
                             <ComboBoxItem Content="其他 OpenAI 兼容接口" />
                         </ComboBox>
 
@@ -228,11 +230,11 @@
                                        TextWrapping="Wrap" />
                         </StackPanel>
                         <TextBlock Classes="hint"
-                                   Text="用阿里云识别时，术语会作为热词提高识别率。翻译接口选 DeepSeek / 通义千问时，翻译、精修、小结和笔记都会按这里的译法统一（选 Google 翻译时，实时翻译和精修用不上术语表，只有小结和笔记会用）。换课时记得换成这门课的术语。" />
+                                   Text="用阿里云识别时，术语会作为热词提高识别率。翻译接口选 DeepSeek / 通义千问 / Claude / Gemini 时，翻译、精修、小结和笔记都会按这里的译法统一（选 Google 翻译时，实时翻译和精修用不上术语表，只有小结和笔记会用）。换课时记得换成这门课的术语。" />
 
                         <TextBlock Classes="label" Text="翻译接口" />
                         <ComboBox x:Name="TranslateApiBox" SelectionChanged="TranslateApiBox_SelectionChanged" />
-                        <TextBlock Classes="hint" Text="选 DeepSeek / 通义千问时使用“① 模型与 API”的设置；Google 免费，不用 Key。" />
+                        <TextBlock Classes="hint" Text="选 DeepSeek / 通义千问 / Claude / Gemini 时使用“① 模型与 API”的设置；Google 免费，不用 Key。" />
 
                         <TextBlock Classes="label" Text="翻译成" />
                         <local:EditableCombo x:Name="TargetLangBox" />
@@ -252,7 +254,7 @@
                         <ToggleSwitch Margin="0,12,0,0" Content="段落精修（推荐）"
                                       IsChecked="{Binding RefineParagraphs, Mode=TwoWay}" />
                         <TextBlock Classes="hint"
-                                   Text="每说完几句，用 DeepSeek 结合上下文、课程主题和课件把这几句整理成一段：纠正听错的词，再整段翻译。比逐句翻译准确得多，大约晚 5～10 秒出现，逐句的即时翻译会被替换。只在翻译接口选 DeepSeek / 通义千问时生效。" />
+                                   Text="每说完几句，用大模型结合上下文、课程主题和课件把这几句整理成一段：纠正听错的词，再整段翻译。比逐句翻译准确得多，大约晚 5～10 秒出现，逐句的即时翻译会被替换。只在翻译接口选 DeepSeek / 通义千问 / Claude / Gemini 时生效。" />
 
                         <ToggleSwitch Margin="0,12,0,0" Content="中外对照（译文上方保留原文）"
                                       IsChecked="{Binding ShowOriginal, Mode=TwoWay}" />

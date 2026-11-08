@@ -23,6 +23,53 @@ namespace LiveCaptionsTranslator.utils
         public static bool IsArrears(string? body) =>
             body != null && body.Contains("Arrearage", StringComparison.OrdinalIgnoreCase);
 
+        public const string RateLimitMessage = "请求太频繁或免费额度用完（HTTP 429），稍后再试。";
+
+        // The `error.message` of an error body, as one short line. Accepts {"error":{...}} and [{"error":{...}}].
+        public static string ErrorDetail(string? body)
+        {
+            if (string.IsNullOrWhiteSpace(body))
+                return string.Empty;
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(body);
+                var root = doc.RootElement;
+                if (root.ValueKind == System.Text.Json.JsonValueKind.Array && root.GetArrayLength() > 0)
+                    root = root[0];
+                if (root.ValueKind != System.Text.Json.JsonValueKind.Object ||
+                    !root.TryGetProperty("error", out var error))
+                    return string.Empty;
+                string? message = error.ValueKind == System.Text.Json.JsonValueKind.Object &&
+                                  error.TryGetProperty("message", out var m) &&
+                                  m.ValueKind == System.Text.Json.JsonValueKind.String
+                    ? m.GetString()
+                    : error.ValueKind == System.Text.Json.JsonValueKind.String ? error.GetString() : null;
+                if (string.IsNullOrWhiteSpace(message))
+                    return string.Empty;
+                message = string.Join(' ', message.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(l => l.Trim()));
+                return message.Length > 200 ? message[..200] + "…" : message;
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                return string.Empty;
+            }
+        }
+
+        // Some models wrap a whole Markdown answer in one code fence.
+        public static string StripCodeFence(string text)
+        {
+            text = text.Trim();
+            if (!text.StartsWith("```") || !text.EndsWith("```") || text.Length < 6)
+                return text;
+            int firstLineEnd = text.IndexOf('\n');
+            if (firstLineEnd < 0)
+                return text;
+            string inner = text[(firstLineEnd + 1)..^3];
+            // Another fence inside means the answer is not one wrapped block.
+            return inner.Contains("```") ? text : inner.Trim();
+        }
+
         public const int SHORT_THRESHOLD = 10;
         public const int MEDIUM_THRESHOLD = 40;
         public const int VERYLONG_THRESHOLD = 220;

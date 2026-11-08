@@ -14,16 +14,36 @@ namespace LiveCaptionsTranslator.utils
                 new[] { "deepseek-chat" }),
             new("Qwen", "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
                 new[] { "qwen-plus", "qwen-turbo", "qwen-max" }),
+            new("Claude", "https://api.anthropic.com/v1/messages",
+                new[] { "claude-sonnet-5-5", "claude-opus-5-5", "claude-haiku-5-5" }),
+            new("Gemini", "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+                new[] { "gemini-3.6-flash", "gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-3.1-pro-preview" }),
             new("Custom", string.Empty, Array.Empty<string>()),
         };
 
         // Display names for the translation APIs. DeepSeek / Qwen go through the OpenAI-compatible config of card ①.
         public static readonly Dictionary<string, string> ApiNames = new()
         {
-            [Summarizer.SUMMARY_API] = "DeepSeek / 通义千问（用 ① 的设置）",
+            [Summarizer.SUMMARY_API] = "DeepSeek / 通义千问 / Claude / Gemini（用 ① 的设置）",
             ["Google"] = "Google 翻译（免费）",
             ["Google2"] = "Google 翻译 2（免费）",
         };
+
+        // Claude goes through the Anthropic SDK instead of the OpenAI-compatible request.
+        public static bool IsClaude(string? apiUrl)
+        {
+            if (string.IsNullOrWhiteSpace(apiUrl))
+                return false;
+            // Relays keep the path of the Messages API.
+            return apiUrl.Contains("anthropic.com", StringComparison.OrdinalIgnoreCase) ||
+                   apiUrl.TrimEnd('/').EndsWith("/v1/messages", StringComparison.OrdinalIgnoreCase);
+        }
+
+        // Gemini uses its OpenAI-compatible endpoint, with an extra `reasoning_effort` field.
+        public static bool IsGemini(string? apiUrl) =>
+            !IsClaude(apiUrl) && !string.IsNullOrWhiteSpace(apiUrl) &&
+            (apiUrl.Contains("generativelanguage.googleapis.com", StringComparison.OrdinalIgnoreCase) ||
+             apiUrl.Contains("/v1beta/openai", StringComparison.OrdinalIgnoreCase));
 
         // The provider the configured URL belongs to: the first one when nothing is configured yet, the custom
         // one when the URL is on none of their hosts.
@@ -42,6 +62,11 @@ namespace LiveCaptionsTranslator.utils
         {
             if (!string.IsNullOrEmpty(provider.ApiUrl))
                 config.ApiUrl = provider.ApiUrl;
+            // Custom: do not stay on the URL of a known provider (it would keep routing to it).
+            else if (IsClaude(config.ApiUrl) ||
+                     All.Take(All.Length - 1).Any(p => config.ApiUrl.Contains(new Uri(p.ApiUrl).Host,
+                         StringComparison.OrdinalIgnoreCase)))
+                config.ApiUrl = string.Empty;
             if (provider.Models.Length > 0 && !provider.Models.Contains(config.ModelName))
                 config.ModelName = provider.Models[0];
         }
