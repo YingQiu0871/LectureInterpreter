@@ -18,7 +18,6 @@ namespace LiveCaptionsTranslator
         public TimelinePage()
         {
             InitializeComponent();
-            MainWindow.ApplySavedTheme();
 
             ScrollHelper.UseOwnScrollViewer(this, SectionScroll);
 

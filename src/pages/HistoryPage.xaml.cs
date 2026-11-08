@@ -3,7 +3,6 @@ using System.Windows.Controls;
 using System.IO;
 using System.Windows.Input;
 using Microsoft.Win32;
-using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
 
 using LiveCaptionsTranslator.models;
@@ -36,7 +35,6 @@ namespace LiveCaptionsTranslator
         public HistoryPage()
         {
             InitializeComponent();
-            MainWindow.ApplySavedTheme();
 
             ScrollHelper.UseOwnScrollViewer(this, CourseScroll, LectureScroll, DetailScroll);
             Loaded += async (s, e) =>

@@ -6,7 +6,6 @@ using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Win32;
 using NAudio.CoreAudioApi;
-using Wpf.Ui.Appearance;
 
 using LiveCaptionsTranslator.models;
 using LiveCaptionsTranslator.utils;
@@ -39,7 +38,6 @@ namespace LiveCaptionsTranslator
         public LecturePage()
         {
             InitializeComponent();
-            MainWindow.ApplySavedTheme();
             DataContext = Translator.Setting.Lecture;
             ScrollHelper.UseOwnScrollViewer(this, PageScroll);
 

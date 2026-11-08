@@ -2,7 +2,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
 
 using LiveCaptionsTranslator.apis;
@@ -21,13 +20,10 @@ namespace LiveCaptionsTranslator
         public SettingWindow()
         {
             InitializeComponent();
-            MainWindow.ApplySavedTheme();
             DataContext = Translator.Setting;
 
             Loaded += (sender, args) =>
             {
-                if (Translator.Setting.MainWindow.Theme == "System")
-                    SystemThemeWatcher.Watch(this, WindowBackdropType.Mica, true);
                 Initialize();
                 SelectButton(PromptButton);
             };

@@ -13,7 +13,6 @@ namespace LiveCaptionsTranslator
         public InfoPage()
         {
             InitializeComponent();
-            MainWindow.ApplySavedTheme();
             Version.Text = UpdateChecker.CurrentVersionText;
             AutoCheckBox.IsChecked = Translator.Setting?.Lecture.AutoCheckUpdate ?? true;
             UpdateStatus.Text = UpdateChecker.CurrentBuild == null ? "开发版本，不检查更新" : "尚未检查";

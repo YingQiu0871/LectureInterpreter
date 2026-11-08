@@ -1,7 +1,6 @@
 using System.Windows;
 using System.Windows.Navigation;
 using Wpf.Ui.Controls;
-using Wpf.Ui.Appearance;
 
 using LiveCaptionsTranslator.utils;
 
@@ -12,13 +11,6 @@ namespace LiveCaptionsTranslator
         public WelcomeWindow()
         {
             InitializeComponent();
-            MainWindow.ApplySavedTheme();
-
-            Loaded += (s, e) =>
-            {
-                if (Translator.Setting.MainWindow.Theme == "System")
-                    SystemThemeWatcher.Watch(this, WindowBackdropType.Mica, true);
-            };
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)

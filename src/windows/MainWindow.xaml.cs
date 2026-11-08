@@ -30,6 +30,8 @@ namespace LiveCaptionsTranslator
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
+        private static bool watchingSystemTheme;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -47,8 +49,7 @@ namespace LiveCaptionsTranslator
 
             Loaded += (s, e) =>
             {
-                if (Translator.Setting.MainWindow.Theme == "System")
-                    SystemThemeWatcher.Watch(this, WindowBackdropType.Mica, true);
+                UpdateSystemThemeWatch();
                 RootNavigation.Navigate(typeof(CaptionPage));
                 CheckForFirstUse();
             };
@@ -79,27 +80,35 @@ namespace LiveCaptionsTranslator
         {
             string theme = Translator.Setting?.MainWindow.Theme ?? "System";
             if (theme == "System")
-            {
                 ApplicationThemeManager.ApplySystemTheme();
-                if (Application.Current.MainWindow is MainWindow main && main.IsLoaded)
-                    SystemThemeWatcher.Watch(main, WindowBackdropType.Mica, true);
-            }
             else
-            {
-                // UnWatch throws for windows that are not loaded yet (e.g. while their constructor runs).
-                foreach (Window window in Application.Current.Windows)
-                {
-                    if (!window.IsLoaded)
-                        continue;
-                    try
-                    {
-                        SystemThemeWatcher.UnWatch(window);
-                    }
-                    catch (InvalidOperationException)
-                    {
-                    }
-                }
                 ApplicationThemeManager.Apply(theme == "Dark" ? ApplicationTheme.Dark : ApplicationTheme.Light);
+            UpdateSystemThemeWatch();
+        }
+
+        // Theme resources are application-wide, so a single watcher on the main window makes the whole app follow
+        // the system theme. Watch() adds a new hook on every call, hence the flag.
+        private static void UpdateSystemThemeWatch()
+        {
+            if (Application.Current?.MainWindow is not MainWindow main || !main.IsLoaded)
+                return;
+
+            bool follow = (Translator.Setting?.MainWindow.Theme ?? "System") == "System";
+            if (follow && !watchingSystemTheme)
+            {
+                SystemThemeWatcher.Watch(main, WindowBackdropType.Mica, true);
+                watchingSystemTheme = true;
+            }
+            else if (!follow && watchingSystemTheme)
+            {
+                try
+                {
+                    SystemThemeWatcher.UnWatch(main);
+                }
+                catch (InvalidOperationException)
+                {
+                }
+                watchingSystemTheme = false;
             }
         }
 
