@@ -2,7 +2,6 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Win32;
-using Wpf.Ui.Appearance;
 
 using LiveCaptionsTranslator.models;
 using LiveCaptionsTranslator.utils;
@@ -19,7 +18,6 @@ namespace LiveCaptionsTranslator
         public TimelinePage()
         {
             InitializeComponent();
-            ApplicationThemeManager.ApplySystemTheme();
 
             ScrollHelper.UseOwnScrollViewer(this, SectionScroll);
 

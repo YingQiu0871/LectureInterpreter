@@ -15,9 +15,10 @@ namespace LiveCaptionsTranslator
     // Dialogs for naming a recording and choosing its course; the save flow itself is in LectureSaving.
     public static class LectureDialogs
     {
-        // Asks for the course and the name. Returns null if cancelled.
-        public static async Task<(string Course, string Name)?> AskName(string title, string course, string name,
-            string primaryText, string closeText)
+        // Asks for the course and the name. Returns null if cancelled. With `discardText` there is a third button
+        // whose answer has Discard set.
+        public static async Task<NameAnswer?> AskName(string title, string course, string name,
+            string primaryText, string closeText, string? discardText = null)
         {
             var host = (Application.Current.MainWindow as MainWindow)?.DialogHostContainer;
             if (host == null)
@@ -57,6 +58,7 @@ namespace LiveCaptionsTranslator
                 Title = new TextBlock { Text = title, FontSize = 18, FontWeight = FontWeights.Regular },
                 Content = panel,
                 PrimaryButtonText = primaryText,
+                SecondaryButtonText = discardText ?? string.Empty,
                 CloseButtonText = closeText,
                 DefaultButton = ContentDialogButton.Primary,
                 DialogHost = host,
@@ -66,11 +68,35 @@ namespace LiveCaptionsTranslator
             host.Visibility = Visibility.Visible;
             var result = await dialog.ShowAsync();
             host.Visibility = Visibility.Collapsed;
+            if (result == ContentDialogResult.Secondary)
+                return new NameAnswer(course, name, true);
             if (result != ContentDialogResult.Primary)
                 return null;
 
             string newName = nameBox.Text.Trim();
-            return (LectureStore.CleanCourseName(courseBox.Text), newName.Length == 0 ? name : newName);
+            return new NameAnswer(LectureStore.CleanCourseName(courseBox.Text), newName.Length == 0 ? name : newName);
+        }
+
+        public static async Task<bool> Confirm(string title, string message, string primary)
+        {
+            var host = (Application.Current.MainWindow as MainWindow)?.DialogHostContainer;
+            if (host == null)
+                return false;
+            var dialog = new ContentDialog
+            {
+                Title = new TextBlock { Text = title, FontSize = 18, FontWeight = FontWeights.Regular },
+                Content = new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap },
+                PrimaryButtonText = primary,
+                CloseButtonText = "取消",
+                DefaultButton = ContentDialogButton.Close,
+                DialogHost = host,
+                Padding = new Thickness(8, 4, 8, 8),
+            };
+
+            host.Visibility = Visibility.Visible;
+            var result = await dialog.ShowAsync();
+            host.Visibility = Visibility.Collapsed;
+            return result == ContentDialogResult.Primary;
         }
 
         public static void ShowInFolder(string path)

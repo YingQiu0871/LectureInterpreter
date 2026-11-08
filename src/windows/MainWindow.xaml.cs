@@ -1,6 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Input;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
 
@@ -29,10 +30,13 @@ namespace LiveCaptionsTranslator
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
+        private static bool watchingSystemTheme;
+
         public MainWindow()
         {
             InitializeComponent();
-            ApplicationThemeManager.ApplySystemTheme();
+            ApplySavedTheme();
+            SetUiScale(Translator.Setting.MainWindow.UiScale);
 
             SourceInitialized += (s, e) => RegisterHotKeys();
             Closed += (s, e) =>
@@ -45,7 +49,7 @@ namespace LiveCaptionsTranslator
 
             Loaded += (s, e) =>
             {
-                SystemThemeWatcher.Watch(this, WindowBackdropType.Mica, true);
+                UpdateSystemThemeWatch();
                 RootNavigation.Navigate(typeof(CaptionPage));
                 CheckForFirstUse();
             };
@@ -70,6 +74,57 @@ namespace LiveCaptionsTranslator
             ToggleTopmost(Translator.Setting.MainWindow.Topmost);
             ShowSpeakerState(Speaker.Muted);
             ShowLogCard(Translator.Setting.MainWindow.CaptionLogEnabled);
+        }
+
+        public static void ApplySavedTheme()
+        {
+            string theme = Translator.Setting?.MainWindow.Theme ?? "System";
+            if (theme == "System")
+                ApplicationThemeManager.ApplySystemTheme();
+            else
+                ApplicationThemeManager.Apply(theme == "Dark" ? ApplicationTheme.Dark : ApplicationTheme.Light);
+            UpdateSystemThemeWatch();
+        }
+
+        // Theme resources are application-wide, so a single watcher on the main window makes the whole app follow
+        // the system theme. Watch() adds a new hook on every call, hence the flag.
+        private static void UpdateSystemThemeWatch()
+        {
+            if (Application.Current?.MainWindow is not MainWindow main || !main.IsLoaded)
+                return;
+
+            bool follow = (Translator.Setting?.MainWindow.Theme ?? "System") == "System";
+            if (follow && !watchingSystemTheme)
+            {
+                SystemThemeWatcher.Watch(main, WindowBackdropType.Mica, true);
+                watchingSystemTheme = true;
+            }
+            else if (!follow && watchingSystemTheme)
+            {
+                try
+                {
+                    SystemThemeWatcher.UnWatch(main);
+                }
+                catch (InvalidOperationException)
+                {
+                }
+                watchingSystemTheme = false;
+            }
+        }
+
+        public void SetUiScale(double scale)
+        {
+            UiScaleTransform.ScaleX = scale;
+            UiScaleTransform.ScaleY = scale;
+        }
+
+        private void MainWindow_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if ((Keyboard.Modifiers & ModifierKeys.Control) == 0) return;
+            var state = Translator.Setting.MainWindow;
+            state.UiScale = Math.Round(state.UiScale + Math.Sign(e.Delta) * 0.05, 2);
+            SetUiScale(state.UiScale);
+            e.Handled = true;
         }
 
         private void TopmostButton_Click(object sender, RoutedEventArgs e)

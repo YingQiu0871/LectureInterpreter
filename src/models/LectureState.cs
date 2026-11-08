@@ -55,6 +55,12 @@ namespace LiveCaptionsTranslator.models
             "Output plain text only, no Markdown headings, no preamble. " +
             "If the section has no substantive content (small talk, silence, noise), output only the title line.";
 
+        public const string NATURAL_NOTES_HINT =
+            " Keep the required headings, order, lists and facts. Write clear, natural Chinese when the output is Chinese. " +
+            "Avoid canned reversals such as 'not A but B', empty lead-ins, repeated sentence patterns and decorative dashes. " +
+            "Use concrete numbers and examples only when they appear in the source; never invent or omit facts, qualifiers or terminology. " +
+            "Do not force a casual tone onto technical material.";
+
         // Added to the translation and summary prompts: the language of the lecture, the subject of the class and
         // the glossary, if given.
         public static string SubjectHint()
@@ -76,6 +82,9 @@ namespace LiveCaptionsTranslator.models
 
         private bool summaryEnabled = true;
         private int summaryIntervalMinutes = 2;
+        // Name of the OpenAI config slot used for section summaries. Empty = the currently selected slot.
+        // Kept separate so a translation-only configuration can still be used for captions.
+        private string summaryConfigName = string.Empty;
         private SegmentMode segmentMode = SegmentMode.Auto;
         private int maxSectionMinutes = 6;
         private string summaryPrompt = DEFAULT_SUMMARY_PROMPT;
@@ -126,6 +135,15 @@ namespace LiveCaptionsTranslator.models
             {
                 summaryIntervalMinutes = Math.Clamp(value, 1, 60);
                 OnPropertyChanged("SummaryIntervalMinutes");
+            }
+        }
+        public string SummaryConfigName
+        {
+            get => summaryConfigName ?? string.Empty;
+            set
+            {
+                summaryConfigName = value ?? string.Empty;
+                OnPropertyChanged("SummaryConfigName");
             }
         }
         public SegmentMode SegmentMode

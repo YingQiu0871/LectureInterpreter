@@ -13,7 +13,7 @@ namespace LiveCaptionsTranslator.utils
             new("DeepSeek", "https://api.deepseek.com/chat/completions",
                 new[] { "deepseek-chat" }),
             new("Qwen", "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
-                new[] { "qwen-plus", "qwen-turbo", "qwen-max" }),
+                new[] { "qwen-plus", "qwen-turbo", "qwen-max", "qwen-mt-turbo", "qwen-mt-plus" }),
             new("Claude", "https://api.anthropic.com/v1/messages",
                 new[] { "claude-sonnet-5-5", "claude-opus-5-5", "claude-haiku-5-5" }),
             new("Gemini", "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
@@ -61,7 +61,10 @@ namespace LiveCaptionsTranslator.utils
         public static void Apply(Provider provider, OpenAIConfig config)
         {
             if (!string.IsNullOrEmpty(provider.ApiUrl))
+            {
                 config.ApiUrl = provider.ApiUrl;
+                config.ApiStyle = "standard";
+            }
             // Custom: do not stay on the URL of a known provider (it would keep routing to it).
             else if (IsClaude(config.ApiUrl) ||
                      All.Take(All.Length - 1).Any(p => config.ApiUrl.Contains(new Uri(p.ApiUrl).Host,
@@ -69,6 +72,20 @@ namespace LiveCaptionsTranslator.utils
                 config.ApiUrl = string.Empty;
             if (provider.Models.Length > 0 && !provider.Models.Contains(config.ModelName))
                 config.ModelName = provider.Models[0];
+        }
+
+        // Config names must be non-empty and unique within an API; null when the name is fine. `except` is the slot
+        // being renamed.
+        public static string? ValidateConfigName(string apiName, string? name, TranslateAPIConfig? except = null)
+        {
+            name = (name ?? string.Empty).Trim();
+            if (name.Length == 0)
+                return "配置名称不能为空。";
+            if (Translator.Setting.Configs.TryGetValue(apiName, out var configs) &&
+                configs.Any(c => !ReferenceEquals(c, except) &&
+                                 string.Equals(c.ConfigName?.Trim(), name, StringComparison.OrdinalIgnoreCase)))
+                return "已有同名配置，请换一个名称。";
+            return null;
         }
 
         // Pasted keys sometimes carry spaces, line breaks or invisible characters.

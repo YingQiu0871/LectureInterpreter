@@ -32,6 +32,22 @@ namespace LiveCaptionsTranslator.models
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
+        /// <summary>
+        /// User-facing name of this configuration slot. Multiple slots can exist per API type
+        /// (see <c>Setting.Configs</c>), so a name lets the user tell them apart.
+        /// </summary>
+        private string configName = "";
+
+        public string ConfigName
+        {
+            get => configName;
+            set
+            {
+                configName = value ?? "";
+                OnPropertyChanged("ConfigName");
+            }
+        }
+
         public void OnPropertyChanged([CallerMemberName] string propName = "")
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
@@ -141,6 +157,16 @@ namespace LiveCaptionsTranslator.models
         private string apiKey = "";
         private string apiUrl = "";
 
+        /// <summary>
+        /// Wire format of the endpoint.
+        /// "standard"  – regular OpenAI-compatible chat completion (system + user messages).
+        /// "qwen-mt"   – Qwen-MT style dedicated translation endpoint. It rejects `system`
+        ///              messages and only accepts a single `user` message, so the source/target
+        ///              languages and the glossary have to travel in
+        ///              `translation_options` instead.
+        /// </summary>
+        private string apiStyle = "standard";
+
         public string ApiKey
         {
             get => apiKey;
@@ -157,6 +183,20 @@ namespace LiveCaptionsTranslator.models
             {
                 apiUrl = value;
                 OnPropertyChanged("ApiUrl");
+            }
+        }
+        // Qwen-MT models only speak the translation protocol, whatever the style says.
+        public bool IsQwenMT =>
+            string.Equals(ApiStyle, "qwen-mt", StringComparison.OrdinalIgnoreCase) ||
+            (ModelName ?? string.Empty).Trim().StartsWith("qwen-mt", StringComparison.OrdinalIgnoreCase);
+
+        public string ApiStyle
+        {
+            get => apiStyle;
+            set
+            {
+                apiStyle = string.IsNullOrWhiteSpace(value) ? "standard" : value;
+                OnPropertyChanged("ApiStyle");
             }
         }
     }

@@ -13,7 +13,7 @@ namespace LiveCaptionsTranslator
     {
         // Shows `content` with a primary and a close button. True if the primary one was chosen.
         public static async Task<bool> Ask(string title, Control content, string primary, string close = "取消",
-            Control? focus = null)
+            Control? focus = null, string? secondary = null, Action? secondaryClicked = null)
         {
             var owner = Shell.Main;
             bool result = false;
@@ -42,8 +42,19 @@ namespace LiveCaptionsTranslator
                 Orientation = Orientation.Horizontal,
                 HorizontalAlignment = HorizontalAlignment.Right,
                 Margin = new Thickness(0, 16, 0, 0),
-                Children = { primaryButton, closeButton },
+                Children = { primaryButton },
             };
+            if (secondary != null)
+            {
+                var secondaryButton = new Button { Content = secondary, MinWidth = 80, Margin = new Thickness(8, 0, 0, 0) };
+                secondaryButton.Click += (s, e) =>
+                {
+                    secondaryClicked?.Invoke();
+                    window.Close();
+                };
+                buttons.Children.Add(secondaryButton);
+            }
+            buttons.Children.Add(closeButton);
             window.Content = new StackPanel
             {
                 Margin = new Thickness(20),
@@ -90,9 +101,10 @@ namespace LiveCaptionsTranslator
             return await Ask(title, panel, "确定", focus: box) ? box.Text?.Trim() ?? string.Empty : null;
         }
 
-        // Asks for the course and the name. Returns null if cancelled.
-        public static async Task<(string Course, string Name)?> AskName(string title, string course, string name,
-            string primaryText, string closeText)
+        // Asks for the course and the name. Returns null if cancelled. With `discardText` there is a third button
+        // whose answer has Discard set.
+        public static async Task<NameAnswer?> AskName(string title, string course, string name,
+            string primaryText, string closeText, string? discardText = null)
         {
             List<string> courses;
             try
@@ -118,11 +130,15 @@ namespace LiveCaptionsTranslator
                 },
             };
 
-            if (!await Ask(title, panel, primaryText, closeText, nameBox))
+            bool discard = false;
+            bool saved = await Ask(title, panel, primaryText, closeText, nameBox, discardText, () => discard = true);
+            if (discard)
+                return new NameAnswer(course, name, true);
+            if (!saved)
                 return null;
 
             string newName = nameBox.Text?.Trim() ?? string.Empty;
-            return (LectureStore.CleanCourseName(courseBox.Text), newName.Length == 0 ? name : newName);
+            return new NameAnswer(LectureStore.CleanCourseName(courseBox.Text), newName.Length == 0 ? name : newName);
         }
 
         public static void ShowInFolder(string path)

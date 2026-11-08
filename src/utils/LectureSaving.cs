@@ -2,6 +2,9 @@ using LiveCaptionsTranslator.models;
 
 namespace LiveCaptionsTranslator.utils
 {
+    // The answer of the naming dialog; Discard means the recording is to be thrown away.
+    public record NameAnswer(string Course, string Name, bool Discard = false);
+
     // The save flow after a recording stops. The dialogs it asks with (LectureDialogs.AskName) differ per platform.
     public static class LectureSaving
     {
@@ -17,11 +20,29 @@ namespace LiveCaptionsTranslator.utils
                 var lecture = await LectureStore.GetLecture(lectureId);
                 if (lecture != null)
                 {
-                    var answer = await LectureDialogs.AskName("保存本节课", lecture.CourseName, lecture.Name, "保存", "用默认名称");
-                    if (answer is { } chosen)
+                    while (true)
                     {
-                        await LectureStore.RenameLecture(lectureId, chosen.Name, chosen.Course);
-                        Translator.Setting.Lecture.CurrentCourse = chosen.Course;
+                        var answer = await LectureDialogs.AskName("保存本节课", lecture.CourseName, lecture.Name,
+                            "保存", "用默认名称", "丢弃本次记录");
+                        if (answer is { Discard: true })
+                        {
+                            // Cancelling the confirmation shows the name dialog again.
+                            if (!await LectureDialogs.Confirm("丢弃本次记录？",
+                                    "原文、译文和小节总结都会删除，无法恢复。", "丢弃"))
+                                continue;
+                            await finishing;
+                            lecture = await LectureStore.GetLecture(lectureId);
+                            if (lecture != null)
+                                await LectureStore.DeleteLecture(lecture);
+                            SnackbarHost.Show("本次记录已丢弃。", "", SnackbarType.Success, timeout: 3);
+                            return;
+                        }
+                        if (answer is { } chosen)
+                        {
+                            await LectureStore.RenameLecture(lectureId, chosen.Name, chosen.Course);
+                            Translator.Setting.Lecture.CurrentCourse = chosen.Course;
+                        }
+                        break;
                     }
                 }
 
