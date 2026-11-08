@@ -86,8 +86,19 @@ namespace LiveCaptionsTranslator
             }
             else
             {
+                // UnWatch throws for windows that are not loaded yet (e.g. while their constructor runs).
                 foreach (Window window in Application.Current.Windows)
-                    SystemThemeWatcher.UnWatch(window);
+                {
+                    if (!window.IsLoaded)
+                        continue;
+                    try
+                    {
+                        SystemThemeWatcher.UnWatch(window);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                    }
+                }
                 ApplicationThemeManager.Apply(theme == "Dark" ? ApplicationTheme.Dark : ApplicationTheme.Light);
             }
         }
