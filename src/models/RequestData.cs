@@ -49,7 +49,6 @@ namespace LiveCaptionsTranslator.models
         : BaseLLMRequestData(model, messages, temperature)
     {
         public bool think { get; set; } = false;
-        public int? keep_alive { get; set; } = 600;
     }
 
     public class OpenRouterRequestData(string model, List<BaseLLMConfig.Message> messages, double temperature)
