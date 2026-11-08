@@ -93,6 +93,23 @@ namespace LiveCaptionsTranslator.apis
             if (string.IsNullOrWhiteSpace(config.ApiKey))
                 return "[ERROR] 翻译失败：还没有填 API Key，请到“设置”页的“模型与 API”里填写。";
 
+            if (ApiProviders.IsClaude(config.ApiUrl))
+            {
+                var turns = messages.Skip(1).Select(m => (m.role, m.content)).ToList();
+                try
+                {
+                    return await ClaudeApi.Complete(config, messages[0].content, turns, 512, client.Timeout, token);
+                }
+                catch (OperationCanceledException) when (!token.IsCancellationRequested)
+                {
+                    return "[ERROR] 翻译失败：请求超时（超过 8 秒），请换一个更快的接口或检查网络。";
+                }
+                catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException)
+                {
+                    return $"[ERROR] 翻译失败：{ex.Message}";
+                }
+            }
+
             HttpResponseMessage response;
             try
             {

@@ -35,7 +35,7 @@ namespace LiveCaptionsTranslator
                 new Field("接口地址（基础）", "ApiUrl",
                     Info: "填写以`api/v1`结尾的基础地址，对话和模型列表路径会自动补全。"),
             }),
-            new("OpenAI", "DeepSeek / 通义千问 / OpenAI 兼容接口", "DeepSeek / OpenAI 兼容", new[]
+            new("OpenAI", "DeepSeek / 通义千问 / Claude / OpenAI 兼容接口", "DeepSeek / OpenAI 兼容", new[]
             {
                 new Field("模型名称", "ModelName"),
                 new Field("温度", "Temperature", Kind.Number),

@@ -369,6 +369,14 @@ namespace LiveCaptionsTranslator
                 throw new InvalidOperationException(
                     "请先在 API 设置的 \"OpenAI\" 一项里填好接口地址、密钥和模型（例如 DeepSeek）。");
 
+            if (ApiProviders.IsClaude(config.ApiUrl))
+            {
+                if (string.IsNullOrWhiteSpace(config.ApiKey))
+                    throw new InvalidOperationException("还没有填 Claude 的 API Key，请到“设置”页的“模型与 API”里填写。");
+                return await ClaudeApi.Complete(config, system, [("user", user)], maxTokens,
+                    longRequest ? TimeSpan.FromMinutes(10) : TimeSpan.FromSeconds(40));
+            }
+
             var requestData = new Dictionary<string, object>
             {
                 ["model"] = config.ModelName,

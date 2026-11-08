@@ -14,16 +14,24 @@ namespace LiveCaptionsTranslator.utils
                 new[] { "deepseek-chat" }),
             new("Qwen", "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
                 new[] { "qwen-plus", "qwen-turbo", "qwen-max" }),
+            new("Claude", "https://api.anthropic.com/v1/messages",
+                new[] { "claude-sonnet-5-5", "claude-opus-5-5", "claude-haiku-5-5" }),
             new("Custom", string.Empty, Array.Empty<string>()),
         };
 
         // Display names for the translation APIs. DeepSeek / Qwen go through the OpenAI-compatible config of card ①.
         public static readonly Dictionary<string, string> ApiNames = new()
         {
-            [Summarizer.SUMMARY_API] = "DeepSeek / 通义千问（用 ① 的设置）",
+            [Summarizer.SUMMARY_API] = "DeepSeek / 通义千问 / Claude（用 ① 的设置）",
             ["Google"] = "Google 翻译（免费）",
             ["Google2"] = "Google 翻译 2（免费）",
         };
+
+        // Claude goes through the Anthropic SDK instead of the OpenAI-compatible request.
+        public static bool IsClaude(string? apiUrl)
+        {
+            return apiUrl?.Contains("anthropic.com", StringComparison.OrdinalIgnoreCase) == true;
+        }
 
         // The provider the configured URL belongs to: the first one when nothing is configured yet, the custom
         // one when the URL is on none of their hosts.
