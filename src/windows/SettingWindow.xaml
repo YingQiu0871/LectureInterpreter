@@ -675,13 +675,13 @@
                                                 Orientation="Vertical">
                                                 <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                                                     <ui:TextBlock Margin="2.5,0,0,5" Text="接口类型" />
-                                                    <ui:Flyout x:Name="OpenAIApiStyleInfoFlyout">
+                                                    <ui:Flyout>
                                                         <ui:TextBlock Width="320" TextWrapping="Wrap">
                                                             <Run Text="普通对话模型（如 DeepSeek、GPT、GLM）用" />
                                                             <Run FontWeight="Bold" Text="“标准对话协议”" />
                                                             <Run Text="；需要翻译专用协议的模型拒绝 system 消息时，请选择" />
                                                             <Run FontWeight="Bold" Text="“Qwen-MT 翻译协议”" />
-                                                            <Run Text="，语言与指令通过 translation_options 传递。" />
+                                                            <Run Text="，语言与术语通过 translation_options 传递。" />
                                                         </ui:TextBlock>
                                                     </ui:Flyout>
                                                     <Button
