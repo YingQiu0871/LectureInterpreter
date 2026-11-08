@@ -41,8 +41,9 @@ namespace LiveCaptionsTranslator.utils
 
         // Gemini uses its OpenAI-compatible endpoint, with an extra `reasoning_effort` field.
         public static bool IsGemini(string? apiUrl) =>
-            !string.IsNullOrWhiteSpace(apiUrl) &&
-            apiUrl.Contains("generativelanguage.googleapis.com", StringComparison.OrdinalIgnoreCase);
+            !IsClaude(apiUrl) && !string.IsNullOrWhiteSpace(apiUrl) &&
+            (apiUrl.Contains("generativelanguage.googleapis.com", StringComparison.OrdinalIgnoreCase) ||
+             apiUrl.Contains("/v1beta/openai", StringComparison.OrdinalIgnoreCase));
 
         // The provider the configured URL belongs to: the first one when nothing is configured yet, the custom
         // one when the URL is on none of their hosts.

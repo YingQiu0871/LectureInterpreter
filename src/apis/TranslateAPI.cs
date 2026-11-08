@@ -50,6 +50,8 @@ namespace LiveCaptionsTranslator.apis
         {
             Timeout = TimeSpan.FromSeconds(8)
         };
+        // Gemini is cut off per request (CLAUDE_TIMEOUT), not by the client.
+        private static readonly HttpClient geminiClient = new HttpClient() { Timeout = Timeout.InfiniteTimeSpan };
         private static readonly TimeSpan CLAUDE_TIMEOUT = TimeSpan.FromSeconds(15);
         private static int openai_fallback_index = 0;
 
@@ -96,17 +98,7 @@ namespace LiveCaptionsTranslator.apis
 
             if (ApiProviders.IsClaude(config.ApiUrl))
             {
-                // Claude rejects empty text blocks.
-                var turns = new List<(string role, string content)>();
-                for (int i = 1; i < messages.Count - 1; i += 2)
-                {
-                    if (string.IsNullOrWhiteSpace(messages[i].content) ||
-                        string.IsNullOrWhiteSpace(messages[i + 1].content))
-                        continue;
-                    turns.Add((messages[i].role, messages[i].content));
-                    turns.Add((messages[i + 1].role, messages[i + 1].content));
-                }
-                turns.Add(("user", messages[^1].content));
+                var turns = ContextTurns(messages).Select(m => (m.role, m.content)).ToList();
                 try
                 {
                     return await ClaudeApi.Complete(config, messages[0].content, turns, 512,
@@ -124,13 +116,16 @@ namespace LiveCaptionsTranslator.apis
             }
 
             HttpResponseMessage response;
+            bool gemini = ApiProviders.IsGemini(config.ApiUrl);
             try
             {
-                if (ApiProviders.IsGemini(config.ApiUrl))
+                if (gemini)
                 {
                     // Gemini 3 always thinks: ask for the least, which only a plain request can carry.
-                    var turns = messages.Where(m => !string.IsNullOrWhiteSpace(m.content))
-                        .Select(m => new { m.role, m.content }).ToList();
+                    var turns = new List<BaseLLMConfig.Message> { messages[0] };
+                    turns.AddRange(ContextTurns(messages));
+                    using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+                    timeoutCts.CancelAfter(CLAUDE_TIMEOUT);
                     var geminiData = new Dictionary<string, object>
                     {
                         ["model"] = config.ModelName,
@@ -145,7 +140,7 @@ namespace LiveCaptionsTranslator.apis
                         Content = new StringContent(JsonSerializer.Serialize(geminiData), Encoding.UTF8, "application/json")
                     };
                     geminiRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", config.ApiKey.Trim());
-                    response = await client.SendAsync(geminiRequest, token);
+                    response = await geminiClient.SendAsync(geminiRequest, timeoutCts.Token);
                 }
                 else
                 while (true)
@@ -180,7 +175,10 @@ namespace LiveCaptionsTranslator.apis
             }
             catch (OperationCanceledException ex)
             {
-                if (ex.Message.StartsWith("The request"))
+                if (gemini && !token.IsCancellationRequested)
+                    return $"[ERROR] 翻译失败：请求超时（超过 {CLAUDE_TIMEOUT.TotalSeconds:0} 秒），" +
+                           $"请换一个更快的接口或检查网络。";
+                if (!gemini && ex.Message.StartsWith("The request"))
                     return $"[ERROR] 翻译失败：请求超时（超过 8 秒），" +
                            $"请换一个更快的接口或检查网络。";
                 throw;
@@ -194,8 +192,9 @@ namespace LiveCaptionsTranslator.apis
             {
                 string responseString = await response.Content.ReadAsStringAsync();
                 var responseObj = JsonSerializer.Deserialize<OpenAIConfig.Response>(responseString);
-                var output = responseObj.choices[0].message.content;
-                return RegexPatterns.ModelThinking().Replace(output, "");
+                var output = responseObj?.choices?.FirstOrDefault()?.message?.content;
+                output = output == null ? null : RegexPatterns.ModelThinking().Replace(output, "");
+                return string.IsNullOrWhiteSpace(output) ? "[ERROR] 翻译失败：模型返回了空内容。" : output;
             }
             else if (response.StatusCode == HttpStatusCode.Unauthorized)
                 return "[ERROR] 翻译失败：API Key 无效（HTTP 401），请在“设置”页里重新粘贴 API Key 并点“测试连接”。";
@@ -205,8 +204,32 @@ namespace LiveCaptionsTranslator.apis
             else if (response.StatusCode == HttpStatusCode.BadRequest &&
                      TextUtil.IsArrears(await response.Content.ReadAsStringAsync()))
                 return $"[ERROR] 翻译失败：{TextUtil.ArrearageMessage}";
+            else if (response.StatusCode == HttpStatusCode.TooManyRequests)
+                return $"[ERROR] 翻译失败：{TextUtil.RateLimitMessage}";
+            else if (response.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Forbidden)
+            {
+                string detail = TextUtil.ErrorDetail(await response.Content.ReadAsStringAsync());
+                return HttpError(response) + (detail.Length > 0 ? "：" + detail : string.Empty);
+            }
             else
                 return HttpError(response);
+        }
+
+        // System message excluded: the context pairs whose two sides both have text, then the final user message.
+        // (A single dropped side would leave two turns of the same role in a row; Claude also rejects empty blocks.)
+        private static List<BaseLLMConfig.Message> ContextTurns(List<BaseLLMConfig.Message> messages)
+        {
+            var turns = new List<BaseLLMConfig.Message>();
+            for (int i = 1; i < messages.Count - 1; i += 2)
+            {
+                if (string.IsNullOrWhiteSpace(messages[i].content) ||
+                    string.IsNullOrWhiteSpace(messages[i + 1].content))
+                    continue;
+                turns.Add(messages[i]);
+                turns.Add(messages[i + 1]);
+            }
+            turns.Add(messages[^1]);
+            return turns;
         }
 
         public static async Task<string> Ollama(string text, CancellationToken token = default)

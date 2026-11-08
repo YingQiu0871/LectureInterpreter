@@ -420,9 +420,16 @@ namespace LiveCaptionsTranslator
                     throw new HttpRequestException(TextUtil.QuotaExhaustedMessage, null, response.StatusCode);
                 if (response.StatusCode == System.Net.HttpStatusCode.BadRequest && TextUtil.IsArrears(responseString))
                     throw new HttpRequestException(TextUtil.ArrearageMessage, null, response.StatusCode);
+                if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                    throw new HttpRequestException(TextUtil.RateLimitMessage, null, response.StatusCode);
                 if (!response.IsSuccessStatusCode)
-                    throw new HttpRequestException($"HTTP Error - {(int)response.StatusCode} {response.StatusCode}",
-                        null, response.StatusCode);
+                {
+                    string detail = response.StatusCode is System.Net.HttpStatusCode.BadRequest
+                        or System.Net.HttpStatusCode.Forbidden ? TextUtil.ErrorDetail(responseString) : string.Empty;
+                    throw new HttpRequestException(
+                        $"HTTP Error - {(int)response.StatusCode} {response.StatusCode}" +
+                        (detail.Length > 0 ? "：" + detail : string.Empty), null, response.StatusCode);
+                }
 
                 var responseObj = JsonSerializer.Deserialize<OpenAIConfig.Response>(responseString);
                 string output = responseObj?.choices?.FirstOrDefault()?.message?.content ?? string.Empty;
