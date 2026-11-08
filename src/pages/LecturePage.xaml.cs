@@ -255,7 +255,9 @@ namespace LiveCaptionsTranslator
                     {
                         var button = new System.Windows.Controls.Button
                         {
-                            Content = symbol, Tag = index, Margin = new Thickness(3, 0, 0, 0),
+                            Content = symbol,
+                            Tag = index,
+                            Margin = new Thickness(3, 0, 0, 0),
                             Padding = new Thickness(5, 1, 5, 1),
                             Visibility = ProviderBox.IsDropDownOpen ? Visibility.Visible : Visibility.Collapsed
                         };
@@ -322,7 +324,7 @@ namespace LiveCaptionsTranslator
 
         private void OpenAsrQuota_click(object sender, RoutedEventArgs e) =>
             Process.Start(new ProcessStartInfo("https://bailian.console.aliyun.com/cn-beijing/costing-balance/free-quota?model=asr")
-                { UseShellExecute = true });
+            { UseShellExecute = true });
 
         private void SaveApiConfig_click(object sender, RoutedEventArgs e)
         {
@@ -345,8 +347,11 @@ namespace LiveCaptionsTranslator
             }
             var saved = new OpenAIConfig
             {
-                ConfigName = name, ApiUrl = current.ApiUrl, ApiKey = current.ApiKey,
-                ModelName = current.ModelName, Temperature = current.Temperature,
+                ConfigName = name,
+                ApiUrl = current.ApiUrl,
+                ApiKey = current.ApiKey,
+                ModelName = current.ModelName,
+                Temperature = current.Temperature,
                 ApiStyle = current.ApiStyle
             };
             Translator.Setting.Configs[Summarizer.SUMMARY_API].Add(saved);
