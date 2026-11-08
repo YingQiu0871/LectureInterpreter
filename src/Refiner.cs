@@ -32,7 +32,7 @@ namespace LiveCaptionsTranslator
             {
                 var lecture = Translator.Setting?.Lecture;
                 // 原语言模式 only cleans up the recognized text, so it does not depend on the translation API.
-                return lecture != null && lecture.RefineParagraphs &&
+                return lecture != null && lecture.RefineParagraphs && Summarizer.CanChat &&
                        (lecture.OriginalOnly ||
                         (!lecture.CaptionsOnly && Translator.Setting?.ApiName == Summarizer.SUMMARY_API));
             }
