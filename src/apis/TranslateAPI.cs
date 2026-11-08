@@ -143,33 +143,35 @@ namespace LiveCaptionsTranslator.apis
                     response = await geminiClient.SendAsync(geminiRequest, timeoutCts.Token);
                 }
                 else
-                while (true)
                 {
-                    var requestData = LLMRequestDataFactory.Create(openai_fallback_index,
-                        config.ModelName, messages, config.Temperature);
-                    string jsonContent = JsonSerializer.Serialize(requestData, requestData.GetType());
-                    // Set the key on each request: sentences are translated in parallel, and changing the
-                    // shared client's default headers let some requests go out without it (HTTP 401).
-                    var request = new HttpRequestMessage(HttpMethod.Post, TextUtil.NormalizeUrl(config.ApiUrl))
+                    while (true)
                     {
-                        Content = new StringContent(jsonContent, Encoding.UTF8, "application/json")
-                    };
-                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", config.ApiKey.Trim());
+                        var requestData = LLMRequestDataFactory.Create(openai_fallback_index,
+                            config.ModelName, messages, config.Temperature);
+                        string jsonContent = JsonSerializer.Serialize(requestData, requestData.GetType());
+                        // Set the key on each request: sentences are translated in parallel, and changing the
+                        // shared client's default headers let some requests go out without it (HTTP 401).
+                        var request = new HttpRequestMessage(HttpMethod.Post, TextUtil.NormalizeUrl(config.ApiUrl))
+                        {
+                            Content = new StringContent(jsonContent, Encoding.UTF8, "application/json")
+                        };
+                        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", config.ApiKey.Trim());
 
-                    response = await client.SendAsync(request, token);
-                    if (response.StatusCode != HttpStatusCode.BadRequest &&
-                        response.StatusCode != HttpStatusCode.UnprocessableEntity)
-                        break;
-                    // The account has no balance: another request format would fail the same way.
-                    if (TextUtil.IsArrears(await response.Content.ReadAsStringAsync()))
-                        break;
-                    await Task.Delay(15);
+                        response = await client.SendAsync(request, token);
+                        if (response.StatusCode != HttpStatusCode.BadRequest &&
+                            response.StatusCode != HttpStatusCode.UnprocessableEntity)
+                            break;
+                        // The account has no balance: another request format would fail the same way.
+                        if (TextUtil.IsArrears(await response.Content.ReadAsStringAsync()))
+                            break;
+                        await Task.Delay(15);
 
-                    openai_fallback_index++;
-                    if (openai_fallback_index >= LLMRequestDataFactory.FallbackCount)
-                    {
-                        openai_fallback_index = 0;
-                        break;
+                        openai_fallback_index++;
+                        if (openai_fallback_index >= LLMRequestDataFactory.FallbackCount)
+                        {
+                            openai_fallback_index = 0;
+                            break;
+                        }
                     }
                 }
             }
