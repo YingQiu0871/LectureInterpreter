@@ -214,6 +214,13 @@
 
 本项目基于 [SakiRinn/LiveCaptions-Translator](https://github.com/SakiRinn/LiveCaptions-Translator) 修改，感谢原作者和所有贡献者。许可证与原项目相同，为 [Apache-2.0](LICENSE)。
 
+本分支的贡献者：
+
+- [@YingQiu0871](https://github.com/YingQiu0871)：课堂同传相关的全部改造与维护。
+- [@siqing319](https://github.com/siqing319)：多套命名模型配置、小节单独选模型、Qwen-MT 翻译专用模型、历史批量删除、浅色/深色主题、界面缩放和最大化按钮（[#15](https://github.com/YingQiu0871/LiveCaptions-Translator/pull/15)）。
+
+欢迎提 Issue 和 PR。
+
 使用的第三方库：[WPF-UI](https://github.com/lepoco/wpfui)、[NAudio](https://github.com/naudio/NAudio)、System.Speech（这三个是 Windows 版用的）、[PdfPig](https://github.com/UglyToad/PdfPig)、Microsoft.Data.Sqlite、CsvHelper；macOS / Linux 版界面用 [Avalonia](https://avaloniaui.net/)。可选的云服务：阿里云百炼（实时语音识别、通义千问）、DeepSeek。
 
 请遵守学校和老师关于课堂录音、转写的规定。
