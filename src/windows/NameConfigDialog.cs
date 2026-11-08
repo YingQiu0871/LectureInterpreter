@@ -20,7 +20,7 @@ namespace LiveCaptionsTranslator
                 ResizeMode = ResizeMode.NoResize,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 ShowInTaskbar = false,
-                };
+            };
             dialog.SetResourceReference(Control.BackgroundProperty, "ApplicationBackgroundBrush");
             dialog.SetResourceReference(Control.ForegroundProperty, "TextFillColorPrimaryBrush");
 
