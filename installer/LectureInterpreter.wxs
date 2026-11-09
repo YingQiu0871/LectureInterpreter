@@ -2,7 +2,7 @@
 <!--
   Windows Installer (MSI) package. Built in CI with WiX Toolset 5:
     wix build installer/LectureInterpreter.wxs -arch x64 -culture zh-CN -ext WixToolset.UI.wixext
-      -d Version=1.7.N -d SourceExe=... -d IconFile=... -d LicenseRtf=... -o setup.msi
+      -d Version=2.0.N -d SourceExe=... -d IconFile=... -d LicenseRtf=... -o setup.msi
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
      xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">

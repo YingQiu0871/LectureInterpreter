@@ -24,7 +24,7 @@ namespace LiveCaptionsTranslator.utils
         private static readonly TimeSpan CHECK_INTERVAL = TimeSpan.FromHours(24);
         private static readonly TimeSpan RENOTIFY_INTERVAL = TimeSpan.FromDays(3);
 
-        private static readonly Regex tagPattern = new(@"^v1\.7-lecture\.(\d+)$");
+        private static readonly Regex tagPattern = new(@"^v(?:1\.7-lecture|[2-9]\d*\.\d+)\.(\d+)$");
         private static readonly HttpClient client = CreateClient();
 
         // The build number the workflow passed in (-p:LectureBuild=N); null for a local or development build.
@@ -34,9 +34,9 @@ namespace LiveCaptionsTranslator.utils
             ? TagOf(build)
             : typeof(UpdateChecker).Assembly.GetName().Version?.ToString() ?? string.Empty;
 
-        public static string TagOf(int build) => $"v1.7-lecture.{build}";
+        public static string TagOf(int build) => $"v2.0.{build}";
 
-        // The build number in a release tag such as "v1.7-lecture.12"; null for any other tag.
+        // The build number in a release tag such as "v2.0.180" (or the older "v1.7-lecture.12"); null for any other tag.
         public static int? ParseTag(string? tag)
         {
             if (tag == null)
