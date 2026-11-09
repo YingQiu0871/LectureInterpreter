@@ -30,7 +30,8 @@ namespace LiveCaptionsTranslator
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
-        private static bool watchingSystemTheme;
+        private const int WM_SETTINGCHANGE = 0x001A;
+        private static ApplicationTheme appliedTheme = ApplicationTheme.Unknown;
 
         public MainWindow()
         {
@@ -38,7 +39,11 @@ namespace LiveCaptionsTranslator
             ApplySavedTheme();
             SetUiScale(Translator.Setting.MainWindow.UiScale);
 
-            SourceInitialized += (s, e) => RegisterHotKeys();
+            SourceInitialized += (s, e) =>
+            {
+                RegisterHotKeys();
+                HwndSource.FromHwnd(new WindowInteropHelper(this).Handle)?.AddHook(ThemeHook);
+            };
             Closed += (s, e) =>
             {
                 UnregisterHotKeys();
@@ -49,7 +54,9 @@ namespace LiveCaptionsTranslator
 
             Loaded += (s, e) =>
             {
-                UpdateSystemThemeWatch();
+                // Applied again now that the window exists: what was applied in the constructor (before there was
+                // a window handle) can leave the text in the wrong colour until the theme is switched by hand.
+                ApplySavedTheme();
                 RootNavigation.Navigate(typeof(CaptionPage));
                 CheckForFirstUse();
             };
@@ -76,40 +83,52 @@ namespace LiveCaptionsTranslator
             ShowLogCard(Translator.Setting.MainWindow.CaptionLogEnabled);
         }
 
-        public static void ApplySavedTheme()
+        // The theme the saved setting asks for. "跟随系统" reads the Windows app mode (AppsUseLightTheme) directly:
+        // WPF-UI's own detection goes by the name of the theme file first and takes the stock "aero" theme for
+        // light even when the app mode is dark.
+        private static ApplicationTheme ResolveSavedTheme()
         {
             string theme = Translator.Setting?.MainWindow.Theme ?? "System";
-            if (theme == "System")
-                ApplicationThemeManager.ApplySystemTheme();
-            else
-                ApplicationThemeManager.Apply(theme == "Dark" ? ApplicationTheme.Dark : ApplicationTheme.Light);
-            UpdateSystemThemeWatch();
+            if (theme == "Dark")
+                return ApplicationTheme.Dark;
+            if (theme == "Light")
+                return ApplicationTheme.Light;
+            if (SystemParameters.HighContrast)
+                return ApplicationTheme.HighContrast;
+            try
+            {
+                object? value = Microsoft.Win32.Registry.GetValue(
+                    @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+                    "AppsUseLightTheme", 1);
+                return value is int light && light == 0 ? ApplicationTheme.Dark : ApplicationTheme.Light;
+            }
+            catch (Exception)
+            {
+                return ApplicationTheme.Light;
+            }
         }
 
-        // Theme resources are application-wide, so a single watcher on the main window makes the whole app follow
-        // the system theme. Watch() adds a new hook on every call, hence the flag.
-        private static void UpdateSystemThemeWatch()
+        // Theme resources are application-wide, so applying once covers every window.
+        public static void ApplySavedTheme()
         {
-            if (Application.Current?.MainWindow is not MainWindow main || !main.IsLoaded)
-                return;
+            appliedTheme = ResolveSavedTheme();
+            ApplicationThemeManager.Apply(appliedTheme);
+        }
 
-            bool follow = (Translator.Setting?.MainWindow.Theme ?? "System") == "System";
-            if (follow && !watchingSystemTheme)
+        // WM_SETTINGCHANGE arrives (several times) when the Windows colour mode changes: with "跟随系统" follow it,
+        // but only re-apply when the result really differs.
+        private IntPtr ThemeHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (msg == WM_SETTINGCHANGE && (Translator.Setting?.MainWindow.Theme ?? "System") == "System")
             {
-                SystemThemeWatcher.Watch(main, WindowBackdropType.Mica, true);
-                watchingSystemTheme = true;
-            }
-            else if (!follow && watchingSystemTheme)
-            {
-                try
+                Dispatcher.InvokeAsync(() =>
                 {
-                    SystemThemeWatcher.UnWatch(main);
-                }
-                catch (InvalidOperationException)
-                {
-                }
-                watchingSystemTheme = false;
+                    if ((Translator.Setting?.MainWindow.Theme ?? "System") == "System" &&
+                        ResolveSavedTheme() != appliedTheme)
+                        ApplySavedTheme();
+                });
             }
+            return IntPtr.Zero;
         }
 
         public void SetUiScale(double scale)
