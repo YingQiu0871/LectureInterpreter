@@ -61,6 +61,7 @@
 			<SubType>Designer</SubType>
 		</ApplicationDefinition>
 		<Content Include="src\LectureInterpreter.ico" />
+		<Resource Include="src\LectureInterpreter.ico" />
 		
 		<PackageReference Include="Interop.UIAutomationClient" Version="10.19041.0" />
 		

@@ -267,14 +267,12 @@ namespace LiveCaptionsTranslator
         {
             try
             {
-                string? path = Environment.ProcessPath;
-                if (string.IsNullOrEmpty(path))
-                    return;
-                using var icon = System.Drawing.Icon.ExtractAssociatedIcon(path);
-                if (icon == null)
-                    return;
-                LogoImage.Source = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(
-                    icon.Handle, Int32Rect.Empty, System.Windows.Media.Imaging.BitmapSizeOptions.FromEmptyOptions());
+                // The app icon is embedded as a WPF resource; pick its largest frame so it stays sharp when scaled.
+                var decoder = System.Windows.Media.Imaging.BitmapDecoder.Create(
+                    new Uri("pack://application:,,,/src/LectureInterpreter.ico"),
+                    System.Windows.Media.Imaging.BitmapCreateOptions.None,
+                    System.Windows.Media.Imaging.BitmapCacheOption.OnLoad);
+                LogoImage.Source = decoder.Frames.OrderByDescending(f => f.PixelWidth).First();
                 LogoImage.Visibility = Visibility.Visible;
                 LogoFallback.Visibility = Visibility.Collapsed;
             }
