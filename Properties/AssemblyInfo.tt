@@ -11,8 +11,8 @@ using System.Reflection;
 
 <#
     var date = DateTime.Now;
-    int major = 1;
-    int minor = 7;
+    int major = 2;
+    int minor = 0;
     int build = int.Parse(date.ToString("yyMM")) / 2;
     int revision = int.Parse(date.ToString("ddHH"));
 #>
