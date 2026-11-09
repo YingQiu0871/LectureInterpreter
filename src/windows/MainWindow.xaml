@@ -142,10 +142,12 @@
                                 <ContextMenu x:Name="FloatMenu" Opened="FloatMenu_Opened">
                                     <MenuItem
                                         x:Name="OverlayMenuItem"
+                                        IsCheckable="True"
                                         Click="OverlayMenuItem_Click"
                                         Header="悬浮字幕" />
                                     <MenuItem
                                         x:Name="BilingualMenuItem"
+                                        IsCheckable="True"
                                         Click="BilingualMenuItem_Click"
                                         Header="双语浮窗" />
                                 </ContextMenu>
