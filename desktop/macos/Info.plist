@@ -9,7 +9,7 @@
     <key>CFBundleIdentifier</key>
     <string>io.github.yingqiu0871.livecaptionstranslator</string>
     <key>CFBundleExecutable</key>
-    <string>LiveCaptionsTranslator</string>
+    <string>LectureInterpreter</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundlePackageType</key>

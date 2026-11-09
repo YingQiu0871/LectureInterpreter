@@ -8,7 +8,7 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<RootNamespace>LiveCaptionsTranslator</RootNamespace>
-		<AssemblyName>LiveCaptionsTranslator</AssemblyName>
+		<AssemblyName>LectureInterpreter</AssemblyName>
 		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 		<AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
 		<BuiltInComInteropSupport>false</BuiltInComInteropSupport>
@@ -17,7 +17,7 @@
 		<!-- The shared core has the same nullable warnings in the Windows build. -->
 		<NoWarn>$(NoWarn);CS8600;CS8601;CS8602;CS8603;CS8604;CS8618;CS8625</NoWarn>
 
-		<Title>LiveCaptions Translator</Title>
+		<Title>LectureInterpreter</Title>
 		<Description>Class interpretation assistant for Linux and macOS.</Description>
 		<Copyright>Copyright (c) 2024 SakiRinn and other contributors</Copyright>
 		<Authors>SakiRinn</Authors>

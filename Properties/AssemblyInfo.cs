@@ -7,6 +7,6 @@
 using System.Reflection;
 
 
-[assembly: AssemblyTitle("LiveCaptions Translator")]
+[assembly: AssemblyTitle("LectureInterpreter")]
 [assembly: AssemblyVersion("1.7.1300.1822")]
 [assembly: AssemblyFileVersion("1.7.1300.1822")]

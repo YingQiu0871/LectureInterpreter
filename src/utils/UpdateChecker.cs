@@ -176,7 +176,7 @@ namespace LiveCaptionsTranslator.utils
         private static HttpClient CreateClient()
         {
             var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-            http.DefaultRequestHeaders.UserAgent.ParseAdd("LiveCaptionsTranslator-UpdateCheck");
+            http.DefaultRequestHeaders.UserAgent.ParseAdd("LectureInterpreter-UpdateCheck");
             http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
             return http;
         }

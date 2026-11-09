@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="src/LiveCaptions-Translator.ico" width="128" height="128" alt="图标"/>
+<img src="src/LectureInterpreter.ico" width="128" height="128" alt="图标"/>
 
 # 课堂同传助手
 
@@ -68,21 +68,21 @@
 
 **Windows：**
 
-- `LiveCaptionsTranslator-win-x64-setup.msi`：**推荐**。Windows 标准安装程序，双击安装，可以选择安装位置。装好后开始菜单和桌面都有“课堂同传助手”的快捷方式；以后装新版会自动替换旧版，卸载在“设置 > 应用”里。
-- `LiveCaptionsTranslator-win-x64-withruntime.exe`：免安装版，自带运行库，下载后直接运行。
-- `LiveCaptionsTranslator-win-x64.exe`：免安装版，体积小，需要先安装 [.NET 8 桌面运行时](https://dotnet.microsoft.com/download/dotnet/8.0)。
+- `LectureInterpreter-win-x64-setup.msi`：**推荐**。Windows 标准安装程序，双击安装，可以选择安装位置。装好后开始菜单和桌面都有“课堂同传助手”的快捷方式；以后装新版会自动替换旧版，卸载在“设置 > 应用”里。
+- `LectureInterpreter-win-x64-withruntime.exe`：免安装版，自带运行库，下载后直接运行。
+- `LectureInterpreter-win-x64.exe`：免安装版，体积小，需要先安装 [.NET 8 桌面运行时](https://dotnet.microsoft.com/download/dotnet/8.0)。
 - ARM 电脑选文件名带 `arm64` 的版本。
 
 **macOS / Linux：**
 
-- `LiveCaptionsTranslator-macos-arm64.dmg`（Apple 芯片）/ `LiveCaptionsTranslator-macos-x64.dmg`（Intel 芯片）
-- `LiveCaptionsTranslator-linux-x64.tar.gz`
+- `LectureInterpreter-macos-arm64.dmg`（Apple 芯片）/ `LectureInterpreter-macos-x64.dmg`（Intel 芯片）
+- `LectureInterpreter-linux-x64.tar.gz`
 
 安装方法见下面“macOS 和 Linux 版”。
 
 数据保存位置（Windows）：
 
-- 设置（`setting.json`）和历史数据库（`translation_history.db`，含课程、每节课、小结）在 `%LOCALAPPDATA%\LiveCaptionsTranslator`，装新版、卸载都不会动它们。旧版本放在程序文件夹里的设置，第一次启动时会自动复制过去。
+- 设置（`setting.json`）和历史数据库（`translation_history.db`，含课程、每节课、小结）在 `%LOCALAPPDATA%\LectureInterpreter`，装新版、卸载都不会动它们。旧版本放在 `%LOCALAPPDATA%\LiveCaptionsTranslator`（改名前的位置）或程序文件夹里的设置，第一次启动时会自动迁移过来。
 - 每节课的 Markdown 文件和笔记初稿在“设置 ⑥”选的文件夹里，默认是 `文档\课堂同传助手`。
 
 发布新版本：在 Actions 里手动运行 "CI/CD Pipeline"，勾选 "Publish a GitHub Release from this build"。
@@ -106,8 +106,8 @@
 
 ### Linux 安装
 
-1. 下载 `LiveCaptionsTranslator-linux-x64.tar.gz`，解压：`tar -xzf LiveCaptionsTranslator-linux-x64.tar.gz`。
-2. 进入解压出的文件夹，运行 `./install.sh`。不需要 root 权限，程序装到 `~/.local/opt/LiveCaptionsTranslator`，并在应用菜单里加上“课堂同传助手”。
+1. 下载 `LectureInterpreter-linux-x64.tar.gz`，解压：`tar -xzf LectureInterpreter-linux-x64.tar.gz`。
+2. 进入解压出的文件夹，运行 `./install.sh`。不需要 root 权限，程序装到 `~/.local/opt/LectureInterpreter`，并在应用菜单里加上“课堂同传助手”。
 3. 安装需要的系统组件（Debian / Ubuntu 的包名）：
    - `pulseaudio-utils`：采集声音（必需）
    - `fonts-noto-cjk`：中文字体
@@ -116,7 +116,7 @@
 
 ### macOS 安装
 
-1. 按芯片下载：Apple 芯片（M1 及以后）选 `LiveCaptionsTranslator-macos-arm64.dmg`，Intel 芯片选 `LiveCaptionsTranslator-macos-x64.dmg`。不确定的话，点左上角苹果菜单 → 关于本机：显示“芯片”（Apple M…）的选 arm64，显示“处理器”（Intel）的选 x64。
+1. 按芯片下载：Apple 芯片（M1 及以后）选 `LectureInterpreter-macos-arm64.dmg`，Intel 芯片选 `LectureInterpreter-macos-x64.dmg`。不确定的话，点左上角苹果菜单 → 关于本机：显示“芯片”（Apple M…）的选 arm64，显示“处理器”（Intel）的选 x64。
 2. 打开 dmg，把“课堂同传助手”拖进“应用程序”。
 3. **第一次打开会被拦下**，因为应用没有苹果的公证签名，macOS 15 及以上不能再靠右键“打开”放行。先双击打开一次，再到 **系统设置 → 隐私与安全性**，点“仍要打开”。也可以在终端运行：`xattr -dr com.apple.quarantine /Applications/课堂同传助手.app`
 4. 按提示授权：听“电脑播放的声音”需要 **屏幕录制**权限，用“麦克风”需要 **麦克风**权限。每次更新软件后，这两个权限可能需要重新授权。
@@ -126,10 +126,10 @@
 
 | | 设置和历史数据库 | 每节课的 Markdown 默认保存位置 |
 |---|---|---|
-| macOS | `~/Library/Application Support/LiveCaptionsTranslator` | `~/Documents/课堂同传助手` |
-| Linux | `~/.local/share/LiveCaptionsTranslator`（或 `$XDG_DATA_HOME/LiveCaptionsTranslator`） | “文档”文件夹下的 `课堂同传助手`（中文系统通常是 `~/文档/课堂同传助手`；没有配置“文档”文件夹时用 `~/Documents/课堂同传助手`） |
+| macOS | `~/Library/Application Support/LectureInterpreter` | `~/Documents/课堂同传助手` |
+| Linux | `~/.local/share/LectureInterpreter`（或 `$XDG_DATA_HOME/LectureInterpreter`） | “文档”文件夹下的 `课堂同传助手`（中文系统通常是 `~/文档/课堂同传助手`；没有配置“文档”文件夹时用 `~/Documents/课堂同传助手`） |
 
-保存位置可以在“设置 ⑥”里改。
+改名前的旧文件夹（`LiveCaptionsTranslator`）里的数据，第一次启动时会自动迁移到新文件夹。保存位置可以在“设置 ⑥”里改。
 
 ## 第一次使用
 
