@@ -26,7 +26,7 @@
 	<!-- The CI run number, passed in by the workflow (-p:LectureBuild=N); the update check compares it with the
 	     number in the tag of the latest release. Absent in a local build. -->
 	<PropertyGroup Condition="'$(LectureBuild)' != ''">
-		<Version>1.7.$(LectureBuild)</Version>
+		<Version>2.0.$(LectureBuild)</Version>
 	</PropertyGroup>
 	<ItemGroup Condition="'$(LectureBuild)' != ''">
 		<AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">

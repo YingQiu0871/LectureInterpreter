@@ -135,7 +135,8 @@ namespace LiveCaptionsTranslator
             Check("update check (tags)", () =>
             {
                 if (UpdateChecker.ParseTag("v1.7-lecture.12") != 12 || UpdateChecker.ParseTag("v1.7-lecture.x") != null ||
-                    UpdateChecker.ParseTag("v1.7.3") != null || UpdateChecker.ParseTag(null) != null)
+                    UpdateChecker.ParseTag("v1.7.3") != null || UpdateChecker.ParseTag("v2.0.180") != 180 ||
+                    UpdateChecker.ParseTag(UpdateChecker.TagOf(7)) != 7 || UpdateChecker.ParseTag(null) != null)
                     throw new InvalidOperationException("release tag parsing is wrong");
                 if (!UpdateChecker.IsNewer(12, 13) || UpdateChecker.IsNewer(13, 13) || UpdateChecker.IsNewer(14, 13) ||
                     UpdateChecker.IsNewer(null, 13))

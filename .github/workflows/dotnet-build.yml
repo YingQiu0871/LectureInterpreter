@@ -59,7 +59,7 @@ jobs:
         run: |
           dotnet tool install wix --version 5.0.2 --tool-path ./.wix
           ./.wix/wix extension add -g WixToolset.UI.wixext/5.0.2
-          $version = "1.7.${{ github.run_number }}"
+          $version = "2.0.${{ github.run_number }}"
           foreach ($arch in "x64", "arm64") {
             ./.wix/wix build installer/LectureInterpreter.wxs -arch $arch -culture zh-CN `
               -ext WixToolset.UI.wixext `
@@ -156,7 +156,7 @@ jobs:
 
       - name: Build apps and disk images
         run: |
-          version="1.7.${{ github.run_number }}"
+          version="2.0.${{ github.run_number }}"
           mkdir -p out
           for arch in arm64 x64; do
             dotnet publish desktop/LiveCaptionsTranslator.Desktop.csproj -c Release -p:LectureBuild=${{ github.run_number }} -r osx-$arch \
@@ -239,8 +239,8 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          # A manual run creates its own tag, e.g. v1.7-lecture.12.
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v1.7-lecture.{0}', github.run_number) }}
+          # A manual run creates its own tag, e.g. v2.0.180.
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v2.0.{0}', github.run_number) }}
           target_commitish: ${{ github.sha }}
           # Append "What's Changed": the PRs merged since the previous release tag.
           generate_release_notes: true
