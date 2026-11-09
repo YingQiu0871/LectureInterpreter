@@ -15,6 +15,7 @@
 
 		<Title>LectureInterpreter</Title>
 		<AssemblyName>LectureInterpreter</AssemblyName>
+		<RootNamespace>LiveCaptionsTranslator</RootNamespace>
 		<Description>A real-time speech translation tool based on Windows LiveCaptions.</Description>
 		<Copyright>Copyright (c) 2024 SakiRinn and other contributors</Copyright>
 		<Authors>SakiRinn</Authors>

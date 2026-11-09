@@ -72,6 +72,7 @@
 - `LectureInterpreter-win-x64-withruntime.exe`：免安装版，自带运行库，下载后直接运行。
 - `LectureInterpreter-win-x64.exe`：免安装版，体积小，需要先安装 [.NET 8 桌面运行时](https://dotnet.microsoft.com/download/dotnet/8.0)。
 - ARM 电脑选文件名带 `arm64` 的版本。
+- 从旧版（程序名 `LiveCaptionsTranslator.exe`）升级后，任务栏固定的图标和自己建的快捷方式要重新建，因为程序文件改名了；用免安装版的话，请自己删掉旧的 `LiveCaptionsTranslator.exe`。
 
 **macOS / Linux：**
 
@@ -129,7 +130,7 @@
 | macOS | `~/Library/Application Support/LectureInterpreter` | `~/Documents/课堂同传助手` |
 | Linux | `~/.local/share/LectureInterpreter`（或 `$XDG_DATA_HOME/LectureInterpreter`） | “文档”文件夹下的 `课堂同传助手`（中文系统通常是 `~/文档/课堂同传助手`；没有配置“文档”文件夹时用 `~/Documents/课堂同传助手`） |
 
-改名前的旧文件夹（`LiveCaptionsTranslator`）里的数据，第一次启动时会自动迁移到新文件夹。保存位置可以在“设置 ⑥”里改。
+改名前的旧文件夹（`LiveCaptionsTranslator`）里的数据，第一次启动时会自动迁移到新文件夹（旧文件夹不会被删除）。设置和历史数据库的位置不能改；每节课 Markdown 笔记的保存文件夹可以在“设置 ⑥”里改。
 
 ## 第一次使用
 
