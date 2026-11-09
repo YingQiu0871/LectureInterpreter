@@ -54,8 +54,8 @@ namespace LiveCaptionsTranslator
 
             Loaded += (s, e) =>
             {
-                // Applied again now that the window exists: what was applied in the constructor (before there was
-                // a window handle) can leave the text in the wrong colour until the theme is switched by hand.
+                // Applied once more on the loaded window, as a manual theme switch does (that is known to put a
+                // wrong text colour right); the constructor call only avoids a flash of the default theme.
                 ApplySavedTheme();
                 RootNavigation.Navigate(typeof(CaptionPage));
                 CheckForFirstUse();
