@@ -13,11 +13,13 @@
 		<SelfContained>false</SelfContained>
 		<IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
 
-		<Title>LiveCaptions Translator</Title>
+		<Title>LectureInterpreter</Title>
+		<AssemblyName>LectureInterpreter</AssemblyName>
+		<RootNamespace>LiveCaptionsTranslator</RootNamespace>
 		<Description>A real-time speech translation tool based on Windows LiveCaptions.</Description>
 		<Copyright>Copyright (c) 2024 SakiRinn and other contributors</Copyright>
 		<Authors>SakiRinn</Authors>
-		<ApplicationIcon>src\LiveCaptions-Translator.ico</ApplicationIcon>
+		<ApplicationIcon>src\LectureInterpreter.ico</ApplicationIcon>
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 		<Platforms>AnyCPU;ARM64</Platforms>
 	</PropertyGroup>
@@ -58,7 +60,7 @@
 			<Generator>MSBuild:Compile</Generator>
 			<SubType>Designer</SubType>
 		</ApplicationDefinition>
-		<Content Include="src\LiveCaptions-Translator.ico" />
+		<Content Include="src\LectureInterpreter.ico" />
 		
 		<PackageReference Include="Interop.UIAutomationClient" Version="10.19041.0" />
 		

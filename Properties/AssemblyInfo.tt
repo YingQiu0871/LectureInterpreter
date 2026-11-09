@@ -17,6 +17,6 @@ using System.Reflection;
     int revision = int.Parse(date.ToString("ddHH"));
 #>
 
-[assembly: AssemblyTitle("LiveCaptions Translator")]
+[assembly: AssemblyTitle("LectureInterpreter")]
 [assembly: AssemblyVersion("<#= $"{major}.{minor}.{build}.{revision}" #>")]
 [assembly: AssemblyFileVersion("<#= $"{major}.{minor}.{build}.{revision}" #>")]

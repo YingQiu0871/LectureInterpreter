@@ -18,9 +18,9 @@ namespace LiveCaptionsTranslator.utils
     // Looks for a newer release on GitHub. It only tells; downloading and installing is left to the user.
     public static class UpdateChecker
     {
-        public const string RELEASES_URL = "https://github.com/YingQiu0871/LiveCaptions-Translator/releases";
+        public const string RELEASES_URL = "https://github.com/YingQiu0871/LectureInterpreter/releases";
         private const string LATEST_URL =
-            "https://api.github.com/repos/YingQiu0871/LiveCaptions-Translator/releases?per_page=10";
+            "https://api.github.com/repos/YingQiu0871/LectureInterpreter/releases?per_page=10";
         private static readonly TimeSpan CHECK_INTERVAL = TimeSpan.FromHours(24);
         private static readonly TimeSpan RENOTIFY_INTERVAL = TimeSpan.FromDays(3);
 
@@ -176,7 +176,7 @@ namespace LiveCaptionsTranslator.utils
         private static HttpClient CreateClient()
         {
             var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-            http.DefaultRequestHeaders.UserAgent.ParseAdd("LiveCaptionsTranslator-UpdateCheck");
+            http.DefaultRequestHeaders.UserAgent.ParseAdd("LectureInterpreter-UpdateCheck");
             http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
             return http;
         }

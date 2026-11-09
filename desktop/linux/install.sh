@@ -3,12 +3,19 @@
 set -e
 
 here="$(cd "$(dirname "$0")" && pwd)"
-target="$HOME/.local/opt/LiveCaptionsTranslator"
+target="$HOME/.local/opt/LectureInterpreter"
 apps="$HOME/.local/share/applications"
 
 mkdir -p "$target" "$apps"
-cp "$here/LiveCaptionsTranslator" "$here/icon.png" "$target/"
-chmod +x "$target/LiveCaptionsTranslator"
+
+# 改名前的旧安装目录（只是程序文件，设置不在里面）：已经用不到了，顺手清掉。
+old="$HOME/.local/opt/LiveCaptionsTranslator"
+if [ -d "$old" ]; then
+  rm -f "$old/LiveCaptionsTranslator" "$old/icon.png"
+  rmdir "$old" 2>/dev/null || true
+fi
+cp "$here/LectureInterpreter" "$here/icon.png" "$target/"
+chmod +x "$target/LectureInterpreter"
 sed "s|@INSTALL_DIR@|$target|g" "$here/课堂同传助手.desktop" > "$apps/课堂同传助手.desktop"
 chmod +x "$apps/课堂同传助手.desktop"
 update-desktop-database "$apps" >/dev/null 2>&1 || true

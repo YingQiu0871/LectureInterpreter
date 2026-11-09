@@ -61,13 +61,13 @@ jobs:
           ./.wix/wix extension add -g WixToolset.UI.wixext/5.0.2
           $version = "1.7.${{ github.run_number }}"
           foreach ($arch in "x64", "arm64") {
-            ./.wix/wix build installer/LiveCaptionsTranslator.wxs -arch $arch -culture zh-CN `
+            ./.wix/wix build installer/LectureInterpreter.wxs -arch $arch -culture zh-CN `
               -ext WixToolset.UI.wixext `
               -d Version=$version `
-              -d SourceExe=publish/$arch/selfcontained/LiveCaptionsTranslator.exe `
-              -d IconFile=src/LiveCaptions-Translator.ico `
+              -d SourceExe=publish/$arch/selfcontained/LectureInterpreter.exe `
+              -d IconFile=src/LectureInterpreter.ico `
               -d LicenseRtf=installer/License.rtf `
-              -o publish/installer/LiveCaptionsTranslator-win-$arch-setup.msi
+              -o publish/installer/LectureInterpreter-win-$arch-setup.msi
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
           Remove-Item publish/installer/*.wixpdb -ErrorAction SilentlyContinue
@@ -75,7 +75,7 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: LiveCaptionsTranslator
+          name: LectureInterpreter
           path: ./publish
 
   build-linux:
@@ -104,22 +104,22 @@ jobs:
           -o ./publish/linux-x64
 
       - name: Self-test
-        run: ./publish/linux-x64/LiveCaptionsTranslator --selftest
+        run: ./publish/linux-x64/LectureInterpreter --selftest
 
       - name: Package
         run: |
-          mkdir -p dist/LiveCaptionsTranslator
-          cp publish/linux-x64/LiveCaptionsTranslator dist/LiveCaptionsTranslator/
-          cp desktop/assets/icon.png dist/LiveCaptionsTranslator/icon.png
-          cp "desktop/linux/课堂同传助手.desktop" desktop/linux/install.sh dist/LiveCaptionsTranslator/
-          chmod +x dist/LiveCaptionsTranslator/LiveCaptionsTranslator dist/LiveCaptionsTranslator/install.sh
+          mkdir -p dist/LectureInterpreter
+          cp publish/linux-x64/LectureInterpreter dist/LectureInterpreter/
+          cp desktop/assets/icon.png dist/LectureInterpreter/icon.png
+          cp "desktop/linux/课堂同传助手.desktop" desktop/linux/install.sh dist/LectureInterpreter/
+          chmod +x dist/LectureInterpreter/LectureInterpreter dist/LectureInterpreter/install.sh
           mkdir -p out
-          tar -czf out/LiveCaptionsTranslator-linux-x64.tar.gz -C dist LiveCaptionsTranslator
+          tar -czf out/LectureInterpreter-linux-x64.tar.gz -C dist LectureInterpreter
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: LiveCaptionsTranslator-linux
+          name: LectureInterpreter-linux
           path: ./out
 
   build-macos:
@@ -167,14 +167,14 @@ jobs:
             cp -R publish/osx-$arch/. "$app/Contents/MacOS/"
             rm -f "$app/Contents/MacOS/"*.pdb
             cp build/helper/lct-audio-$arch "$app/Contents/MacOS/lct-audio"
-            chmod +x "$app/Contents/MacOS/LiveCaptionsTranslator" "$app/Contents/MacOS/lct-audio"
+            chmod +x "$app/Contents/MacOS/LectureInterpreter" "$app/Contents/MacOS/lct-audio"
             cp build/AppIcon.icns "$app/Contents/Resources/AppIcon.icns"
             sed "s/__VERSION__/$version/g" desktop/macos/Info.plist > "$app/Contents/Info.plist"
             codesign --force --deep -s - "$app"
 
             # The self-test needs a binary of this machine's architecture.
             if [ "$arch" = "$(uname -m | sed 's/x86_64/x64/')" ]; then
-              "$app/Contents/MacOS/LiveCaptionsTranslator" --selftest
+              "$app/Contents/MacOS/LectureInterpreter" --selftest
             fi
 
             staging="build/$arch/dmg"
@@ -184,7 +184,7 @@ jobs:
             # hdiutil sometimes fails with "Resource busy" on a CI runner: try again.
             for attempt in 1 2 3; do
               hdiutil create -ov -srcfolder "$staging" -volname 课堂同传助手 -format UDZO \
-                "out/LiveCaptionsTranslator-macos-$arch.dmg" && break
+                "out/LectureInterpreter-macos-$arch.dmg" && break
               if [ "$attempt" = 3 ]; then
                 exit 1
               fi
@@ -195,7 +195,7 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: LiveCaptionsTranslator-macos
+          name: LectureInterpreter-macos
           path: ./out
 
   release:
@@ -211,29 +211,29 @@ jobs:
       - name: Download Build Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: LiveCaptionsTranslator
+          name: LectureInterpreter
           path: ./release
 
       - name: Download Linux Build
         uses: actions/download-artifact@v4
         with:
-          name: LiveCaptionsTranslator-linux
+          name: LectureInterpreter-linux
           path: ./release/desktop
 
       - name: Download macOS Build
         uses: actions/download-artifact@v4
         with:
-          name: LiveCaptionsTranslator-macos
+          name: LectureInterpreter-macos
           path: ./release/desktop
 
       - name: Create ZIP Files and rename EXE
         shell: bash
         run: |
           cd release
-          mv x64/framework/LiveCaptionsTranslator.exe LiveCaptionsTranslator-win-x64.exe
-          mv arm64/framework/LiveCaptionsTranslator.exe LiveCaptionsTranslator-win-arm64.exe
-          mv x64/selfcontained/LiveCaptionsTranslator.exe LiveCaptionsTranslator-win-x64-withruntime.exe
-          mv arm64/selfcontained/LiveCaptionsTranslator.exe LiveCaptionsTranslator-win-arm64-withruntime.exe
+          mv x64/framework/LectureInterpreter.exe LectureInterpreter-win-x64.exe
+          mv arm64/framework/LectureInterpreter.exe LectureInterpreter-win-arm64.exe
+          mv x64/selfcontained/LectureInterpreter.exe LectureInterpreter-win-x64-withruntime.exe
+          mv arm64/selfcontained/LectureInterpreter.exe LectureInterpreter-win-arm64-withruntime.exe
           mv installer/*.msi .
 
       - name: Publish GitHub Release
@@ -247,24 +247,24 @@ jobs:
           body: |
             课堂同传助手：实时字幕 + 中文翻译 + 分节小结 + 耳机播报。
 
-            - 推荐下载安装包 `LiveCaptionsTranslator-win-x64-setup.msi`：双击安装，可以自选安装位置，装好后开始菜单和桌面都有快捷方式，卸载在“设置 > 应用”里。
-            - 免安装版：`LiveCaptionsTranslator-win-x64-withruntime.exe`（自带运行库，直接运行）；`LiveCaptionsTranslator-win-x64.exe` 体积小，需要先装 .NET 8 桌面运行时。
+            - 推荐下载安装包 `LectureInterpreter-win-x64-setup.msi`：双击安装，可以自选安装位置，装好后开始菜单和桌面都有快捷方式，卸载在“设置 > 应用”里。
+            - 免安装版：`LectureInterpreter-win-x64-withruntime.exe`（自带运行库，直接运行）；`LectureInterpreter-win-x64.exe` 体积小，需要先装 .NET 8 桌面运行时。
             - ARM 电脑选 arm64 版本。
-            - Linux：下载 `LiveCaptionsTranslator-linux-x64.tar.gz`，解压后运行 `install.sh`。
+            - Linux：下载 `LectureInterpreter-linux-x64.tar.gz`，解压后运行 `install.sh`。
             - macOS（13 及以上）：下载对应芯片的 `.dmg`（Apple 芯片选 arm64，Intel 选 x64），把应用拖进“应用程序”。
             - macOS 首次打开：应用没有苹果的公证签名，macOS 15 及以上不能再靠右键“打开”放行。请先双击打开一次（会被拦下），再到“系统设置 > 隐私与安全性”，点“仍要打开”；也可以在终端运行 `xattr -dr com.apple.quarantine /Applications/课堂同传助手.app`。
             - macOS 每次更新后，麦克风、屏幕录制权限可能需要重新授权。
 
             使用说明见仓库首页 README。下面“What's Changed”是自上一版以来合并的改动。
           files: |
-            release/LiveCaptionsTranslator-win-x64-setup.msi
-            release/LiveCaptionsTranslator-win-arm64-setup.msi
-            release/LiveCaptionsTranslator-win-x64.exe
-            release/LiveCaptionsTranslator-win-x64-withruntime.exe
-            release/LiveCaptionsTranslator-win-arm64.exe
-            release/LiveCaptionsTranslator-win-arm64-withruntime.exe
-            release/desktop/LiveCaptionsTranslator-linux-x64.tar.gz
-            release/desktop/LiveCaptionsTranslator-macos-arm64.dmg
-            release/desktop/LiveCaptionsTranslator-macos-x64.dmg
+            release/LectureInterpreter-win-x64-setup.msi
+            release/LectureInterpreter-win-arm64-setup.msi
+            release/LectureInterpreter-win-x64.exe
+            release/LectureInterpreter-win-x64-withruntime.exe
+            release/LectureInterpreter-win-arm64.exe
+            release/LectureInterpreter-win-arm64-withruntime.exe
+            release/desktop/LectureInterpreter-linux-x64.tar.gz
+            release/desktop/LectureInterpreter-macos-arm64.dmg
+            release/desktop/LectureInterpreter-macos-x64.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

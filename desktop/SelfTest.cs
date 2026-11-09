@@ -5,7 +5,7 @@ using UglyToad.PdfPig.Writer;
 
 namespace LiveCaptionsTranslator
 {
-    // `LiveCaptionsTranslator --selftest`: exercises the core without any window and exits with 0 if it all works.
+    // `LectureInterpreter --selftest`: exercises the core without any window and exits with 0 if it all works.
     // It runs in a temporary data folder, so it never touches the user's settings and history.
     public static class SelfTest
     {

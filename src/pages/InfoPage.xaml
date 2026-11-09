@@ -18,8 +18,8 @@
             <Separator Margin="0,5,0,5" />
             <TextBlock Margin="0,0,0,3">
                 <Run FontWeight="SemiBold" Text="本项目仓库：" />
-                <Hyperlink NavigateUri="https://github.com/YingQiu0871/LiveCaptions-Translator" RequestNavigate="Hyperlink_RequestNavigate">
-                    <Run Text="https://github.com/YingQiu0871/LiveCaptions-Translator" />
+                <Hyperlink NavigateUri="https://github.com/YingQiu0871/LectureInterpreter" RequestNavigate="Hyperlink_RequestNavigate">
+                    <Run Text="https://github.com/YingQiu0871/LectureInterpreter" />
                 </Hyperlink>
             </TextBlock>
             <TextBlock Margin="0,0,0,3">
@@ -30,8 +30,8 @@
             </TextBlock>
             <TextBlock Margin="0,0,0,3">
                 <Run FontWeight="SemiBold" Text="使用说明：" />
-                <Hyperlink NavigateUri="https://github.com/YingQiu0871/LiveCaptions-Translator#readme" RequestNavigate="Hyperlink_RequestNavigate">
-                    <Run Text="https://github.com/YingQiu0871/LiveCaptions-Translator#readme" />
+                <Hyperlink NavigateUri="https://github.com/YingQiu0871/LectureInterpreter#readme" RequestNavigate="Hyperlink_RequestNavigate">
+                    <Run Text="https://github.com/YingQiu0871/LectureInterpreter#readme" />
                 </Hyperlink>
             </TextBlock>
             <TextBlock Margin="0,0,0,3">
@@ -52,7 +52,7 @@
             </TextBlock>
             <TextBlock>
                 <Run FontWeight="SemiBold" Text="版本：" />
-                <Hyperlink NavigateUri="https://github.com/YingQiu0871/LiveCaptions-Translator/releases" RequestNavigate="Hyperlink_RequestNavigate">
+                <Hyperlink NavigateUri="https://github.com/YingQiu0871/LectureInterpreter/releases" RequestNavigate="Hyperlink_RequestNavigate">
                     <Run x:Name="Version" Text="1.1.1.1" />
                 </Hyperlink>
             </TextBlock>

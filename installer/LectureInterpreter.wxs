@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Windows Installer (MSI) package. Built in CI with WiX Toolset 5:
-    wix build installer/LiveCaptionsTranslator.wxs -arch x64 -culture zh-CN -ext WixToolset.UI.wixext
+    wix build installer/LectureInterpreter.wxs -arch x64 -culture zh-CN -ext WixToolset.UI.wixext
       -d Version=1.7.N -d SourceExe=... -d IconFile=... -d LicenseRtf=... -o setup.msi
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
@@ -29,14 +29,14 @@
     <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
 
     <StandardDirectory Id="ProgramFiles6432Folder">
-      <Directory Id="INSTALLFOLDER" Name="LiveCaptionsTranslator" />
+      <Directory Id="INSTALLFOLDER" Name="LectureInterpreter" />
     </StandardDirectory>
     <StandardDirectory Id="ProgramMenuFolder" />
     <StandardDirectory Id="DesktopFolder" />
 
     <Feature Id="Main" Title="课堂同传助手">
       <Component Id="AppExe" Directory="INSTALLFOLDER">
-        <File Id="AppExe" Source="$(var.SourceExe)" Name="LiveCaptionsTranslator.exe" KeyPath="yes">
+        <File Id="AppExe" Source="$(var.SourceExe)" Name="LectureInterpreter.exe" KeyPath="yes">
           <Shortcut
               Id="StartMenuShortcut"
               Directory="ProgramMenuFolder"

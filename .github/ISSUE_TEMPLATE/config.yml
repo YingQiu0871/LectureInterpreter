@@ -1,5 +1,5 @@
 ﻿blank_issues_enabled: false
 contact_links:
-  - name: Discussion
-    url: https://github.com/SakiRinn/LiveCaptions-Translator/discussions
-    about: Ask something more here.
+  - name: 使用说明 (README)
+    url: https://github.com/YingQiu0871/LectureInterpreter#readme
+    about: 提问前先看看 README 里的说明和常见问题。
