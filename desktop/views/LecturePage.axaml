@@ -5,28 +5,13 @@
              x:Class="LiveCaptionsTranslator.LecturePage"
              x:DataType="m:LectureState">
     <UserControl.Styles>
+        <!-- The card, title, label and hint styles are shared (App.axaml); only the spacing is page specific. -->
         <Style Selector="Border.card">
-            <Setter Property="Margin" Value="0,0,10,10" />
-            <Setter Property="Padding" Value="14,10,14,12" />
-            <Setter Property="CornerRadius" Value="6" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundListLowBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+            <Setter Property="Margin" Value="0,0,12,12" />
+            <Setter Property="Padding" Value="18,16,18,18" />
         </Style>
         <Style Selector="TextBlock.title">
-            <Setter Property="Margin" Value="0,0,0,8" />
-            <Setter Property="FontSize" Value="15" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-        </Style>
-        <Style Selector="TextBlock.label">
-            <Setter Property="Margin" Value="2,8,0,4" />
-            <Setter Property="Opacity" Value="0.85" />
-        </Style>
-        <Style Selector="TextBlock.hint">
-            <Setter Property="Margin" Value="2,6,0,0" />
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Opacity" Value="0.65" />
-            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,0,0,6" />
         </Style>
         <Style Selector="ComboBox">
             <Setter Property="HorizontalAlignment" Value="Stretch" />
@@ -38,7 +23,7 @@
     </UserControl.Styles>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <Grid Margin="15,12,5,12" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+        <Grid Margin="16,16,4,12" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
 
             <!-- Left column: input, model / API -->
             <StackPanel Grid.Row="0" Grid.Column="0">

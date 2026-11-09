@@ -22,8 +22,8 @@ namespace LiveCaptionsTranslator
 
         private static readonly IBrush OriginalBrush = new SolidColorBrush(Avalonia.Media.Color.FromRgb(0xC8, 0xC8, 0xC8));
         private static readonly IBrush TranslationBrush = Brushes.White;
-        private static readonly IBrush PinnedBrush = new SolidColorBrush(Avalonia.Media.Color.FromRgb(0x8F, 0xD1, 0x8F));
-        private static readonly IBrush UnpinnedBrush = new SolidColorBrush(Avalonia.Media.Color.FromRgb(0xAA, 0xAA, 0xAA));
+        private static readonly IBrush PinnedBrush = new SolidColorBrush(Avalonia.Media.Color.FromArgb(0x80, 0x8F, 0xD1, 0x8F));
+        private static readonly IBrush UnpinnedBrush = new SolidColorBrush(Avalonia.Media.Color.FromArgb(0x26, 0xFF, 0xFF, 0xFF));
 
         private readonly BilingualFeed feed;
 

@@ -6,55 +6,216 @@
         Width="900" Height="560"
         MinWidth="750" MinHeight="420"
         WindowStartupLocation="CenterScreen">
+    <Window.Styles>
+        <!-- Capsule buttons of the top bar: same height, text centered both ways -->
+        <Style Selector="Button.pill, ToggleButton.pill">
+            <Setter Property="Height" Value="32" />
+            <Setter Property="MinWidth" Value="76" />
+            <Setter Property="Padding" Value="16,0" />
+            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <!-- "Pause translation" turns into an amber capsule while it is on -->
+        <Style Selector="ToggleButton.pill:checked /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#F5A524" />
+            <Setter Property="BorderBrush" Value="#F5A524" />
+            <Setter Property="Foreground" Value="#2B1D00" />
+        </Style>
+        <Style Selector="ToggleButton.pill:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#E89B1C" />
+            <Setter Property="BorderBrush" Value="#E89B1C" />
+            <Setter Property="Foreground" Value="#2B1D00" />
+        </Style>
+        <Style Selector="ToggleButton.pill:checked:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#E89B1C" />
+            <Setter Property="Foreground" Value="#2B1D00" />
+        </Style>
+        <!-- The "float windows" button, lit while a floating window is open -->
+        <Style Selector="Button.on /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BrandSoftBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BrandSoftBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource BrandTextBrush}" />
+        </Style>
+
+        <!-- Icon-only toggle (pin) -->
+        <Style Selector="ToggleButton.icon">
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        </Style>
+        <Style Selector="ToggleButton.icon /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        </Style>
+        <Style Selector="ToggleButton.icon:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SegHoverBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        </Style>
+        <Style Selector="ToggleButton.icon:checked /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BrandSoftBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource BrandTextBrush}" />
+        </Style>
+        <Style Selector="ToggleButton.icon:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BrandSoftBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource BrandTextBrush}" />
+        </Style>
+
+        <!-- Rows of the float-windows flyout -->
+        <Style Selector="ToggleButton.menuitem">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+        <Style Selector="ToggleButton.menuitem /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        </Style>
+        <Style Selector="ToggleButton.menuitem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SegHoverBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        </Style>
+        <Style Selector="ToggleButton.menuitem:checked /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource BrandTextBrush}" />
+        </Style>
+        <Style Selector="ToggleButton.menuitem:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SegHoverBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource BrandTextBrush}" />
+        </Style>
+
+        <!-- Navigation: plain text items, the selected one gets a soft accent background -->
+        <Style Selector="ListBox.nav ListBoxItem">
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Padding" Value="0,9" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        </Style>
+        <Style Selector="ListBox.nav ListBoxItem /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        </Style>
+        <Style Selector="ListBox.nav ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SegBgBrush}" />
+        </Style>
+        <Style Selector="ListBox.nav ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BrandSoftBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource BrandTextBrush}" />
+        </Style>
+        <Style Selector="ListBox.nav ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BrandSoftBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource BrandTextBrush}" />
+        </Style>
+        <Style Selector="ListBox.nav ListBoxItem:selected TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+    </Window.Styles>
+
     <Grid RowDefinitions="Auto,*">
-        <!-- Top bar: class controls -->
-        <Border Grid.Row="0" Padding="8,6" BorderThickness="0,0,0,1"
-                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="6">
-                <StackPanel.Styles>
-                    <Style Selector="Button, ToggleButton">
-                        <Setter Property="HorizontalContentAlignment" Value="Center" />
-                    </Style>
-                </StackPanel.Styles>
-                <Button x:Name="StartButton" Classes="accent" Content="开始" MinWidth="76"
-                        ToolTip.Tip="开始 / 停止上课" Click="StartButton_Click" />
-                <Button Content="结束本节"
-                        ToolTip.Tip="结束本节并总结 (Ctrl+Alt+S)" Click="EndSectionButton_Click" />
-                <StackPanel Orientation="Horizontal" Margin="4,0,6,0" VerticalAlignment="Center" Spacing="4"
-                            ToolTip.Tip="打开 / 关闭耳机播报 (Ctrl+Alt+M)">
-                    <TextBlock Text="耳机播报" VerticalAlignment="Center" />
-                    <ToggleSwitch x:Name="SpeechSwitch" OnContent="{x:Null}" OffContent="{x:Null}"
-                                  VerticalAlignment="Center" Click="SpeechSwitch_Click" />
+        <!-- Top bar: brand on the left; class control | output | window on the right -->
+        <Border Grid.Row="0" Padding="16,10" BorderThickness="0,0,0,1"
+                Background="{DynamicResource CardBgBrush}"
+                BorderBrush="{DynamicResource CardBorderBrush}">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center"
+                            ClipToBounds="True">
+                    <Image Source="/assets/icon.png" Width="30" Height="30" VerticalAlignment="Center" />
+                    <TextBlock Text="课堂同传助手" FontSize="15" FontWeight="Bold" VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis" />
                 </StackPanel>
-                <ToggleButton x:Name="LogOnlyButton" Content="暂停翻译"
-                              ToolTip.Tip="暂停翻译（只记录原文）" Click="LogOnlyButton_Click" />
-                <ToggleButton x:Name="OverlayModeButton" Content="悬浮字幕"
-                              ToolTip.Tip="悬浮字幕窗" Click="OverlayModeButton_Click" />
-                <ToggleButton x:Name="BilingualModeButton" Content="双语浮窗"
-                              ToolTip.Tip="双语浮窗（原文 + 译文，半透明置顶）" Click="BilingualModeButton_Click" />
-                <ToggleButton x:Name="TopmostButton" Content="置顶"
-                              ToolTip.Tip="窗口置顶" Click="TopmostButton_Click" />
-            </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8"
+                            VerticalAlignment="Center">
+                    <!-- Class control -->
+                    <Button x:Name="StartButton" Classes="pill accent" Content="开始" MinWidth="80"
+                            FontWeight="SemiBold" ToolTip.Tip="开始 / 停止上课" Click="StartButton_Click" />
+                    <ToggleButton x:Name="LogOnlyButton" Classes="pill" Content="暂停翻译"
+                                  ToolTip.Tip="暂停翻译（只记录原文）" Click="LogOnlyButton_Click" />
+
+                    <Border Width="1" Height="20" Margin="6,0" Background="{DynamicResource CardBorderBrush}" />
+
+                    <!-- Output -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="2"
+                                ToolTip.Tip="打开 / 关闭耳机播报 (Ctrl+Alt+M)">
+                        <TextBlock Text="耳机播报" FontSize="13" VerticalAlignment="Center" />
+                        <ToggleSwitch x:Name="SpeechSwitch" OnContent="{x:Null}" OffContent="{x:Null}"
+                                      VerticalAlignment="Center" Click="SpeechSwitch_Click" />
+                    </StackPanel>
+                    <Button x:Name="FloatButton" Classes="pill" ToolTip.Tip="悬浮字幕、双语浮窗">
+                        <StackPanel Orientation="Horizontal" Spacing="7">
+                            <TextBlock Text="浮窗" VerticalAlignment="Center" />
+                            <Path Data="M0,0 L4,4 L8,0" StrokeThickness="1.5" StrokeLineCap="Round"
+                                  StrokeJoin="Round" VerticalAlignment="Center" Margin="0,1,0,0"
+                                  Stroke="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=ContentPresenter}}" />
+                        </StackPanel>
+                        <Button.Flyout>
+                            <Flyout Placement="BottomEdgeAlignedRight" ShowMode="Standard">
+                                <StackPanel Width="190" Spacing="2" Margin="-6">
+                                    <ToggleButton x:Name="OverlayModeButton" Classes="menuitem"
+                                                  ToolTip.Tip="悬浮字幕窗" Click="OverlayModeButton_Click">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <TextBlock Text="悬浮字幕" VerticalAlignment="Center" />
+                                            <Path Grid.Column="1" Data="M0,4 L3.5,7.5 L10,0.5" StrokeThickness="1.8"
+                                                  StrokeLineCap="Round" StrokeJoin="Round" VerticalAlignment="Center"
+                                                  IsVisible="{Binding IsChecked, RelativeSource={RelativeSource FindAncestor, AncestorType=ToggleButton}}"
+                                                  Stroke="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=ContentPresenter}}" />
+                                        </Grid>
+                                    </ToggleButton>
+                                    <ToggleButton x:Name="BilingualModeButton" Classes="menuitem"
+                                                  ToolTip.Tip="双语浮窗（原文 + 译文，半透明置顶）" Click="BilingualModeButton_Click">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <TextBlock Text="双语浮窗" VerticalAlignment="Center" />
+                                            <Path Grid.Column="1" Data="M0,4 L3.5,7.5 L10,0.5" StrokeThickness="1.8"
+                                                  StrokeLineCap="Round" StrokeJoin="Round" VerticalAlignment="Center"
+                                                  IsVisible="{Binding IsChecked, RelativeSource={RelativeSource FindAncestor, AncestorType=ToggleButton}}"
+                                                  Stroke="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=ContentPresenter}}" />
+                                        </Grid>
+                                    </ToggleButton>
+                                </StackPanel>
+                            </Flyout>
+                        </Button.Flyout>
+                    </Button>
+
+                    <Border Width="1" Height="20" Margin="6,0" Background="{DynamicResource CardBorderBrush}" />
+
+                    <!-- Window -->
+                    <ToggleButton x:Name="TopmostButton" Classes="icon" ToolTip.Tip="窗口置顶"
+                                  Click="TopmostButton_Click">
+                        <!-- A pin, drawn: not every Linux font has the emoji glyph. -->
+                        <Path Data="M9,2 L15,2 M10,2 L10,8 L7,13 L17,13 L14,8 L14,2 M12,13 L12,21"
+                              StrokeThickness="1.6" StrokeLineCap="Round" StrokeJoin="Round" Width="16" Height="16"
+                              Stretch="Uniform"
+                              Stroke="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=ContentPresenter}}" />
+                    </ToggleButton>
+                </StackPanel>
+            </Grid>
         </Border>
 
         <Grid Grid.Row="1" ColumnDefinitions="Auto,*">
-            <ListBox x:Name="NavList" Grid.Column="0" Width="88" Padding="4,8"
-                     SelectionChanged="NavList_SelectionChanged">
-                <ListBox.Styles>
-                    <Style Selector="ListBoxItem">
-                        <Setter Property="HorizontalContentAlignment" Value="Center" />
-                        <Setter Property="Padding" Value="0,10" />
-                        <Setter Property="Margin" Value="0,0,0,3" />
-                    </Style>
-                </ListBox.Styles>
-            </ListBox>
+            <Border Grid.Column="0" Background="{DynamicResource CardBgBrush}" BorderThickness="0,0,1,0"
+                    BorderBrush="{DynamicResource CardBorderBrush}">
+                <ListBox x:Name="NavList" Classes="nav" Width="88" Padding="8,12" Background="Transparent"
+                         SelectionChanged="NavList_SelectionChanged" />
+            </Border>
 
             <Grid Grid.Column="1">
                 <ContentControl x:Name="PageHost" />
 
                 <!-- Notifications of the core -->
                 <Border x:Name="Toast" IsVisible="False" HorizontalAlignment="Center" VerticalAlignment="Bottom"
-                        Margin="16" Padding="14,10" CornerRadius="6" MinWidth="260" MaxWidth="560"
+                        Margin="16" Padding="14,10" CornerRadius="10" MinWidth="260" MaxWidth="560"
                         BorderThickness="1">
                     <Grid ColumnDefinitions="*,Auto">
                         <StackPanel>
