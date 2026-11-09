@@ -1,47 +1,55 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="LiveCaptionsTranslator.InfoPage">
-    <StackPanel Margin="10" Spacing="4">
-        <TextBlock TextWrapping="Wrap"
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <Border Classes="card" Margin="16" Padding="28,24" MaxWidth="640" HorizontalAlignment="Center"
+            VerticalAlignment="Top">
+    <StackPanel Spacing="6">
+        <Image Source="/assets/icon.png" Width="56" Height="56" HorizontalAlignment="Center" />
+        <TextBlock FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,4,0,0"
+                   Text="课堂同传助手" />
+        <TextBlock TextWrapping="Wrap" FontSize="13" LineHeight="21" Margin="0,8,0,0"
                    Text="课堂同传助手由 @YingQiu0871 基于开源项目 LiveCaptions Translator 改造，增加了课堂分节总结、时间线、双语浮窗、笔记初稿和耳机播报。问题和建议欢迎在本项目的 GitHub Issue 反馈。&#x0A;如果觉得好用，欢迎给本项目和原项目点个 Star！" />
-        <Separator Margin="0,5,0,5" />
+        <Separator Margin="0,8" />
         <StackPanel Orientation="Horizontal">
-            <TextBlock FontWeight="SemiBold" Text="本项目仓库：" VerticalAlignment="Center" />
+            <TextBlock FontWeight="SemiBold" Classes="secondary" Text="本项目仓库：" VerticalAlignment="Center" />
             <HyperlinkButton Padding="0" Content="https://github.com/YingQiu0871/LectureInterpreter"
                              NavigateUri="https://github.com/YingQiu0871/LectureInterpreter" />
         </StackPanel>
         <StackPanel Orientation="Horizontal">
-            <TextBlock FontWeight="SemiBold" Text="作者：" VerticalAlignment="Center" />
+            <TextBlock FontWeight="SemiBold" Classes="secondary" Text="作者：" VerticalAlignment="Center" />
             <HyperlinkButton Padding="0" Content="@YingQiu0871"
                              NavigateUri="https://github.com/YingQiu0871" />
         </StackPanel>
         <StackPanel Orientation="Horizontal">
-            <TextBlock FontWeight="SemiBold" Text="使用说明：" VerticalAlignment="Center" />
+            <TextBlock FontWeight="SemiBold" Classes="secondary" Text="使用说明：" VerticalAlignment="Center" />
             <HyperlinkButton Padding="0" Content="https://github.com/YingQiu0871/LectureInterpreter#readme"
                              NavigateUri="https://github.com/YingQiu0871/LectureInterpreter#readme" />
         </StackPanel>
         <StackPanel Orientation="Horizontal">
-            <TextBlock FontWeight="SemiBold" Text="原项目仓库：" VerticalAlignment="Center" />
+            <TextBlock FontWeight="SemiBold" Classes="secondary" Text="原项目仓库：" VerticalAlignment="Center" />
             <HyperlinkButton Padding="0" Content="https://github.com/SakiRinn/LiveCaptions-Translator"
                              NavigateUri="https://github.com/SakiRinn/LiveCaptions-Translator" />
         </StackPanel>
         <StackPanel Orientation="Horizontal">
-            <TextBlock FontWeight="SemiBold" Text="原作者：" VerticalAlignment="Center" />
+            <TextBlock FontWeight="SemiBold" Classes="secondary" Text="原作者：" VerticalAlignment="Center" />
             <HyperlinkButton Padding="0" Content="@SakiRinn" NavigateUri="https://github.com/SakiRinn" />
             <TextBlock Text="（作者）和" VerticalAlignment="Center" />
             <HyperlinkButton Padding="0" Content="@A-nony-mous" NavigateUri="https://github.com/A-nony-mous" />
         </StackPanel>
         <StackPanel Orientation="Horizontal">
-            <TextBlock FontWeight="SemiBold" Text="版本：" VerticalAlignment="Center" />
+            <TextBlock FontWeight="SemiBold" Classes="secondary" Text="版本：" VerticalAlignment="Center" />
             <HyperlinkButton x:Name="Version" Padding="0" Content="1.1.1.1"
                              NavigateUri="https://github.com/YingQiu0871/LectureInterpreter/releases" />
         </StackPanel>
         <StackPanel Orientation="Horizontal" Spacing="8">
-            <TextBlock FontWeight="SemiBold" Text="更新：" VerticalAlignment="Center" />
+            <TextBlock FontWeight="SemiBold" Classes="secondary" Text="更新：" VerticalAlignment="Center" />
             <TextBlock x:Name="UpdateStatus" VerticalAlignment="Center" />
             <HyperlinkButton x:Name="UpdateLink" Padding="0" IsVisible="False" />
-            <Button x:Name="CheckUpdateButton" Content="检查更新" Click="CheckUpdateButton_Click" />
+            <Button x:Name="CheckUpdateButton" Padding="12,5" Content="检查更新" Click="CheckUpdateButton_Click" />
         </StackPanel>
         <CheckBox x:Name="AutoCheckBox" Content="启动时自动检查更新" Click="AutoCheckBox_Click" />
     </StackPanel>
+    </Border>
+    </ScrollViewer>
 </UserControl>

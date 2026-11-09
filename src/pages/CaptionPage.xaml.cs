@@ -10,6 +10,11 @@ namespace LiveCaptionsTranslator
 {
     public partial class CaptionPage : Page
     {
+        // Large-text mode is remembered for this run only.
+        private static bool bigMode = false;
+        private const int BIG_ORIGINAL_FONT_SIZE = 15;
+        private const int BIG_TRANSLATED_FONT_SIZE = 26;
+
         public CaptionPage()
         {
             InitializeComponent();
@@ -40,6 +45,33 @@ namespace LiveCaptionsTranslator
             };
 
             ApplyFontSizes();
+            if (bigMode)
+                BigModeToggle.IsChecked = true;
+        }
+
+        private void BigModeToggle_Changed(object sender, RoutedEventArgs e)
+        {
+            bigMode = BigModeToggle.IsChecked == true;
+            if (bigMode)
+            {
+                SectionColumn.MinWidth = 0;
+                SectionColumn.Width = new GridLength(0);
+                SectionPanel.Visibility = Visibility.Collapsed;
+                SectionSplitter.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                SectionColumn.MinWidth = 180;
+                SectionColumn.Width = new GridLength(Math.Max(Translator.Setting.MainWindow.SectionPanelWidth, 180));
+                SectionPanel.Visibility = Visibility.Visible;
+                SectionSplitter.Visibility = Visibility.Visible;
+            }
+            ApplyFontSizes();
+        }
+
+        private void EndSectionButton_Click(object sender, RoutedEventArgs e)
+        {
+            MainWindow.EndSection();
         }
 
         private void OnTranslationLogged()
@@ -152,8 +184,9 @@ namespace LiveCaptionsTranslator
 
         private void ApplyFontSizes()
         {
-            OriginalCaption.FontSize = Translator.Setting.MainWindow.OriginalFontSize;
-            TranslatedCaption.FontSize = Translator.Setting.MainWindow.TranslatedFontSize;
+            // Large-text mode uses fixed sizes; Ctrl + wheel still adjusts the saved sizes for normal mode.
+            OriginalCaption.FontSize = bigMode ? BIG_ORIGINAL_FONT_SIZE : Translator.Setting.MainWindow.OriginalFontSize;
+            TranslatedCaption.FontSize = bigMode ? BIG_TRANSLATED_FONT_SIZE : Translator.Setting.MainWindow.TranslatedFontSize;
         }
 
         private void OriginalCard_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
@@ -171,7 +204,7 @@ namespace LiveCaptionsTranslator
         // Ctrl + wheel changes a font size.
         private void AdjustFontOnWheel(MouseWheelEventArgs e, Func<int> get, Action<int> set)
         {
-            if (Keyboard.Modifiers != ModifierKeys.Control)
+            if (bigMode || Keyboard.Modifiers != ModifierKeys.Control)
                 return;
             set(AdjustFontSize(get(), e.Delta));
             ApplyFontSizes();

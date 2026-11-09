@@ -37,6 +37,10 @@ namespace LiveCaptionsTranslator
             NavList.ItemsSource = PAGES.Select(page => page.Name).ToList();
             toastTimer.Tick += (s, e) => HideToast();
 
+            // The "浮窗" button lights up while one of the two floating windows is on.
+            OverlayModeButton.IsCheckedChanged += (s, e) => ShowFloatState();
+            BilingualModeButton.IsCheckedChanged += (s, e) => ShowFloatState();
+
             KeyBindings.Add(new KeyBinding
             {
                 Gesture = new KeyGesture(Key.S, KeyModifiers.Control | KeyModifiers.Alt),
@@ -75,6 +79,11 @@ namespace LiveCaptionsTranslator
             ShowSessionState();
             string microphone = DesktopSettings.MicrophoneId;
             CloudAsr.MicrophoneSource = string.IsNullOrEmpty(microphone) ? null : microphone;
+        }
+
+        private void ShowFloatState()
+        {
+            FloatButton.Classes.Set("on", OverlayModeButton.IsChecked == true || BilingualModeButton.IsChecked == true);
         }
 
         public void Navigate(string name)
@@ -167,11 +176,6 @@ namespace LiveCaptionsTranslator
             Translator.ClearContexts();
         }
 
-        private void EndSectionButton_Click(object? sender, RoutedEventArgs e)
-        {
-            EndSection();
-        }
-
         private async void StartButton_Click(object? sender, RoutedEventArgs e)
         {
             if (ClassSession.IsRunning)
@@ -192,6 +196,7 @@ namespace LiveCaptionsTranslator
             StartButton.IsEnabled = !ClassSession.IsStarting;
             StartButton.Content = ClassSession.IsStarting ? "启动中…" : ClassSession.IsRunning ? "停止" : "开始";
             StartButton.Classes.Set("accent", !ClassSession.IsRunning);
+            StartButton.Classes.Set("danger", ClassSession.IsRunning);
         }
 
         private void SpeechSwitch_Click(object? sender, RoutedEventArgs e)

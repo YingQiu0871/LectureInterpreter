@@ -13,12 +13,31 @@
         ShowInTaskbar="False"
         Topmost="True">
     <Window.Styles>
+        <!-- Small round-cornered, translucent white buttons -->
         <Style Selector="Button.tool">
-            <Setter Property="Background" Value="#FFAAAAAA" />
-            <Setter Property="Foreground" Value="Black" />
-            <Setter Property="Padding" Value="6,2" />
+            <Setter Property="Background" Value="#26FFFFFF" />
+            <Setter Property="Foreground" Value="#F2FFFFFF" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="8,0" />
+            <Setter Property="MinWidth" Value="26" />
+            <Setter Property="Height" Value="24" />
             <Setter Property="Margin" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.tool /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="#F2FFFFFF" />
+        </Style>
+        <Style Selector="Button.tool:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#40FFFFFF" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.tool:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#55FFFFFF" />
+            <Setter Property="Foreground" Value="White" />
         </Style>
         <Style Selector="Border.edge">
             <Setter Property="Background" Value="Transparent" />
@@ -26,7 +45,7 @@
     </Window.Styles>
 
     <Grid>
-        <Border x:Name="PanelBorder" Margin="5" CornerRadius="10" Background="#99000000">
+        <Border x:Name="PanelBorder" Margin="5" CornerRadius="12" Background="#CC111827">
             <Grid>
                 <ScrollViewer x:Name="PairScroll" Margin="16,12" VerticalScrollBarVisibility="Hidden"
                               HorizontalScrollBarVisibility="Disabled">
@@ -37,7 +56,7 @@
                 </ScrollViewer>
 
                 <Border x:Name="ControlPanel" Margin="0,6,10,0" HorizontalAlignment="Right" VerticalAlignment="Top"
-                        CornerRadius="6" Background="#E6202020" IsVisible="False">
+                        CornerRadius="8" Background="#E6111827" IsVisible="False">
                     <StackPanel Margin="3" Orientation="Horizontal">
                         <Button x:Name="PinButton" Classes="tool" Content="置顶" ToolTip.Tip="置顶（点击切换）"
                                 Click="PinButton_Click" />
@@ -49,8 +68,10 @@
                         <Button Classes="tool" Content="浅" ToolTip.Tip="背景变浅" Click="OpacityDecrease_Click" />
                         <Button x:Name="SentencesButton" Classes="tool" Margin="6,1,1,1"
                                 ToolTip.Tip="显示的句数（点击在 1–5 句之间切换）" Click="SentencesButton_Click" />
-                        <Button Classes="tool" Margin="6,1,1,1" Content="✕" ToolTip.Tip="关闭双语浮窗"
-                                Click="CloseButton_Click" />
+                        <Button Classes="tool" Margin="6,1,1,1" ToolTip.Tip="关闭双语浮窗" Click="CloseButton_Click">
+                            <Path Data="M0,0 L8,8 M8,0 L0,8" StrokeThickness="1.5" StrokeLineCap="Round"
+                                  Stroke="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=ContentPresenter}}" />
+                        </Button>
                     </StackPanel>
                 </Border>
             </Grid>

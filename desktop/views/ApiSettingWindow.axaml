@@ -9,7 +9,7 @@
         WindowStartupLocation="CenterScreen">
     <Grid ColumnDefinitions="Auto,*">
         <Border Grid.Column="0" BorderThickness="0,0,1,0"
-                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+                BorderBrush="{DynamicResource CardBorderBrush}">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel x:Name="NavPanel" Width="200" Margin="0,0,5,10" />
             </ScrollViewer>
@@ -17,7 +17,7 @@
         <Border Grid.Column="1" Margin="4" CornerRadius="8">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="30">
-                    <TextBlock Margin="0,0,0,10" FontSize="28" FontWeight="Heavy" Text="接口配置" />
+                    <TextBlock Margin="0,0,0,10" FontSize="20" FontWeight="SemiBold" Text="接口配置" />
                     <StackPanel x:Name="Sections" Margin="5" />
                 </StackPanel>
             </ScrollViewer>

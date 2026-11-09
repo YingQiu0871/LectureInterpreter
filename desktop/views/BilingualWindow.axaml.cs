@@ -22,8 +22,8 @@ namespace LiveCaptionsTranslator
 
         private static readonly IBrush OriginalBrush = new SolidColorBrush(Avalonia.Media.Color.FromRgb(0xC8, 0xC8, 0xC8));
         private static readonly IBrush TranslationBrush = Brushes.White;
-        private static readonly IBrush PinnedBrush = new SolidColorBrush(Avalonia.Media.Color.FromRgb(0x8F, 0xD1, 0x8F));
-        private static readonly IBrush UnpinnedBrush = new SolidColorBrush(Avalonia.Media.Color.FromRgb(0xAA, 0xAA, 0xAA));
+        private static readonly IBrush PinnedBrush = new SolidColorBrush(Avalonia.Media.Color.FromArgb(0x80, 0x8F, 0xD1, 0x8F));
+        private static readonly IBrush UnpinnedBrush = new SolidColorBrush(Avalonia.Media.Color.FromArgb(0x26, 0xFF, 0xFF, 0xFF));
 
         private readonly BilingualFeed feed;
 
@@ -149,7 +149,7 @@ namespace LiveCaptionsTranslator
         private void ApplyBackgroundOpacity()
         {
             PanelBorder.Background = new SolidColorBrush(
-                Avalonia.Media.Color.FromArgb((byte)Math.Clamp(Look.Opacity, 0, 255), 0, 0, 0));
+                Avalonia.Media.Color.FromArgb((byte)Math.Clamp(Look.Opacity, 0, 255), 0x11, 0x18, 0x27));
         }
 
         private void PinButton_Click(object? sender, RoutedEventArgs e)

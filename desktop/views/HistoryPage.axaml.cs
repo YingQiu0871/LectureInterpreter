@@ -164,20 +164,17 @@ namespace LiveCaptionsTranslator
                 Margin = new Thickness(10, 0, 0, 0),
                 Children =
                 {
-                    new TextBlock { Text = title, FontWeight = FontWeight.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis },
-                    new TextBlock { Text = info, Margin = new Thickness(0, 2, 0, 0), FontSize = 12, Opacity = 0.7 },
+                    new TextBlock { Text = title, FontSize = 14, FontWeight = FontWeight.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis },
+                    new TextBlock { Text = info, Margin = new Thickness(0, 2, 0, 0), FontSize = 12, Classes = { "secondary" } },
                 },
             };
             if (tooltip != null)
                 ToolTip.SetTip(text.Children[0], tooltip);
             var card = new Border
             {
-                Padding = new Thickness(12, 8, 12, 10),
-                CornerRadius = new CornerRadius(6),
-                BorderThickness = new Thickness(1),
+                Classes = { "card" },
+                Padding = new Thickness(14, 10, 14, 12),
                 Cursor = new Cursor(StandardCursorType.Hand),
-                Background = (IBrush?)this.FindResource("SystemControlBackgroundListLowBrush"),
-                BorderBrush = (IBrush?)this.FindResource("SystemControlForegroundBaseLowBrush"),
                 Child = new StackPanel { Orientation = Orientation.Horizontal, Children = { text } },
             };
             if (width > 0)
@@ -188,17 +185,17 @@ namespace LiveCaptionsTranslator
         private Border BuildCourseCard(CourseEntry course)
         {
             var card = BuildCard(course.Name, course.Info, course.Name, 200);
-            card.Margin = new Thickness(0, 0, 10, 10);
+            card.Margin = new Thickness(0, 0, 12, 12);
             ((StackPanel)card.Child!).Children.Insert(0, new Border
             {
                 // Drawn, not a "▣" character: not every Linux font has that glyph.
                 Width = 24,
                 Height = 24,
                 Margin = new Thickness(2, 0),
-                CornerRadius = new CornerRadius(5),
+                CornerRadius = new CornerRadius(6),
                 BorderThickness = new Thickness(3),
                 VerticalAlignment = VerticalAlignment.Center,
-                BorderBrush = (IBrush?)this.FindResource("SystemControlHighlightAccentBrush") ?? Brushes.SteelBlue,
+                BorderBrush = (IBrush?)this.FindResource("BrandBrush") ?? Brushes.SteelBlue,
             });
             ((StackPanel)((StackPanel)card.Child).Children[1]).Width = 140;
             AddCardActions(card, () => ShowLectures(course),
@@ -209,7 +206,7 @@ namespace LiveCaptionsTranslator
         private Border BuildLectureCard(LectureRecord lecture)
         {
             var card = BuildCard(lecture.Name, lecture.Info, null, 0);
-            card.Margin = new Thickness(0, 0, 10, 8);
+            card.Margin = new Thickness(0, 0, 0, 10);
             AddCardActions(card, () => ShowDetail(lecture),
                 "重命名 / 移到其他课程", async () => await RenameLectureAndRefresh(lecture),
                 "删除这节课", () => DeleteLecture(lecture));

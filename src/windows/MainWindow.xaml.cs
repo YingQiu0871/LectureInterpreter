@@ -52,6 +52,7 @@ namespace LiveCaptionsTranslator
             Speaker.MutedChanged += muted => Dispatcher.InvokeAsync(() => ShowSpeakerState(muted));
             ClassSession.StateChanged += () => Dispatcher.InvokeAsync(ShowSessionState);
 
+            Loaded += (s, e) => LoadLogo();
             Loaded += (s, e) =>
             {
                 // Applied once more on the loaded window, as a manual theme switch does (that is known to put a
@@ -186,6 +187,7 @@ namespace LiveCaptionsTranslator
                 }
 
                 OverlayWindow.Show();
+                UpdateFloatMenuButton();
             }
             else
             {
@@ -205,6 +207,7 @@ namespace LiveCaptionsTranslator
 
                 OverlayWindow.Close();
                 OverlayWindow = null;
+                UpdateFloatMenuButton();
             }
         }
 
@@ -222,10 +225,12 @@ namespace LiveCaptionsTranslator
                 BilingualWindow = null;
                 if (BilingualModeButton.Icon is SymbolIcon icon)
                     icon.Filled = false;
+                UpdateFloatMenuButton();
             };
             if (BilingualModeButton.Icon is SymbolIcon symbolIcon)
                 symbolIcon.Filled = true;
             BilingualWindow.Show();
+            UpdateFloatMenuButton();
 
             if (!bilingualHintShown && Translator.Setting.Lecture.Engine == models.RecognitionEngine.LiveCaptions)
             {
@@ -251,7 +256,61 @@ namespace LiveCaptionsTranslator
                 symbolIcon.Filled = true;
             }
 
+            if (button != null)
+                button.Appearance = Translator.LogOnlyFlag ? ControlAppearance.Caution : ControlAppearance.Secondary;
+
             Translator.ClearContexts();
+        }
+
+        private void FloatMenuButton_Click(object sender, RoutedEventArgs e)
+        {
+            FloatMenu.PlacementTarget = FloatMenuButton;
+            FloatMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+            FloatMenu.IsOpen = true;
+        }
+
+        private void FloatMenu_Opened(object sender, RoutedEventArgs e)
+        {
+            OverlayMenuItem.IsChecked = OverlayWindow != null;
+            BilingualMenuItem.IsChecked = BilingualWindow != null;
+            UpdateFloatMenuButton();
+        }
+
+        // The 浮窗 button looks "on" while a floating window is open.
+        private void UpdateFloatMenuButton()
+        {
+            FloatMenuButton.Appearance = OverlayWindow != null || BilingualWindow != null
+                ? ControlAppearance.Primary
+                : ControlAppearance.Secondary;
+        }
+
+        private void OverlayMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            OverlayModeButton_Click(OverlayModeButton, e);
+        }
+
+        private void BilingualMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            BilingualModeButton_Click(BilingualModeButton, e);
+        }
+
+        // The app icon is embedded in the exe (ApplicationIcon); show it next to the title.
+        private void LoadLogo()
+        {
+            try
+            {
+                // The app icon is embedded as a WPF resource; pick its largest frame so it stays sharp when scaled.
+                var decoder = System.Windows.Media.Imaging.BitmapDecoder.Create(
+                    new Uri("pack://application:,,,/LectureInterpreter;component/src/LectureInterpreter.ico"),
+                    System.Windows.Media.Imaging.BitmapCreateOptions.None,
+                    System.Windows.Media.Imaging.BitmapCacheOption.OnLoad);
+                LogoImage.Source = decoder.Frames.OrderByDescending(f => f.PixelWidth).First();
+                LogoImage.Visibility = Visibility.Visible;
+                LogoFallback.Visibility = Visibility.Collapsed;
+            }
+            catch (Exception)
+            {
+            }
         }
 
         private void EndSectionButton_Click(object sender, RoutedEventArgs e)
@@ -278,7 +337,7 @@ namespace LiveCaptionsTranslator
         {
             StartButton.IsEnabled = !ClassSession.IsStarting;
             StartButton.Content = ClassSession.IsStarting ? "启动中…" : ClassSession.IsRunning ? "停止" : "开始";
-            StartButton.Appearance = ClassSession.IsRunning ? ControlAppearance.Secondary : ControlAppearance.Primary;
+            StartButton.Appearance = ClassSession.IsRunning ? ControlAppearance.Danger : ControlAppearance.Primary;
             if (StartButton.Icon is SymbolIcon icon)
                 icon.Symbol = ClassSession.IsRunning ? SymbolRegular.Stop16 : SymbolRegular.Play16;
         }
@@ -360,6 +419,8 @@ namespace LiveCaptionsTranslator
             var button = TopmostButton as Button;
             var symbolIcon = button?.Icon as SymbolIcon;
             symbolIcon.Filled = enabled;
+            if (button != null)
+                button.Appearance = enabled ? ControlAppearance.Primary : ControlAppearance.Transparent;
             this.Topmost = enabled;
             Translator.Setting.MainWindow.Topmost = enabled;
         }

@@ -15,12 +15,21 @@ namespace LiveCaptionsTranslator
     public partial class CaptionPage : UserControl
     {
         private bool showOriginal = true;
+        // Large-caption mode is remembered for this run only (the page is kept alive by the main window).
+        private static bool largeMode;
+        private const int LARGE_ORIGINAL_SIZE = 15;
+        private const int LARGE_TRANSLATED_SIZE = 26;
 
         public CaptionPage()
         {
             InitializeComponent();
-            Root.ColumnDefinitions[2].Width = new GridLength(Math.Max(Translator.Setting.MainWindow.SectionPanelWidth, 180));
-            ApplyFontSizes();
+            ApplyLayout();
+            LargeModeButton.IsChecked = largeMode;
+            LargeModeButton.Click += (s, e) =>
+            {
+                largeMode = LargeModeButton.IsChecked == true;
+                ApplyLayout();
+            };
 
             Splitter.DragCompleted += (s, e) =>
                 Translator.Setting.MainWindow.SectionPanelWidth = Math.Round(Root.ColumnDefinitions[2].ActualWidth);
@@ -195,14 +204,32 @@ namespace LiveCaptionsTranslator
 
         private void ApplyFontSizes()
         {
-            OriginalCaption.FontSize = Translator.Setting.MainWindow.OriginalFontSize;
-            TranslatedCaption.FontSize = Translator.Setting.MainWindow.TranslatedFontSize;
+            OriginalCaption.FontSize = largeMode ? LARGE_ORIGINAL_SIZE : Translator.Setting.MainWindow.OriginalFontSize;
+            TranslatedCaption.FontSize = largeMode ? LARGE_TRANSLATED_SIZE : Translator.Setting.MainWindow.TranslatedFontSize;
+        }
+
+        // Large-caption mode hides the section column; the current sentence is shown big at the bottom.
+        private void ApplyLayout()
+        {
+            Root.ColumnDefinitions[2].MinWidth = largeMode ? 0 : 180;
+            Root.ColumnDefinitions[2].Width = largeMode
+                ? new GridLength(0)
+                : new GridLength(Math.Max(Translator.Setting.MainWindow.SectionPanelWidth, 180));
+            Splitter.IsVisible = !largeMode;
+            RightPane.IsVisible = !largeMode;
+            LeftPane.Margin = new Thickness(16, 16, largeMode ? 16 : 0, 8);
+            ApplyFontSizes();
+        }
+
+        private void EndSectionButton_Click(object? sender, RoutedEventArgs e)
+        {
+            MainWindow.EndSection();
         }
 
         // Ctrl + wheel changes a font size.
         private void AdjustFontOnWheel(PointerWheelEventArgs e, Func<int> get, Action<int> set)
         {
-            if (e.KeyModifiers != KeyModifiers.Control)
+            if (largeMode || e.KeyModifiers != KeyModifiers.Control)
                 return;
             set(AdjustFontSize(get(), e.Delta.Y));
             ApplyFontSizes();

@@ -35,8 +35,8 @@
         <Border
             x:Name="BorderBackground"
             Margin="5"
-            Background="#80000000"
-            CornerRadius="8"
+            Background="#80111827"
+            CornerRadius="12"
             MouseLeftButtonDown="Border_MouseLeftButtonDown">
             <Grid>
                 <Grid.RowDefinitions>
@@ -102,7 +102,11 @@
                     Orientation="Horizontal">
                     <ui:Button
                         x:Name="FontSizeIncrease"
-                        Background="#FFAAAAAA"
+                        Background="#33FFFFFF"
+                        MouseOverBackground="#40FFFFFF"
+                        PressedBackground="#55FFFFFF"
+                            Foreground="White"
+                            BorderThickness="0"
                         Click="FontIncrease_Click"
                         Cursor="Hand"
                         Icon="{ui:SymbolIcon fontIncrease20,
@@ -110,7 +114,11 @@
                         ToolTip="字号加大" />
                     <ui:Button
                         x:Name="FontSizeDecrease"
-                        Background="#FFAAAAAA"
+                        Background="#33FFFFFF"
+                        MouseOverBackground="#40FFFFFF"
+                        PressedBackground="#55FFFFFF"
+                            Foreground="White"
+                            BorderThickness="0"
                         Click="FontDecrease_Click"
                         Cursor="Hand"
                         Icon="{ui:SymbolIcon fontDecrease20,
@@ -118,7 +126,11 @@
                         ToolTip="字号减小" />
                     <ui:Button
                         x:Name="FontStrokeIncrease"
-                        Background="#FFAAAAAA"
+                        Background="#33FFFFFF"
+                        MouseOverBackground="#40FFFFFF"
+                        PressedBackground="#55FFFFFF"
+                            Foreground="White"
+                            BorderThickness="0"
                         Click="FontStrokeIncrease_Click"
                         Cursor="Hand"
                         Icon="{ui:SymbolIcon InkStroke20,
@@ -126,7 +138,11 @@
                         ToolTip="描边加粗" />
                     <ui:Button
                         x:Name="FontStrokeDecrease"
-                        Background="#FFAAAAAA"
+                        Background="#33FFFFFF"
+                        MouseOverBackground="#40FFFFFF"
+                        PressedBackground="#55FFFFFF"
+                            Foreground="White"
+                            BorderThickness="0"
                         Click="FontStrokeDecrease_Click"
                         Cursor="Hand"
                         Icon="{ui:SymbolIcon InkStrokeArrowDown20,
@@ -134,7 +150,11 @@
                         ToolTip="描边变细" />
                     <ui:Button
                         x:Name="FontBold"
-                        Background="#FFAAAAAA"
+                        Background="#33FFFFFF"
+                        MouseOverBackground="#40FFFFFF"
+                        PressedBackground="#55FFFFFF"
+                            Foreground="White"
+                            BorderThickness="0"
                         Click="FontBold_Click"
                         Cursor="Hand"
                         Icon="{ui:SymbolIcon textBold16,
@@ -142,7 +162,11 @@
                         ToolTip="加粗" />
                     <ui:Button
                         x:Name="FontColorCycle"
-                        Background="#FFAAAAAA"
+                        Background="#33FFFFFF"
+                        MouseOverBackground="#40FFFFFF"
+                        PressedBackground="#55FFFFFF"
+                            Foreground="White"
+                            BorderThickness="0"
                         Click="FontColorCycle_Click"
                         Cursor="Hand"
                         Icon="{ui:SymbolIcon color16,
@@ -152,7 +176,11 @@
                     <ui:Button
                         x:Name="OpacityIncrease"
                         Margin="5,0,0,0"
-                        Background="#FFAAAAAA"
+                        Background="#33FFFFFF"
+                        MouseOverBackground="#40FFFFFF"
+                        PressedBackground="#55FFFFFF"
+                            Foreground="White"
+                            BorderThickness="0"
                         Click="BackgroundOpacityIncrease_Click"
                         Cursor="Hand"
                         Icon="{ui:SymbolIcon arrowAutofitUp20,
@@ -160,7 +188,11 @@
                         ToolTip="背景加深" />
                     <ui:Button
                         x:Name="OpacityDecrease"
-                        Background="#FFAAAAAA"
+                        Background="#33FFFFFF"
+                        MouseOverBackground="#40FFFFFF"
+                        PressedBackground="#55FFFFFF"
+                            Foreground="White"
+                            BorderThickness="0"
                         Click="BackgroundOpacityDecrease_Click"
                         Cursor="Hand"
                         Icon="{ui:SymbolIcon arrowAutofitDown20,
@@ -168,7 +200,11 @@
                         ToolTip="背景变浅" />
                     <ui:Button
                         x:Name="BackgroundColorCycle"
-                        Background="#FFAAAAAA"
+                        Background="#33FFFFFF"
+                        MouseOverBackground="#40FFFFFF"
+                        PressedBackground="#55FFFFFF"
+                            Foreground="White"
+                            BorderThickness="0"
                         Click="BackgroundColorCycle_Click"
                         Cursor="Hand"
                         Icon="{ui:SymbolIcon color16,
@@ -178,7 +214,11 @@
                     <ui:Button
                         x:Name="OnlyModeButton"
                         Margin="5,0,0,0"
-                        Background="#FFAAAAAA"
+                        Background="#33FFFFFF"
+                        MouseOverBackground="#40FFFFFF"
+                        PressedBackground="#55FFFFFF"
+                            Foreground="White"
+                            BorderThickness="0"
                         Click="OnlyModeButton_Click"
                         Cursor="Hand"
                         Icon="{ui:SymbolIcon PanelBottom20,
@@ -186,7 +226,11 @@
                         ToolTip="只显示原文或译文" />
                     <ui:Button
                         x:Name="SwitchModeButton"
-                        Background="#FFAAAAAA"
+                        Background="#33FFFFFF"
+                        MouseOverBackground="#40FFFFFF"
+                        PressedBackground="#55FFFFFF"
+                            Foreground="White"
+                            BorderThickness="0"
                         Click="SwitchModeButton_Click"
                         Cursor="Hand"
                         Icon="{ui:SymbolIcon ArrowSyncCircle20,
@@ -194,7 +238,11 @@
                         ToolTip="交换原文和译文的上下顺序" />
                     <ui:Button
                         x:Name="ClickThrough"
-                        Background="#FFAAAAAA"
+                        Background="#33FFFFFF"
+                        MouseOverBackground="#40FFFFFF"
+                        PressedBackground="#55FFFFFF"
+                            Foreground="White"
+                            BorderThickness="0"
                         Click="ClickThrough_Click"
                         Cursor="Hand"
                         Icon="{ui:SymbolIcon lockClosed16,

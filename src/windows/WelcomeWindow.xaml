@@ -35,16 +35,17 @@
             </ui:TitleBar.Header>
         </ui:TitleBar>
 
-        <StackPanel Grid.Row="1" Background="{ui:ThemeResource SystemFillColorNeutralBackgroundBrush}">
+        <StackPanel Grid.Row="1" Background="{DynamicResource ApplicationBackgroundBrush}">
             <TextBlock
-                Margin="20"
+                Margin="28,24,28,8"
                 HorizontalAlignment="Left"
-                FontSize="24"
+                FontSize="22"
                 FontWeight="Bold"
                 Text="欢迎使用课堂同传助手！"
                 TextAlignment="Left" />
             <ui:TextBlock
-                Margin="20,10,20,10"
+                Margin="28,10,28,10"
+                LineHeight="22"
                 TextAlignment="Left"
                 TextWrapping="Wrap">
                 <Run Text="本工具基于 Windows 的“实时辅助字幕”。" />
@@ -73,6 +74,8 @@
                 Margin="0,10,0,0"
                 Padding="30,10,30,10"
                 HorizontalAlignment="Center"
+                Appearance="Primary"
+                CornerRadius="18"
                 Click="CloseButton_Click"
                 Content="我已了解并完成设置" />
         </StackPanel>

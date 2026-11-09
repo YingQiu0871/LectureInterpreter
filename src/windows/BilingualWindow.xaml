@@ -32,8 +32,8 @@
         <Border
             x:Name="PanelBorder"
             Margin="5"
-            Background="#99000000"
-            CornerRadius="10"
+            Background="#99111827"
+            CornerRadius="12"
             MouseLeftButtonDown="Panel_MouseLeftButtonDown">
             <Grid>
                 <ScrollViewer
@@ -54,13 +54,17 @@
                     Margin="0,6,10,0"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Top"
-                    Background="#E6202020"
-                    CornerRadius="6"
+                    Background="#CC111827"
+                    CornerRadius="8"
                     Visibility="Collapsed">
                     <StackPanel Margin="3" Orientation="Horizontal">
                         <ui:Button
                             x:Name="PinButton"
-                            Background="#FFAAAAAA"
+                            Background="#33FFFFFF"
+                            MouseOverBackground="#40FFFFFF"
+                            PressedBackground="#55FFFFFF"
+                            Foreground="White"
+                            BorderThickness="0"
                             Click="PinButton_Click"
                             Cursor="Hand"
                             Icon="{ui:SymbolIcon Pin16,
@@ -68,14 +72,22 @@
                             ToolTip="置顶（点击切换）" />
                         <ui:Button
                             Margin="5,0,0,0"
-                            Background="#FFAAAAAA"
+                            Background="#33FFFFFF"
+                            MouseOverBackground="#40FFFFFF"
+                            PressedBackground="#55FFFFFF"
+                            Foreground="White"
+                            BorderThickness="0"
                             Click="FontIncrease_Click"
                             Cursor="Hand"
                             Icon="{ui:SymbolIcon fontIncrease20,
                                                  Filled=False}"
                             ToolTip="字号加大" />
                         <ui:Button
-                            Background="#FFAAAAAA"
+                            Background="#33FFFFFF"
+                            MouseOverBackground="#40FFFFFF"
+                            PressedBackground="#55FFFFFF"
+                            Foreground="White"
+                            BorderThickness="0"
                             Click="FontDecrease_Click"
                             Cursor="Hand"
                             Icon="{ui:SymbolIcon fontDecrease20,
@@ -83,14 +95,22 @@
                             ToolTip="字号减小" />
                         <ui:Button
                             Margin="5,0,0,0"
-                            Background="#FFAAAAAA"
+                            Background="#33FFFFFF"
+                            MouseOverBackground="#40FFFFFF"
+                            PressedBackground="#55FFFFFF"
+                            Foreground="White"
+                            BorderThickness="0"
                             Click="OpacityIncrease_Click"
                             Cursor="Hand"
                             Icon="{ui:SymbolIcon arrowAutofitUp20,
                                                  Filled=False}"
                             ToolTip="背景加深" />
                         <ui:Button
-                            Background="#FFAAAAAA"
+                            Background="#33FFFFFF"
+                            MouseOverBackground="#40FFFFFF"
+                            PressedBackground="#55FFFFFF"
+                            Foreground="White"
+                            BorderThickness="0"
                             Click="OpacityDecrease_Click"
                             Cursor="Hand"
                             Icon="{ui:SymbolIcon arrowAutofitDown20,
@@ -99,14 +119,21 @@
                         <ui:Button
                             x:Name="SentencesButton"
                             Margin="5,0,0,0"
-                            Background="#FFAAAAAA"
+                            Background="#33FFFFFF"
+                            MouseOverBackground="#40FFFFFF"
+                            PressedBackground="#55FFFFFF"
+                            Foreground="White"
+                            BorderThickness="0"
                             Click="SentencesButton_Click"
                             Cursor="Hand"
-                            Foreground="Black"
                             ToolTip="显示的句数（点击在 1–5 句之间切换）" />
                         <ui:Button
                             Margin="5,0,0,0"
-                            Background="#FFAAAAAA"
+                            Background="#33FFFFFF"
+                            MouseOverBackground="#40FFFFFF"
+                            PressedBackground="#55FFFFFF"
+                            Foreground="White"
+                            BorderThickness="0"
                             Click="CloseButton_Click"
                             Cursor="Hand"
                             Icon="{ui:SymbolIcon Dismiss16,

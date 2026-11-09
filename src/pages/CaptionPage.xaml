@@ -11,14 +11,19 @@
     mc:Ignorable="d">
 
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" MinWidth="260" />
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition x:Name="SectionColumn" Width="320" MinWidth="180" />
         </Grid.ColumnDefinitions>
 
-        <Grid Grid.Column="0" Margin="5,5,0,5">
+        <Grid Grid.Column="0" Margin="12,8,0,4">
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -30,43 +35,66 @@
                 </Style>
             </Grid.Resources>
 
+            <ToggleButton
+                x:Name="BigModeToggle"
+                Grid.Row="0"
+                MinHeight="0"
+                Margin="0,0,6,6"
+                Padding="12,3,12,3"
+                HorizontalAlignment="Right"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center"
+                Checked="BigModeToggle_Changed"
+                Content="大字"
+                FontSize="12"
+                ToolTip="大字模式：隐藏小节总结，放大正在识别的一句"
+                Unchecked="BigModeToggle_Changed" />
+
             <!--  Every finished sentence of this class, oldest first.  -->
+            <Border
+                Grid.Row="1"
+                Margin="0,0,6,0"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="12" />
             <TextBlock
                 x:Name="TranscriptEmptyHint"
-                Grid.Row="0"
-                Margin="6,4,6,0"
-                Opacity="0.6"
+                Grid.Row="1"
+                Margin="20,16,26,0"
+                FontSize="12"
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                 Text="开始上课后，每句原文和译文会按顺序列在这里，最新的在最下面。"
                 TextWrapping="Wrap" />
             <ScrollViewer
                 x:Name="TranscriptScroll"
-                Grid.Row="0"
+                Grid.Row="1"
+                Margin="0,4,6,4"
                 VerticalScrollBarVisibility="Auto">
                 <ItemsControl x:Name="TranscriptList">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <Border
-                                Margin="0,0,6,6"
-                                Padding="10,6,10,8"
+                                Margin="12,0,12,0"
+                                Padding="4,10,4,12"
                                 Opacity="{Binding Opacity}"
-                                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                                BorderThickness="1"
-                                CornerRadius="6">
+                                BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}"
+                                BorderThickness="0,0,0,1">
                                 <StackPanel>
                                     <TextBlock
                                         Cursor="Hand"
-                                        FontSize="13"
+                                        FontSize="12"
+                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                         MouseLeftButtonDown="TextBlock_MouseLeftButtonDown"
-                                        Opacity="0.75"
                                         Text="{Binding SourceText}"
                                         TextWrapping="Wrap"
                                         Visibility="{Binding DataContext.OriginalVisibility, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                         ToolTip="单击复制" />
                                     <TextBlock
-                                        Margin="0,3,0,0"
+                                        Margin="0,4,0,0"
                                         Cursor="Hand"
-                                        FontSize="16"
+                                        FontSize="15"
+                                        LineHeight="22"
                                         MouseLeftButtonDown="TextBlock_MouseLeftButtonDown"
                                         Text="{Binding TranslatedText}"
                                         TextWrapping="Wrap"
@@ -80,74 +108,91 @@
 
             <!--  E.g. LiveCaptions' own translation is on, so the "original" is already Chinese.  -->
             <Border
-                Grid.Row="1"
-                Margin="0,4,6,0"
-                Padding="10,6"
+                Grid.Row="2"
+                Margin="0,8,6,0"
+                Padding="12,8"
                 Background="#33FFB900"
                 BorderBrush="#99FFB900"
                 BorderThickness="1"
-                CornerRadius="6"
+                CornerRadius="8"
                 Visibility="{Binding SourceWarningVisibility}">
                 <TextBlock Text="{Binding SourceWarning}" TextWrapping="Wrap" />
             </Border>
 
             <!--  The sentence being spoken right now.  -->
-            <ui:Card
-                Grid.Row="2"
-                Margin="0,4,6,0"
-                Padding="10,8,10,10"
-                VerticalAlignment="Bottom">
+            <Border
+                Grid.Row="3"
+                Margin="0,8,6,0"
+                VerticalAlignment="Bottom"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="12">
                 <Grid>
-                    <StackPanel>
+                    <Border
+                        Background="{DynamicResource AccentFillColorDefaultBrush}"
+                        CornerRadius="11"
+                        Opacity="0.1" />
+                    <Border
+                        BorderBrush="{DynamicResource AccentFillColorDefaultBrush}"
+                        BorderThickness="3,0,0,0"
+                        CornerRadius="12" />
+                    <Grid Margin="16,10,14,12">
+                    <Grid>
+                        <StackPanel>
+                        <!--  Shown until LiveCaptions produces its first words, so an empty page doesn't look broken.  -->
                         <TextBlock
-                            x:Name="OriginalCaption"
-                            Background="Transparent"
-                            Cursor="Hand"
-                            FontSize="15"
-                            MouseLeftButtonDown="TextBlock_MouseLeftButtonDown"
-                            PreviewMouseWheel="OriginalCard_PreviewMouseWheel"
-                            Style="{StaticResource CaptionBlockStyle}"
-                            Text="{Binding DisplayOriginalCaption, UpdateSourceTrigger=PropertyChanged}"
-                            ToolTip="单击复制，Ctrl+滚轮调整字号"
-                            Visibility="{Binding OriginalVisibility}" />
-                        <TextBlock
-                            x:Name="TranslatedCaption"
-                            Margin="0,6,0,0"
-                            Background="Transparent"
-                            Cursor="Hand"
-                            FontSize="18"
-                            MouseLeftButtonDown="TextBlock_MouseLeftButtonDown"
-                            PreviewMouseWheel="TranslatedCard_PreviewMouseWheel"
-                            Style="{StaticResource CaptionBlockStyle}"
-                            Text="{Binding DisplayTranslatedCaption, UpdateSourceTrigger=PropertyChanged}"
-                            ToolTip="单击复制，Ctrl+滚轮调整字号" />
-                    </StackPanel>
-                    <!--  Shown until LiveCaptions produces its first words, so an empty page doesn't look broken.  -->
-                    <TextBlock
-                        IsHitTestVisible="False"
-                        Opacity="0.6"
-                        Text="{Binding StatusHint}"
-                        TextWrapping="Wrap">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding DisplayOriginalCaption}" Value="">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding DisplayOriginalCaption}" Value="{x:Null}">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
+                            IsHitTestVisible="False"
+                            Opacity="0.6"
+                            Text="{Binding StatusHint}"
+                            TextWrapping="Wrap">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding DisplayOriginalCaption}" Value="">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding DisplayOriginalCaption}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                            <TextBlock
+                                x:Name="OriginalCaption"
+                                Background="Transparent"
+                                Cursor="Hand"
+                                FontSize="12"
+                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                MouseLeftButtonDown="TextBlock_MouseLeftButtonDown"
+                                PreviewMouseWheel="OriginalCard_PreviewMouseWheel"
+                                Style="{StaticResource CaptionBlockStyle}"
+                                Text="{Binding DisplayOriginalCaption, UpdateSourceTrigger=PropertyChanged}"
+                                ToolTip="单击复制，Ctrl+滚轮调整字号"
+                                Visibility="{Binding OriginalVisibility}" />
+                            <TextBlock
+                                x:Name="TranslatedCaption"
+                                Margin="0,6,0,0"
+                                Background="Transparent"
+                                Cursor="Hand"
+                                FontSize="15"
+                                Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
+                                MouseLeftButtonDown="TextBlock_MouseLeftButtonDown"
+                                PreviewMouseWheel="TranslatedCard_PreviewMouseWheel"
+                                Style="{StaticResource CaptionBlockStyle}"
+                                Text="{Binding DisplayTranslatedCaption, UpdateSourceTrigger=PropertyChanged}"
+                                ToolTip="单击复制，Ctrl+滚轮调整字号" />
+                        </StackPanel>
+                    </Grid>
+                    </Grid>
                 </Grid>
-            </ui:Card>
+            </Border>
         </Grid>
 
         <!--  Drag to change the width of the two columns.  -->
         <GridSplitter
+            x:Name="SectionSplitter"
             Grid.Column="1"
             Width="8"
             HorizontalAlignment="Center"
@@ -159,18 +204,22 @@
             ResizeDirection="Columns"
             ToolTip="拖动调整宽度" />
 
-        <Grid Grid.Column="2" Margin="0,5,15,5">
+        <Grid x:Name="SectionPanel" Grid.Column="2" Margin="0,8,16,4">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <StackPanel Grid.Row="0" Margin="4,2,0,6">
-                <TextBlock FontWeight="SemiBold" Text="小节总结" />
+            <StackPanel Grid.Row="0" Margin="4,0,0,8">
+                <TextBlock
+                    FontSize="12"
+                    FontWeight="SemiBold"
+                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                    Text="小节总结" />
                 <TextBlock
                     x:Name="SummaryStatus"
                     Margin="0,2,0,0"
                     FontSize="12"
-                    Opacity="0.6"
+                    Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                     TextWrapping="Wrap"
                     Visibility="Collapsed" />
             </StackPanel>
@@ -178,7 +227,8 @@
                 x:Name="SectionEmptyHint"
                 Grid.Row="1"
                 Margin="4,0,0,0"
-                Opacity="0.6"
+                FontSize="12"
+                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                 Text="这节课还没有小节。开始上课后会自动分节总结，也可以按 Ctrl+Alt+S 手动结束本节。"
                 TextWrapping="Wrap" />
             <ScrollViewer
@@ -189,24 +239,37 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <Border
-                                Margin="0,0,6,6"
-                                Padding="10,6,10,8"
+                                Margin="0,0,6,12"
+                                Padding="14,10,14,12"
                                 Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                                 BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                                 BorderThickness="1"
-                                CornerRadius="6">
+                                CornerRadius="12">
                                 <StackPanel>
+                                    <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                        <Ellipse
+                                            Width="7"
+                                            Height="7"
+                                            Margin="0,0,8,0"
+                                            VerticalAlignment="Center"
+                                            Fill="{DynamicResource AccentFillColorDefaultBrush}" />
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            FontSize="12"
+                                            FontWeight="SemiBold"
+                                            Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
+                                            Text="{Binding TimeRange}" />
+                                    </StackPanel>
                                     <TextBlock
-                                        FontSize="12"
-                                        Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
-                                        Text="{Binding TimeRange}" />
-                                    <TextBlock
-                                        Margin="0,2,0,0"
+                                        Margin="0,4,0,0"
+                                        FontSize="14"
                                         FontWeight="SemiBold"
                                         Text="{Binding Title}"
                                         TextWrapping="Wrap" />
                                     <TextBlock
-                                        Margin="0,3,0,0"
+                                        Margin="0,4,0,0"
+                                        FontSize="13"
+                                        LineHeight="20"
                                         Text="{Binding Body}"
                                         TextWrapping="Wrap" />
                                 </StackPanel>
@@ -215,6 +278,27 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </ScrollViewer>
+
         </Grid>
+
+        <!--  Stays visible in large-text mode too.  -->
+        <ui:Button
+                x:Name="EndSectionButton"
+                Grid.Row="1"
+                Grid.Column="0"
+                Grid.ColumnSpan="3"
+                Margin="0,4,22,12"
+                Padding="14,5,14,5"
+                HorizontalAlignment="Right"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center"
+                Appearance="Secondary"
+                Click="EndSectionButton_Click"
+                CornerRadius="8"
+                Content="结束本节"
+                FontSize="13"
+                Icon="{ui:SymbolIcon Flag16,
+                                     Filled=False}"
+                ToolTip="结束本节并总结 (Ctrl+Alt+S)" />
     </Grid>
 </Page>

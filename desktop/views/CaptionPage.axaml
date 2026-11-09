@@ -2,91 +2,136 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:m="using:LiveCaptionsTranslator.models"
              x:Class="LiveCaptionsTranslator.CaptionPage">
-    <Grid x:Name="Root">
-        <Grid.Styles>
-            <Style Selector="Border.card">
-                <Setter Property="Margin" Value="0,0,6,6" />
-                <Setter Property="Padding" Value="10,6,10,8" />
-                <Setter Property="CornerRadius" Value="6" />
-                <Setter Property="BorderThickness" Value="1" />
-                <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundListLowBrush}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
-            </Style>
-        </Grid.Styles>
+    <UserControl.Styles>
+        <!-- The small "大字" switch -->
+        <Style Selector="ToggleButton.chip">
+            <Setter Property="Height" Value="26" />
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="ToggleButton.chip /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource CardBgBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        </Style>
+        <Style Selector="ToggleButton.chip:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SegHoverBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource BrandTextBrush}" />
+        </Style>
+        <Style Selector="ToggleButton.chip:checked /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BrandBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BrandBrush}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="ToggleButton.chip:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BrandBrush}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+    </UserControl.Styles>
+    <Grid x:Name="Root" RowDefinitions="*,Auto">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" MinWidth="260" />
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="320" MinWidth="180" />
         </Grid.ColumnDefinitions>
 
-        <Grid Grid.Column="0" Margin="5,5,0,5" RowDefinitions="*,Auto,Auto">
-            <!-- Every finished sentence of this class, oldest first -->
-            <TextBlock x:Name="TranscriptEmptyHint" Grid.Row="0" Margin="6,4,6,0" Opacity="0.6"
-                       Text="开始上课后，每句原文和译文会按顺序列在这里，最新的在最下面。" TextWrapping="Wrap" />
-            <ScrollViewer x:Name="TranscriptScroll" Grid.Row="0" VerticalScrollBarVisibility="Auto">
-                <ItemsControl x:Name="TranscriptList">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="m:HistoryLine">
-                            <Border Classes="card" Opacity="{Binding Opacity}">
-                                <StackPanel>
-                                    <TextBlock Classes="copy original" FontSize="13" Opacity="0.75" Text="{Binding SourceText}"
-                                               TextWrapping="Wrap" ToolTip.Tip="单击复制" Cursor="Hand" />
-                                    <TextBlock Classes="copy" Margin="0,3,0,0" FontSize="16" Text="{Binding TranslatedText}"
-                                               TextWrapping="Wrap" ToolTip.Tip="单击复制" Cursor="Hand" />
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
+        <Grid x:Name="LeftPane" Grid.Column="0" Margin="16,16,0,8" RowDefinitions="*,Auto">
+            <Border Grid.Row="0" Classes="card" Padding="0" ClipToBounds="True">
+                <Grid RowDefinitions="*,Auto">
+                    <!-- Every finished sentence of this class, oldest first -->
+                    <TextBlock x:Name="TranscriptEmptyHint" Grid.Row="0" Margin="18,16,18,0" Classes="hint"
+                               Text="开始上课后，每句原文和译文会按顺序列在这里，最新的在最下面。" TextWrapping="Wrap" />
+                    <ScrollViewer x:Name="TranscriptScroll" Grid.Row="0" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl x:Name="TranscriptList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="m:HistoryLine">
+                                    <Border Padding="18,10,18,12" BorderThickness="0,0,0,1"
+                                            BorderBrush="{DynamicResource DividerBrush}" Opacity="{Binding Opacity}">
+                                        <Grid ColumnDefinitions="46,*">
+                                            <TextBlock Grid.Column="0" Margin="0,1,0,0" FontSize="12"
+                                                       Classes="secondary" Opacity="0.8"
+                                                       Text="{Binding Time, StringFormat=HH:mm}" />
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock Classes="copy original secondary" FontSize="12" LineHeight="18"
+                                                           Text="{Binding SourceText}"
+                                                           TextWrapping="Wrap" ToolTip.Tip="单击复制" Cursor="Hand" />
+                                                <TextBlock Classes="copy" Margin="0,2,0,0" FontSize="15" LineHeight="22"
+                                                           Text="{Binding TranslatedText}"
+                                                           TextWrapping="Wrap" ToolTip.Tip="单击复制" Cursor="Hand" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
 
-            <!-- A problem with what the recognizer delivers -->
-            <Border x:Name="WarningBorder" Grid.Row="1" Margin="0,4,6,0" Padding="10,6" Background="#33FFB900"
-                    BorderBrush="#99FFB900" BorderThickness="1" CornerRadius="6" IsVisible="False">
-                <TextBlock x:Name="WarningText" TextWrapping="Wrap" />
+                    <!-- A problem with what the recognizer delivers -->
+                    <Border x:Name="WarningBorder" Grid.Row="1" Margin="12,6" Padding="12,8" Background="#33FFB900"
+                            BorderBrush="#99FFB900" BorderThickness="1" CornerRadius="8" IsVisible="False">
+                        <TextBlock x:Name="WarningText" FontSize="13" TextWrapping="Wrap" />
+                    </Border>
+                </Grid>
             </Border>
 
-            <!-- The sentence being spoken right now -->
-            <Border Grid.Row="2" Margin="0,4,6,0" Padding="10,8,10,10" VerticalAlignment="Bottom" CornerRadius="6"
-                    BorderThickness="1" Background="{DynamicResource SystemControlBackgroundListLowBrush}"
-                    BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
-                <Grid>
-                    <StackPanel>
-                        <TextBlock x:Name="OriginalCaption" FontSize="15" TextWrapping="Wrap" Cursor="Hand"
-                                   ToolTip.Tip="单击复制，Ctrl+滚轮调整字号" />
-                        <TextBlock x:Name="TranslatedCaption" Margin="0,6,0,0" FontSize="18" TextWrapping="Wrap"
-                                   Cursor="Hand" ToolTip.Tip="单击复制，Ctrl+滚轮调整字号" />
-                    </StackPanel>
-                    <!-- Shown until the first words arrive, so an empty page doesn't look broken -->
-                    <TextBlock x:Name="StatusHint" IsHitTestVisible="False" Opacity="0.6" TextWrapping="Wrap" />
-                </Grid>
+            <!-- The sentence being spoken right now: a card of its own, with an accent bar on the left -->
+            <Border Grid.Row="1" Classes="card" Margin="0,12,0,0" Padding="0" ClipToBounds="True"
+                    Background="{DynamicResource BrandSoftBrush}">
+                <Border Padding="15,12,14,14" BorderThickness="3,0,0,0" BorderBrush="{DynamicResource BrandBrush}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Grid Grid.Column="0">
+                            <StackPanel>
+                                <!-- Shown until the first words arrive, so an empty page doesn't look broken -->
+                                <TextBlock x:Name="StatusHint" Classes="secondary" FontSize="13" IsHitTestVisible="False"
+                                           TextWrapping="Wrap" />
+                                <TextBlock x:Name="OriginalCaption" Classes="secondary" FontSize="12"
+                                           TextWrapping="Wrap"
+                                           Cursor="Hand" ToolTip.Tip="单击复制，Ctrl+滚轮调整字号" />
+                                <TextBlock x:Name="TranslatedCaption" Classes="accent" Margin="0,3,0,0" FontSize="15"
+                                           FontWeight="Medium" TextWrapping="Wrap"
+                                           Cursor="Hand" ToolTip.Tip="单击复制，Ctrl+滚轮调整字号" />
+                            </StackPanel>
+                        </Grid>
+                        <ToggleButton x:Name="LargeModeButton" Grid.Column="1" Classes="chip" Margin="12,0,0,0"
+                                      VerticalAlignment="Top" Content="大字"
+                                      ToolTip.Tip="大字模式：隐藏小节总结，放大当前这句" />
+                    </Grid>
+                </Border>
             </Border>
         </Grid>
 
         <!-- Drag to change the width of the two columns -->
-        <GridSplitter x:Name="Splitter" Grid.Column="1" Width="8" Background="Transparent"
+        <GridSplitter x:Name="Splitter" Grid.Column="1" Width="12" Background="Transparent"
                       ToolTip.Tip="拖动调整宽度" />
 
-        <Grid Grid.Column="2" Margin="0,5,15,5" RowDefinitions="Auto,*">
-            <StackPanel Grid.Row="0" Margin="4,2,0,6">
-                <TextBlock FontWeight="SemiBold" Text="小节总结" />
-                <TextBlock x:Name="SummaryStatus" Margin="0,2,0,0" FontSize="12" Opacity="0.6" TextWrapping="Wrap"
-                           IsVisible="False" />
+        <Grid x:Name="RightPane" Grid.Column="2" Margin="0,16,16,8" RowDefinitions="Auto,*">
+            <StackPanel Grid.Row="0" Margin="4,0,0,10">
+                <TextBlock FontSize="13" FontWeight="SemiBold" Classes="secondary" Text="小节总结" />
+                <TextBlock x:Name="SummaryStatus" Margin="0,2,0,0" FontSize="12" Classes="secondary" Opacity="0.8"
+                           TextWrapping="Wrap" IsVisible="False" />
             </StackPanel>
-            <TextBlock x:Name="SectionEmptyHint" Grid.Row="1" Margin="4,0,0,0" Opacity="0.6"
+            <TextBlock x:Name="SectionEmptyHint" Grid.Row="1" Margin="4,0,0,0" Classes="hint"
                        Text="这节课还没有小节。开始上课后会自动分节总结，也可以按 Ctrl+Alt+S 手动结束本节。"
                        TextWrapping="Wrap" />
             <ScrollViewer x:Name="SectionScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto">
                 <ItemsControl x:Name="SectionList">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="m:SectionEntry">
-                            <Border Classes="card">
+                            <Border Classes="card" Margin="0,0,0,12" Padding="14,10,14,12">
                                 <StackPanel>
-                                    <TextBlock FontSize="12" Foreground="{DynamicResource SystemControlHighlightAccentBrush}"
-                                               Text="{Binding TimeRange}" />
-                                    <TextBlock Margin="0,2,0,0" FontWeight="SemiBold" Text="{Binding Title}"
+                                    <StackPanel Orientation="Horizontal" Spacing="7">
+                                        <Ellipse Width="7" Height="7" VerticalAlignment="Center"
+                                                 Fill="{DynamicResource BrandBrush}" />
+                                        <TextBlock FontSize="12" FontWeight="SemiBold" Classes="accent"
+                                                   VerticalAlignment="Center" Text="{Binding TimeRange}" />
+                                    </StackPanel>
+                                    <TextBlock Margin="0,4,0,0" FontSize="14" FontWeight="SemiBold" LineHeight="20"
+                                               Text="{Binding Title}" TextWrapping="Wrap" />
+                                    <TextBlock Margin="0,3,0,0" FontSize="13" LineHeight="19" Text="{Binding Body}"
                                                TextWrapping="Wrap" />
-                                    <TextBlock Margin="0,3,0,0" Text="{Binding Body}" TextWrapping="Wrap" />
                                 </StackPanel>
                             </Border>
                         </DataTemplate>
@@ -94,5 +139,11 @@
                 </ItemsControl>
             </ScrollViewer>
         </Grid>
+
+        <!-- Stays visible in large-caption mode too -->
+        <Button x:Name="EndSectionButton" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,0,16,16"
+                HorizontalAlignment="Right"
+                Content="结束本节" FontSize="13" ToolTip.Tip="结束本节并总结 (Ctrl+Alt+S)"
+                Click="EndSectionButton_Click" />
     </Grid>
 </UserControl>

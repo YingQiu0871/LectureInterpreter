@@ -3,10 +3,174 @@
              x:Class="LiveCaptionsTranslator.App"
              Name="课堂同传助手"
              RequestedThemeVariant="Default">
+    <!-- Shared colors. Light / Dark are picked by the theme variant, so "follow system" works too. -->
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="AppBgBrush" Color="#F6F8FB" />
+                    <SolidColorBrush x:Key="CardBgBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="CardBorderBrush" Color="#E3E8EF" />
+                    <SolidColorBrush x:Key="DividerBrush" Color="#EDF0F4" />
+                    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#6B7685" />
+                    <SolidColorBrush x:Key="BrandBrush" Color="#1E6FD9" />
+                    <SolidColorBrush x:Key="BrandTextBrush" Color="#1E6FD9" />
+                    <SolidColorBrush x:Key="BrandSoftBrush" Color="#EAF2FD" />
+                    <SolidColorBrush x:Key="BrandSoftHoverBrush" Color="#F0F5FC" />
+                    <SolidColorBrush x:Key="SegBgBrush" Color="#EEF1F6" />
+                    <SolidColorBrush x:Key="SegOnBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="SegHoverBrush" Color="#E4E9F1" />
+                    <SolidColorBrush x:Key="DangerBrush" Color="#E5484D" />
+                    <SolidColorBrush x:Key="DangerHoverBrush" Color="#D63B40" />
+
+                    <SolidColorBrush x:Key="ButtonBackground" Color="#F1F4F9" />
+                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#E6EBF3" />
+                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#DAE1EC" />
+                    <SolidColorBrush x:Key="ButtonBorderBrush" Color="#E3E8EF" />
+                    <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#D5DCE8" />
+                    <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#C9D2E0" />
+                    <SolidColorBrush x:Key="ToggleButtonBackground" Color="#F1F4F9" />
+                    <SolidColorBrush x:Key="ToggleButtonBackgroundPointerOver" Color="#E6EBF3" />
+                    <SolidColorBrush x:Key="ToggleButtonBorderBrush" Color="#E3E8EF" />
+                    <SolidColorBrush x:Key="ToggleButtonBorderBrushPointerOver" Color="#D5DCE8" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBackground" Color="#F1F4F9" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBackgroundPointerOver" Color="#E6EBF3" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBackgroundPressed" Color="#E6EBF3" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBorderBrush" Color="#E3E8EF" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBorderBrushPointerOver" Color="#E3E8EF" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="AppBgBrush" Color="#1A1F27" />
+                    <SolidColorBrush x:Key="CardBgBrush" Color="#232A34" />
+                    <SolidColorBrush x:Key="CardBorderBrush" Color="#323A47" />
+                    <SolidColorBrush x:Key="DividerBrush" Color="#2D3541" />
+                    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#9AA5B4" />
+                    <SolidColorBrush x:Key="BrandBrush" Color="#2E8FE8" />
+                    <SolidColorBrush x:Key="BrandTextBrush" Color="#5FC3F9" />
+                    <SolidColorBrush x:Key="BrandSoftBrush" Color="#1F3550" />
+                    <SolidColorBrush x:Key="BrandSoftHoverBrush" Color="#1D2F45" />
+                    <SolidColorBrush x:Key="SegBgBrush" Color="#2B323E" />
+                    <SolidColorBrush x:Key="SegOnBrush" Color="#3B4555" />
+                    <SolidColorBrush x:Key="SegHoverBrush" Color="#343D4B" />
+                    <SolidColorBrush x:Key="DangerBrush" Color="#E5484D" />
+                    <SolidColorBrush x:Key="DangerHoverBrush" Color="#F0575C" />
+
+                    <SolidColorBrush x:Key="ButtonBackground" Color="#2E3642" />
+                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#38424F" />
+                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#414C5B" />
+                    <SolidColorBrush x:Key="ButtonBorderBrush" Color="#3A4452" />
+                    <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#4A5668" />
+                    <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#566277" />
+                    <SolidColorBrush x:Key="ToggleButtonBackground" Color="#2E3642" />
+                    <SolidColorBrush x:Key="ToggleButtonBackgroundPointerOver" Color="#38424F" />
+                    <SolidColorBrush x:Key="ToggleButtonBorderBrush" Color="#3A4452" />
+                    <SolidColorBrush x:Key="ToggleButtonBorderBrushPointerOver" Color="#4A5668" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBackground" Color="#2E3642" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBackgroundPointerOver" Color="#38424F" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBackgroundPressed" Color="#38424F" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBorderBrush" Color="#3A4452" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBorderBrushPointerOver" Color="#3A4452" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+
     <Application.Styles>
-        <FluentTheme />
+        <FluentTheme>
+            <FluentTheme.Palettes>
+                <ColorPaletteResources x:Key="Light" Accent="#1E6FD9" />
+                <ColorPaletteResources x:Key="Dark" Accent="#2E8FE8" />
+            </FluentTheme.Palettes>
+        </FluentTheme>
+
         <Style Selector="Window">
             <Setter Property="FontFamily" Value="Noto Sans CJK SC, PingFang SC, Microsoft YaHei, WenQuanYi Zen Hei, WenQuanYi Micro Hei, sans-serif" />
+            <Setter Property="Background" Value="{DynamicResource AppBgBrush}" />
+        </Style>
+
+        <!-- Cards: one per group of content -->
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="{DynamicResource CardBgBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="16" />
+        </Style>
+
+        <!-- Text levels -->
+        <Style Selector="TextBlock.title">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+        <Style Selector="TextBlock.label">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Margin" Value="0,14,0,6" />
+        </Style>
+        <Style Selector="TextBlock.hint">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="LineHeight" Value="18" />
+            <Setter Property="Margin" Value="0,6,0,0" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        </Style>
+        <Style Selector="TextBlock.secondary">
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        </Style>
+        <Style Selector="TextBlock.accent">
+            <Setter Property="Foreground" Value="{DynamicResource BrandTextBrush}" />
+        </Style>
+
+        <!-- Controls -->
+        <Style Selector="Button">
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="14,7" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.ghost">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="Padding" Value="10,6" />
+        </Style>
+        <Style Selector="Button.ghost:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SegBgBrush}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource BrandTextBrush}" />
+        </Style>
+        <Style Selector="Button.danger">
+            <Setter Property="Background" Value="{DynamicResource DangerBrush}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.danger /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource DangerBrush}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.danger:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource DangerHoverBrush}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.danger:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource DangerHoverBrush}" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.accent">
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="TextBox">
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="MinHeight" Value="34" />
+        </Style>
+        <Style Selector="ComboBox">
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="MinHeight" Value="34" />
+        </Style>
+        <Style Selector="Expander">
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="FontSize" Value="13" />
         </Style>
     </Application.Styles>
 </Application>
