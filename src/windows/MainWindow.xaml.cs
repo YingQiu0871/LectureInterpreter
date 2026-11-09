@@ -47,6 +47,7 @@ namespace LiveCaptionsTranslator
             Speaker.MutedChanged += muted => Dispatcher.InvokeAsync(() => ShowSpeakerState(muted));
             ClassSession.StateChanged += () => Dispatcher.InvokeAsync(ShowSessionState);
 
+            Loaded += (s, e) => LoadLogo();
             Loaded += (s, e) =>
             {
                 UpdateSystemThemeWatch();
@@ -232,7 +233,54 @@ namespace LiveCaptionsTranslator
                 symbolIcon.Filled = true;
             }
 
+            if (button != null)
+                button.Appearance = Translator.LogOnlyFlag ? ControlAppearance.Caution : ControlAppearance.Secondary;
+
             Translator.ClearContexts();
+        }
+
+        private void FloatMenuButton_Click(object sender, RoutedEventArgs e)
+        {
+            FloatMenu.PlacementTarget = FloatMenuButton;
+            FloatMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+            FloatMenu.IsOpen = true;
+        }
+
+        private void FloatMenu_Opened(object sender, RoutedEventArgs e)
+        {
+            OverlayMenuItem.IsChecked = OverlayWindow != null;
+            BilingualMenuItem.IsChecked = BilingualWindow != null;
+        }
+
+        private void OverlayMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            OverlayModeButton_Click(OverlayModeButton, e);
+        }
+
+        private void BilingualMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            BilingualModeButton_Click(BilingualModeButton, e);
+        }
+
+        // The app icon is embedded in the exe (ApplicationIcon); show it next to the title.
+        private void LoadLogo()
+        {
+            try
+            {
+                string? path = Environment.ProcessPath;
+                if (string.IsNullOrEmpty(path))
+                    return;
+                using var icon = System.Drawing.Icon.ExtractAssociatedIcon(path);
+                if (icon == null)
+                    return;
+                LogoImage.Source = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(
+                    icon.Handle, Int32Rect.Empty, System.Windows.Media.Imaging.BitmapSizeOptions.FromEmptyOptions());
+                LogoImage.Visibility = Visibility.Visible;
+                LogoFallback.Visibility = Visibility.Collapsed;
+            }
+            catch (Exception)
+            {
+            }
         }
 
         private void EndSectionButton_Click(object sender, RoutedEventArgs e)
@@ -259,7 +307,7 @@ namespace LiveCaptionsTranslator
         {
             StartButton.IsEnabled = !ClassSession.IsStarting;
             StartButton.Content = ClassSession.IsStarting ? "启动中…" : ClassSession.IsRunning ? "停止" : "开始";
-            StartButton.Appearance = ClassSession.IsRunning ? ControlAppearance.Secondary : ControlAppearance.Primary;
+            StartButton.Appearance = ClassSession.IsRunning ? ControlAppearance.Danger : ControlAppearance.Primary;
             if (StartButton.Icon is SymbolIcon icon)
                 icon.Symbol = ClassSession.IsRunning ? SymbolRegular.Stop16 : SymbolRegular.Play16;
         }
@@ -341,6 +389,8 @@ namespace LiveCaptionsTranslator
             var button = TopmostButton as Button;
             var symbolIcon = button?.Icon as SymbolIcon;
             symbolIcon.Filled = enabled;
+            if (button != null)
+                button.Appearance = enabled ? ControlAppearance.Primary : ControlAppearance.Transparent;
             this.Topmost = enabled;
             Translator.Setting.MainWindow.Topmost = enabled;
         }

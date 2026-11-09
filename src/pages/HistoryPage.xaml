@@ -11,8 +11,8 @@
     mc:Ignorable="d">
     <Page.Resources>
         <Style x:Key="ItemCard" TargetType="Border">
-            <Setter Property="Padding" Value="12,8,12,10" />
-            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="14,10,14,12" />
+            <Setter Property="CornerRadius" Value="12" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
@@ -34,7 +34,7 @@
         </Style>
     </Page.Resources>
 
-    <Grid Margin="15">
+    <Grid Margin="20,16,20,16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -219,7 +219,7 @@
                                         <TextBlock
                                             Margin="0,2,0,0"
                                             FontSize="12"
-                                            Opacity="0.7"
+                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                             Text="{Binding Info}" />
                                     </StackPanel>
                                 </StackPanel>
@@ -271,7 +271,7 @@
                                         <TextBlock
                                             Margin="0,2,0,0"
                                             FontSize="12"
-                                            Opacity="0.7"
+                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                             Text="{Binding Info}" />
                                     </StackPanel>
                                 </StackPanel>
@@ -305,42 +305,45 @@
                 <ItemsControl x:Name="DetailList">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Margin="0,0,10,16">
+                            <StackPanel Margin="0,0,10,24">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock
+                                        FontSize="15"
                                         FontWeight="SemiBold"
                                         Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
                                         Text="{Binding Header}" />
                                     <TextBlock
                                         Margin="10,0,0,0"
+                                        FontSize="15"
                                         FontWeight="SemiBold"
                                         Text="{Binding Title}"
                                         TextWrapping="Wrap" />
                                 </StackPanel>
                                 <Border
-                                    Margin="0,6,0,6"
-                                    Padding="10,6,10,8"
+                                    Margin="0,8,0,8"
+                                    Padding="14,10,14,12"
                                     Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                                     BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
                                     BorderThickness="1"
-                                    CornerRadius="6"
+                                    CornerRadius="10"
                                     Visibility="{Binding SummaryVisibility}">
-                                    <TextBlock Text="{Binding Summary}" TextWrapping="Wrap" />
+                                    <TextBlock LineHeight="22" Text="{Binding Summary}" TextWrapping="Wrap" />
                                 </Border>
                                 <ItemsControl ItemsSource="{Binding Lines}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <StackPanel Margin="4,4,0,6">
+                                            <StackPanel Margin="4,6,0,8">
                                                 <TextBlock
                                                     FontSize="13"
-                                                    Opacity="0.75"
+                                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                                     TextWrapping="Wrap">
                                                     <Run FontFamily="Consolas" Text="{Binding Time, StringFormat=HH:mm:ss, Mode=OneWay}" />
                                                     <Run Text="  " />
                                                     <Run Text="{Binding SourceText, Mode=OneWay}" />
                                                 </TextBlock>
                                                 <TextBlock
-                                                    Margin="0,2,0,0"
+                                                    Margin="0,3,0,0"
+                                                    FontSize="15"
                                                     Text="{Binding TranslatedText}"
                                                     TextWrapping="Wrap" />
                                             </StackPanel>

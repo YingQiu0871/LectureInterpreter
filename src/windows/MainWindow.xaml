@@ -35,73 +35,149 @@
                 Height="42"
                 ShowMaximize="True">
                 <ui:TitleBar.Header>
-                    <ui:TextBlock Padding="15,0,0,0" VerticalAlignment="Center">课堂同传助手</ui:TextBlock>
+                    <StackPanel Margin="15,0,0,0" VerticalAlignment="Center" Orientation="Horizontal">
+                        <Image
+                            x:Name="LogoImage"
+                            Width="20"
+                            Height="20"
+                            Margin="0,0,8,0"
+                            VerticalAlignment="Center"
+                            Visibility="Collapsed" />
+                        <ui:SymbolIcon
+                            x:Name="LogoFallback"
+                            Margin="0,0,8,0"
+                            VerticalAlignment="Center"
+                            FontSize="18"
+                            Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
+                            Symbol="Chat24" />
+                        <ui:TextBlock
+                            VerticalAlignment="Center"
+                            FontSize="14"
+                            FontWeight="SemiBold">课堂同传助手</ui:TextBlock>
+                    </StackPanel>
                 </ui:TitleBar.Header>
                 <ui:TitleBar.TrailingContent>
-                    <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                    <StackPanel
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Orientation="Horizontal">
+
+                        <!--  Class control  -->
                         <ui:Button
                             x:Name="StartButton"
                             Margin="0,0,8,0"
-                            Padding="10,2,12,2"
+                            Padding="14,4,16,4"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"
                             Appearance="Primary"
                             Click="StartButton_Click"
+                            CornerRadius="16"
                             Content="开始"
+                            FontSize="13"
+                            FontWeight="SemiBold"
                             Icon="{ui:SymbolIcon Play16,
                                                  Filled=True}"
                             ToolTip="开始 / 停止上课" />
                         <ui:Button
-                            x:Name="EndSectionButton"
-                            Margin="0,0,5,0"
-                            Appearance="Transparent"
-                            Click="EndSectionButton_Click"
-                            Icon="{ui:SymbolIcon Flag16,
+                            x:Name="LogOnlyButton"
+                            Padding="12,4,14,4"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"
+                            Appearance="Secondary"
+                            Click="LogOnlyButton_Click"
+                            CornerRadius="16"
+                            Content="暂停翻译"
+                            FontSize="13"
+                            Icon="{ui:SymbolIcon Pause16,
                                                  Filled=False}"
-                            ToolTip="结束本节并总结 (Ctrl+Alt+S)" />
+                            ToolTip="暂停翻译（只记录原文）" />
+
+                        <Border
+                            Width="1"
+                            Height="20"
+                            Margin="12,0,12,0"
+                            VerticalAlignment="Center"
+                            Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
+
+                        <!--  Output  -->
                         <ui:ToggleSwitch
                             x:Name="SpeechSwitch"
-                            Margin="4,0,10,0"
+                            Margin="0,0,8,0"
                             VerticalAlignment="Center"
                             Click="SpeechSwitch_Click"
                             Content="耳机播报"
+                            FontSize="13"
                             ToolTip="打开 / 关闭耳机播报 (Ctrl+Alt+M)" />
                         <ui:Button
                             x:Name="CaptionLogButton"
                             Margin="0,0,5,0"
                             Appearance="Transparent"
                             Click="CaptionLogButton_Click"
+                            CornerRadius="8"
                             Icon="{ui:SymbolIcon History16,
                                                  Filled=False}"
                             ToolTip="历史卡片"
                             Visibility="Collapsed" />
                         <ui:Button
-                            x:Name="LogOnlyButton"
-                            Margin="0,0,5,0"
-                            Appearance="Transparent"
-                            Click="LogOnlyButton_Click"
-                            Icon="{ui:SymbolIcon Pause16,
+                            x:Name="FloatMenuButton"
+                            Padding="12,4,12,4"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"
+                            Appearance="Secondary"
+                            Click="FloatMenuButton_Click"
+                            CornerRadius="8"
+                            Content="浮窗"
+                            FontSize="13"
+                            Icon="{ui:SymbolIcon ChevronDown12,
                                                  Filled=False}"
-                            ToolTip="暂停翻译（只记录原文）" />
+                            ToolTip="悬浮字幕 / 双语浮窗">
+                            <ui:Button.ContextMenu>
+                                <ContextMenu x:Name="FloatMenu" Opened="FloatMenu_Opened">
+                                    <MenuItem
+                                        x:Name="OverlayMenuItem"
+                                        Click="OverlayMenuItem_Click"
+                                        Header="悬浮字幕" />
+                                    <MenuItem
+                                        x:Name="BilingualMenuItem"
+                                        Click="BilingualMenuItem_Click"
+                                        Header="双语浮窗" />
+                                </ContextMenu>
+                            </ui:Button.ContextMenu>
+                        </ui:Button>
+                        <!--  The original buttons keep the window logic and their icons; the menu above drives them.  -->
                         <ui:Button
                             x:Name="OverlayModeButton"
-                            Margin="0,0,5,0"
                             Appearance="Transparent"
                             Click="OverlayModeButton_Click"
                             Icon="{ui:SymbolIcon ClosedCaptionOff24,
                                                  Filled=False}"
-                            ToolTip="悬浮字幕窗" />
+                            ToolTip="悬浮字幕窗"
+                            Visibility="Collapsed" />
                         <ui:Button
                             x:Name="BilingualModeButton"
-                            Margin="0,0,5,0"
                             Appearance="Transparent"
                             Click="BilingualModeButton_Click"
                             Icon="{ui:SymbolIcon Translate24,
                                                  Filled=False}"
-                            ToolTip="双语浮窗（原文 + 译文，半透明置顶）" />
+                            ToolTip="双语浮窗（原文 + 译文，半透明置顶）"
+                            Visibility="Collapsed" />
+
+                        <Border
+                            Width="1"
+                            Height="20"
+                            Margin="12,0,12,0"
+                            VerticalAlignment="Center"
+                            Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
+
+                        <!--  Window  -->
                         <ui:Button
                             x:Name="TopmostButton"
                             Margin="0,0,5,0"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"
                             Appearance="Transparent"
                             Click="TopmostButton_Click"
+                            CornerRadius="8"
                             Icon="{ui:SymbolIcon Pin16,
                                                  Filled=True}"
                             ToolTip="窗口置顶" />
