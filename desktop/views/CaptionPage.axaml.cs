@@ -217,7 +217,7 @@ namespace LiveCaptionsTranslator
                 : new GridLength(Math.Max(Translator.Setting.MainWindow.SectionPanelWidth, 180));
             Splitter.IsVisible = !largeMode;
             RightPane.IsVisible = !largeMode;
-            LeftPane.Margin = new Thickness(16, 16, largeMode ? 16 : 0, 16);
+            LeftPane.Margin = new Thickness(16, 16, largeMode ? 16 : 0, 8);
             ApplyFontSizes();
         }
 
@@ -229,7 +229,7 @@ namespace LiveCaptionsTranslator
         // Ctrl + wheel changes a font size.
         private void AdjustFontOnWheel(PointerWheelEventArgs e, Func<int> get, Action<int> set)
         {
-            if (e.KeyModifiers != KeyModifiers.Control)
+            if (largeMode || e.KeyModifiers != KeyModifiers.Control)
                 return;
             set(AdjustFontSize(get(), e.Delta.Y));
             ApplyFontSizes();

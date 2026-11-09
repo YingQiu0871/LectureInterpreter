@@ -149,7 +149,7 @@ namespace LiveCaptionsTranslator
         private void ApplyBackgroundOpacity()
         {
             PanelBorder.Background = new SolidColorBrush(
-                Avalonia.Media.Color.FromArgb((byte)Math.Clamp(Look.Opacity, 0, 255), 0, 0, 0));
+                Avalonia.Media.Color.FromArgb((byte)Math.Clamp(Look.Opacity, 0, 255), 0x11, 0x18, 0x27));
         }
 
         private void PinButton_Click(object? sender, RoutedEventArgs e)

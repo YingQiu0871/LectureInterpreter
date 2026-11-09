@@ -204,7 +204,7 @@ namespace LiveCaptionsTranslator
         // Ctrl + wheel changes a font size.
         private void AdjustFontOnWheel(MouseWheelEventArgs e, Func<int> get, Action<int> set)
         {
-            if (Keyboard.Modifiers != ModifierKeys.Control)
+            if (bigMode || Keyboard.Modifiers != ModifierKeys.Control)
                 return;
             set(AdjustFontSize(get(), e.Delta));
             ApplyFontSizes();

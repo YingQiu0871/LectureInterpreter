@@ -11,13 +11,17 @@
     mc:Ignorable="d">
 
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" MinWidth="260" />
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition x:Name="SectionColumn" Width="320" MinWidth="180" />
         </Grid.ColumnDefinitions>
 
-        <Grid Grid.Column="0" Margin="12,8,0,12">
+        <Grid Grid.Column="0" Margin="12,8,0,4">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
@@ -129,13 +133,32 @@
                         CornerRadius="11"
                         Opacity="0.1" />
                     <Border
-                        Width="3"
-                        HorizontalAlignment="Left"
-                        Background="{DynamicResource AccentFillColorDefaultBrush}"
-                        CornerRadius="11,0,0,11" />
+                        BorderBrush="{DynamicResource AccentFillColorDefaultBrush}"
+                        BorderThickness="3,0,0,0"
+                        CornerRadius="12" />
                     <Grid Margin="16,10,14,12">
                     <Grid>
                         <StackPanel>
+                        <!--  Shown until LiveCaptions produces its first words, so an empty page doesn't look broken.  -->
+                        <TextBlock
+                            IsHitTestVisible="False"
+                            Opacity="0.6"
+                            Text="{Binding StatusHint}"
+                            TextWrapping="Wrap">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding DisplayOriginalCaption}" Value="">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding DisplayOriginalCaption}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                             <TextBlock
                                 x:Name="OriginalCaption"
                                 Background="Transparent"
@@ -161,26 +184,6 @@
                                 Text="{Binding DisplayTranslatedCaption, UpdateSourceTrigger=PropertyChanged}"
                                 ToolTip="单击复制，Ctrl+滚轮调整字号" />
                         </StackPanel>
-                        <!--  Shown until LiveCaptions produces its first words, so an empty page doesn't look broken.  -->
-                        <TextBlock
-                            IsHitTestVisible="False"
-                            Opacity="0.6"
-                            Text="{Binding StatusHint}"
-                            TextWrapping="Wrap">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding DisplayOriginalCaption}" Value="">
-                                            <Setter Property="Visibility" Value="Visible" />
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding DisplayOriginalCaption}" Value="{x:Null}">
-                                            <Setter Property="Visibility" Value="Visible" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
                     </Grid>
                     </Grid>
                 </Grid>
@@ -201,11 +204,10 @@
             ResizeDirection="Columns"
             ToolTip="拖动调整宽度" />
 
-        <Grid x:Name="SectionPanel" Grid.Column="2" Margin="0,8,16,12">
+        <Grid x:Name="SectionPanel" Grid.Column="2" Margin="0,8,16,4">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <StackPanel Grid.Row="0" Margin="4,0,0,8">
                 <TextBlock
@@ -277,10 +279,15 @@
                 </ItemsControl>
             </ScrollViewer>
 
-            <ui:Button
+        </Grid>
+
+        <!--  Stays visible in large-text mode too.  -->
+        <ui:Button
                 x:Name="EndSectionButton"
-                Grid.Row="2"
-                Margin="0,8,6,0"
+                Grid.Row="1"
+                Grid.Column="0"
+                Grid.ColumnSpan="3"
+                Margin="0,4,22,12"
                 Padding="14,5,14,5"
                 HorizontalAlignment="Right"
                 HorizontalContentAlignment="Center"
@@ -293,6 +300,5 @@
                 Icon="{ui:SymbolIcon Flag16,
                                      Filled=False}"
                 ToolTip="结束本节并总结 (Ctrl+Alt+S)" />
-        </Grid>
     </Grid>
 </Page>

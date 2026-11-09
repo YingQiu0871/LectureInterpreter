@@ -35,6 +35,10 @@
             <Setter Property="Background" Value="#40FFFFFF" />
             <Setter Property="Foreground" Value="White" />
         </Style>
+        <Style Selector="Button.tool:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#55FFFFFF" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
         <Style Selector="Border.edge">
             <Setter Property="Background" Value="Transparent" />
         </Style>

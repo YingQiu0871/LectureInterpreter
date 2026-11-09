@@ -31,14 +31,14 @@
             <Setter Property="Foreground" Value="White" />
         </Style>
     </UserControl.Styles>
-    <Grid x:Name="Root">
+    <Grid x:Name="Root" RowDefinitions="*,Auto">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*" MinWidth="260" />
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="320" MinWidth="180" />
         </Grid.ColumnDefinitions>
 
-        <Grid x:Name="LeftPane" Grid.Column="0" Margin="16,16,0,16" RowDefinitions="*,Auto">
+        <Grid x:Name="LeftPane" Grid.Column="0" Margin="16,16,0,8" RowDefinitions="*,Auto">
             <Border Grid.Row="0" Classes="card" Padding="0" ClipToBounds="True">
                 <Grid RowDefinitions="*,Auto">
                     <!-- Every finished sentence of this class, oldest first -->
@@ -84,6 +84,9 @@
                     <Grid ColumnDefinitions="*,Auto">
                         <Grid Grid.Column="0">
                             <StackPanel>
+                                <!-- Shown until the first words arrive, so an empty page doesn't look broken -->
+                                <TextBlock x:Name="StatusHint" Classes="secondary" FontSize="13" IsHitTestVisible="False"
+                                           TextWrapping="Wrap" />
                                 <TextBlock x:Name="OriginalCaption" Classes="secondary" FontSize="12"
                                            TextWrapping="Wrap"
                                            Cursor="Hand" ToolTip.Tip="单击复制，Ctrl+滚轮调整字号" />
@@ -91,9 +94,6 @@
                                            FontWeight="Medium" TextWrapping="Wrap"
                                            Cursor="Hand" ToolTip.Tip="单击复制，Ctrl+滚轮调整字号" />
                             </StackPanel>
-                            <!-- Shown until the first words arrive, so an empty page doesn't look broken -->
-                            <TextBlock x:Name="StatusHint" Classes="secondary" FontSize="13" IsHitTestVisible="False"
-                                       TextWrapping="Wrap" />
                         </Grid>
                         <ToggleButton x:Name="LargeModeButton" Grid.Column="1" Classes="chip" Margin="12,0,0,0"
                                       VerticalAlignment="Top" Content="大字"
@@ -107,7 +107,7 @@
         <GridSplitter x:Name="Splitter" Grid.Column="1" Width="12" Background="Transparent"
                       ToolTip.Tip="拖动调整宽度" />
 
-        <Grid x:Name="RightPane" Grid.Column="2" Margin="0,16,16,16" RowDefinitions="Auto,*,Auto">
+        <Grid x:Name="RightPane" Grid.Column="2" Margin="0,16,16,8" RowDefinitions="Auto,*">
             <StackPanel Grid.Row="0" Margin="4,0,0,10">
                 <TextBlock FontSize="13" FontWeight="SemiBold" Classes="secondary" Text="小节总结" />
                 <TextBlock x:Name="SummaryStatus" Margin="0,2,0,0" FontSize="12" Classes="secondary" Opacity="0.8"
@@ -138,9 +138,12 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </ScrollViewer>
-            <Button x:Name="EndSectionButton" Grid.Row="2" Margin="0,8,0,0" HorizontalAlignment="Right"
-                    Content="结束本节" FontSize="13" ToolTip.Tip="结束本节并总结 (Ctrl+Alt+S)"
-                    Click="EndSectionButton_Click" />
         </Grid>
+
+        <!-- Stays visible in large-caption mode too -->
+        <Button x:Name="EndSectionButton" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,0,16,16"
+                HorizontalAlignment="Right"
+                Content="结束本节" FontSize="13" ToolTip.Tip="结束本节并总结 (Ctrl+Alt+S)"
+                Click="EndSectionButton_Click" />
     </Grid>
 </UserControl>

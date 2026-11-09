@@ -182,7 +182,7 @@ namespace LiveCaptionsTranslator
 
         private void ApplyBackgroundOpacity()
         {
-            PanelBorder.Background = new SolidColorBrush(Color.FromArgb((byte)Math.Clamp(Look.Opacity, 0, 255), 0, 0, 0));
+            PanelBorder.Background = new SolidColorBrush(Color.FromArgb((byte)Math.Clamp(Look.Opacity, 0, 255), 0x11, 0x18, 0x27));
         }
 
         private void Window_MouseEnter(object sender, MouseEventArgs e)

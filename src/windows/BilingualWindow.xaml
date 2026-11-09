@@ -61,6 +61,8 @@
                         <ui:Button
                             x:Name="PinButton"
                             Background="#33FFFFFF"
+                            MouseOverBackground="#40FFFFFF"
+                            PressedBackground="#55FFFFFF"
                             Foreground="White"
                             BorderThickness="0"
                             Click="PinButton_Click"
@@ -71,6 +73,8 @@
                         <ui:Button
                             Margin="5,0,0,0"
                             Background="#33FFFFFF"
+                            MouseOverBackground="#40FFFFFF"
+                            PressedBackground="#55FFFFFF"
                             Foreground="White"
                             BorderThickness="0"
                             Click="FontIncrease_Click"
@@ -80,6 +84,8 @@
                             ToolTip="字号加大" />
                         <ui:Button
                             Background="#33FFFFFF"
+                            MouseOverBackground="#40FFFFFF"
+                            PressedBackground="#55FFFFFF"
                             Foreground="White"
                             BorderThickness="0"
                             Click="FontDecrease_Click"
@@ -90,6 +96,8 @@
                         <ui:Button
                             Margin="5,0,0,0"
                             Background="#33FFFFFF"
+                            MouseOverBackground="#40FFFFFF"
+                            PressedBackground="#55FFFFFF"
                             Foreground="White"
                             BorderThickness="0"
                             Click="OpacityIncrease_Click"
@@ -99,6 +107,8 @@
                             ToolTip="背景加深" />
                         <ui:Button
                             Background="#33FFFFFF"
+                            MouseOverBackground="#40FFFFFF"
+                            PressedBackground="#55FFFFFF"
                             Foreground="White"
                             BorderThickness="0"
                             Click="OpacityDecrease_Click"
@@ -110,6 +120,8 @@
                             x:Name="SentencesButton"
                             Margin="5,0,0,0"
                             Background="#33FFFFFF"
+                            MouseOverBackground="#40FFFFFF"
+                            PressedBackground="#55FFFFFF"
                             Foreground="White"
                             BorderThickness="0"
                             Click="SentencesButton_Click"
@@ -118,6 +130,8 @@
                         <ui:Button
                             Margin="5,0,0,0"
                             Background="#33FFFFFF"
+                            MouseOverBackground="#40FFFFFF"
+                            PressedBackground="#55FFFFFF"
                             Foreground="White"
                             BorderThickness="0"
                             Click="CloseButton_Click"

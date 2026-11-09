@@ -126,11 +126,18 @@
                             Appearance="Secondary"
                             Click="FloatMenuButton_Click"
                             CornerRadius="8"
-                            Content="浮窗"
                             FontSize="13"
-                            Icon="{ui:SymbolIcon ChevronDown12,
-                                                 Filled=False}"
                             ToolTip="悬浮字幕 / 双语浮窗">
+                            <ui:Button.Content>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock VerticalAlignment="Center" Text="浮窗" />
+                                    <ui:SymbolIcon
+                                        Margin="6,0,0,0"
+                                        VerticalAlignment="Center"
+                                        FontSize="12"
+                                        Symbol="ChevronDown16" />
+                                </StackPanel>
+                            </ui:Button.Content>
                             <ui:Button.ContextMenu>
                                 <ContextMenu x:Name="FloatMenu" Opened="FloatMenu_Opened">
                                     <MenuItem

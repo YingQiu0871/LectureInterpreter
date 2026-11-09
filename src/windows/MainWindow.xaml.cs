@@ -168,6 +168,7 @@ namespace LiveCaptionsTranslator
                 }
 
                 OverlayWindow.Show();
+                UpdateFloatMenuButton();
             }
             else
             {
@@ -187,6 +188,7 @@ namespace LiveCaptionsTranslator
 
                 OverlayWindow.Close();
                 OverlayWindow = null;
+                UpdateFloatMenuButton();
             }
         }
 
@@ -204,10 +206,12 @@ namespace LiveCaptionsTranslator
                 BilingualWindow = null;
                 if (BilingualModeButton.Icon is SymbolIcon icon)
                     icon.Filled = false;
+                UpdateFloatMenuButton();
             };
             if (BilingualModeButton.Icon is SymbolIcon symbolIcon)
                 symbolIcon.Filled = true;
             BilingualWindow.Show();
+            UpdateFloatMenuButton();
 
             if (!bilingualHintShown && Translator.Setting.Lecture.Engine == models.RecognitionEngine.LiveCaptions)
             {
@@ -250,6 +254,15 @@ namespace LiveCaptionsTranslator
         {
             OverlayMenuItem.IsChecked = OverlayWindow != null;
             BilingualMenuItem.IsChecked = BilingualWindow != null;
+            UpdateFloatMenuButton();
+        }
+
+        // The 浮窗 button looks "on" while a floating window is open.
+        private void UpdateFloatMenuButton()
+        {
+            FloatMenuButton.Appearance = OverlayWindow != null || BilingualWindow != null
+                ? ControlAppearance.Primary
+                : ControlAppearance.Secondary;
         }
 
         private void OverlayMenuItem_Click(object sender, RoutedEventArgs e)
@@ -269,7 +282,7 @@ namespace LiveCaptionsTranslator
             {
                 // The app icon is embedded as a WPF resource; pick its largest frame so it stays sharp when scaled.
                 var decoder = System.Windows.Media.Imaging.BitmapDecoder.Create(
-                    new Uri("pack://application:,,,/src/LectureInterpreter.ico"),
+                    new Uri("pack://application:,,,/LectureInterpreter;component/src/LectureInterpreter.ico"),
                     System.Windows.Media.Imaging.BitmapCreateOptions.None,
                     System.Windows.Media.Imaging.BitmapCacheOption.OnLoad);
                 LogoImage.Source = decoder.Frames.OrderByDescending(f => f.PixelWidth).First();
