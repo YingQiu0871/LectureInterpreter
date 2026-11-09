@@ -8,19 +8,19 @@
 
 [![Build](https://github.com/YingQiu0871/LiveCaptions-Translator/actions/workflows/dotnet-build.yml/badge.svg)](https://github.com/YingQiu0871/LiveCaptions-Translator/actions/workflows/dotnet-build.yml)
 [![Platform](https://img.shields.io/badge/platform-Windows%2011%20%7C%20macOS%20%7C%20Linux-blue?color=1E9BFA)](#下载)
-[![License](https://img.shields.io/github/license/SakiRinn/LiveCaptions-Translator)](LICENSE)
+[![License](https://img.shields.io/github/license/YingQiu0871/LiveCaptions-Translator)](LICENSE)
 
-[SakiRinn/LiveCaptions-Translator](https://github.com/SakiRinn/LiveCaptions-Translator) 的课堂同传特化分支 · 原版说明：[English](README.upstream.md) | [中文](README.upstream_zh-CN.md)
+基于 LiveCaptions-Translator 开发的课堂同传工具 · 原项目说明：[English](README.upstream.md) | [中文](README.upstream_zh-CN.md)
 
 </div>
 
 > [!NOTE]
-> **这是原项目的课堂同传特化分支，不是官方版本。**
-> 本仓库从 [SakiRinn/LiveCaptions-Translator](https://github.com/SakiRinn/LiveCaptions-Translator) 分出，专门针对“听外语课”改造：界面只有中文，支持 Windows 11、macOS 和 Linux，加入了云端语音识别、分节总结、按课程保存和课后笔记，也去掉了原版的一些通用设置。
+> **本项目源自 [SakiRinn/LiveCaptions-Translator](https://github.com/SakiRinn/LiveCaptions-Translator)，现已独立开发维护，专门针对“听外语课”改造：**
+> 界面只有中文，支持 Windows 11、macOS 和 Linux，加入了云端语音识别、分节总结、按课程保存和课后笔记，也去掉了原版的一些通用设置。
 > 如果想给视频、会议、直播加实时翻译字幕，或者需要英文界面、更多翻译接口，推荐使用[原项目](https://github.com/SakiRinn/LiveCaptions-Translator)。
-> 本分支中与课堂无关的几处通用修复，已整理成独立的小改动提交给原项目，供原作者参考（[#286](https://github.com/SakiRinn/LiveCaptions-Translator/pull/286)–[#290](https://github.com/SakiRinn/LiveCaptions-Translator/pull/290)）。本分支的问题请在本仓库反馈，以免给原作者添麻烦。
+> 本项目中与课堂无关的几处通用修复，已整理成独立的小改动提交给原项目，供原作者参考（[#286](https://github.com/SakiRinn/LiveCaptions-Translator/pull/286)–[#290](https://github.com/SakiRinn/LiveCaptions-Translator/pull/290)）。本项目的问题请在本仓库反馈，以免给原作者添麻烦。
 >
-> *A classroom-interpretation fork of [SakiRinn/LiveCaptions-Translator](https://github.com/SakiRinn/LiveCaptions-Translator) (Chinese UI only). Many thanks to SakiRinn and all contributors of the original project, which is the one to use for general-purpose live caption translation.*
+> *Originally based on [SakiRinn/LiveCaptions-Translator](https://github.com/SakiRinn/LiveCaptions-Translator), now developed independently as a classroom-interpretation tool (Chinese UI). Many thanks to SakiRinn and the contributors of the original project.*
 
 ## 这是什么
 
@@ -212,7 +212,14 @@
 
 ## 致谢与许可
 
-本项目基于 [SakiRinn/LiveCaptions-Translator](https://github.com/SakiRinn/LiveCaptions-Translator) 修改，感谢原作者和所有贡献者。许可证与原项目相同，为 [Apache-2.0](LICENSE)。
+本项目源自 [SakiRinn/LiveCaptions-Translator](https://github.com/SakiRinn/LiveCaptions-Translator)，感谢原作者和原项目的所有贡献者。许可证与原项目相同，为 [Apache-2.0](LICENSE)。
+
+本项目的贡献者：
+
+- [@YingQiu0871](https://github.com/YingQiu0871)：课堂同传方向的改造与维护。
+- [@siqing319](https://github.com/siqing319)：多套命名模型配置、小节单独选模型、Qwen-MT 翻译专用模型、历史批量删除、浅色/深色主题、界面缩放和最大化按钮（[#15](https://github.com/YingQiu0871/LiveCaptions-Translator/pull/15)）。
+
+欢迎提 Issue 和 PR。
 
 使用的第三方库：[WPF-UI](https://github.com/lepoco/wpfui)、[NAudio](https://github.com/naudio/NAudio)、System.Speech（这三个是 Windows 版用的）、[PdfPig](https://github.com/UglyToad/PdfPig)、Microsoft.Data.Sqlite、CsvHelper；macOS / Linux 版界面用 [Avalonia](https://avaloniaui.net/)。可选的云服务：阿里云百炼（实时语音识别、通义千问）、DeepSeek。
 
