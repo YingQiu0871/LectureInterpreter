@@ -6,9 +6,9 @@
 
 ### *听外语课：实时转录 + 中文翻译 + 分节小结 + 耳机同传 + 课后笔记*
 
-[![Build](https://github.com/YingQiu0871/LiveCaptions-Translator/actions/workflows/dotnet-build.yml/badge.svg)](https://github.com/YingQiu0871/LiveCaptions-Translator/actions/workflows/dotnet-build.yml)
+[![Build](https://github.com/YingQiu0871/LectureInterpreter/actions/workflows/dotnet-build.yml/badge.svg)](https://github.com/YingQiu0871/LectureInterpreter/actions/workflows/dotnet-build.yml)
 [![Platform](https://img.shields.io/badge/platform-Windows%2011%20%7C%20macOS%20%7C%20Linux-blue?color=1E9BFA)](#下载)
-[![License](https://img.shields.io/github/license/YingQiu0871/LiveCaptions-Translator)](LICENSE)
+[![License](https://img.shields.io/github/license/YingQiu0871/LectureInterpreter)](LICENSE)
 
 基于 LiveCaptions-Translator 开发的课堂同传工具 · 原项目说明：[English](README.upstream.md) | [中文](README.upstream_zh-CN.md)
 
@@ -64,7 +64,7 @@
 
 ## 下载
 
-到 [Releases](https://github.com/YingQiu0871/LiveCaptions-Translator/releases/latest) 下载最新版本。
+到 [Releases](https://github.com/YingQiu0871/LectureInterpreter/releases/latest) 下载最新版本。
 
 **Windows：**
 
@@ -90,7 +90,7 @@
 ## macOS 和 Linux 版
 
 > [!WARNING]
-> **macOS 和 Linux 版是新加的，还没有在真机上测试过**，可能有各种问题。遇到问题（打不开、没声音、识别不出字、播报异常等）请到本仓库的 [Issues](https://github.com/YingQiu0871/LiveCaptions-Translator/issues) 反馈，写上系统版本和出错提示，谢谢。
+> **macOS 和 Linux 版是新加的，还没有在真机上测试过**，可能有各种问题。遇到问题（打不开、没声音、识别不出字、播报异常等）请到本仓库的 [Issues](https://github.com/YingQiu0871/LectureInterpreter/issues) 反馈，写上系统版本和出错提示，谢谢。
 
 翻译、小结、段落精修、分节、按课保存、笔记初稿、历史、时间线这些功能和 Windows 版相同，设置页的布局也一样。区别如下：
 
@@ -217,7 +217,7 @@
 本项目的贡献者：
 
 - [@YingQiu0871](https://github.com/YingQiu0871)：课堂同传方向的改造与维护。
-- [@siqing319](https://github.com/siqing319)：多套命名模型配置、小节单独选模型、Qwen-MT 翻译专用模型、历史批量删除、浅色/深色主题、界面缩放和最大化按钮（[#15](https://github.com/YingQiu0871/LiveCaptions-Translator/pull/15)）。
+- [@siqing319](https://github.com/siqing319)：多套命名模型配置、小节单独选模型、Qwen-MT 翻译专用模型、历史批量删除、浅色/深色主题、界面缩放和最大化按钮（[#15](https://github.com/YingQiu0871/LectureInterpreter/pull/15)）。
 
 欢迎提 Issue 和 PR。
 
