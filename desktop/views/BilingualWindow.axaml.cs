@@ -38,8 +38,18 @@ namespace LiveCaptionsTranslator
             feed.Changed += () => Dispatcher.UIThread.Post(Render);
 
             WindowBounds.Restore(this, "BilingualWindow", new Size(720, 240));
-            // The height follows the text.
-            Height = double.NaN;
+            if (Look.Height > 0)
+            {
+                // The user has chosen a height: stop following the content (it scrolls to the newest line).
+                double room = Screens.ScreenFromWindow(this) is { } screen ? screen.WorkingArea.Height / screen.Scaling : 2000;
+                Height = Math.Clamp(Look.Height, MinHeight, Math.Max(MinHeight, room));
+                SizeToContent = SizeToContent.Manual;
+            }
+            else
+            {
+                // The height follows the text.
+                Height = double.NaN;
+            }
             WindowBounds.Track(this, "BilingualWindow");
 
             PositionChanged += (s, e) => LimitHeight();
@@ -51,15 +61,32 @@ namespace LiveCaptionsTranslator
             };
             Closed += (s, e) => feed.Dispose();
 
-            PointerEntered += (s, e) => ControlPanel.IsVisible = true;
+            FloatLock.Changed += ApplyLock;
+            Closed += (s, e) => FloatLock.Changed -= ApplyLock;
+            Opened += (s, e) => ApplyLock();
+            // Once the user has set a height, remember it.
+            Resized += (s, e) =>
+            {
+                // X11 reports a window-manager resize as Unspecified.
+                if (SizeToContent == SizeToContent.Manual && e.Reason is WindowResizeReason.User or WindowResizeReason.Unspecified)
+                    Look.Height = e.ClientSize.Height;
+            };
+
+            PointerEntered += (s, e) => ControlPanel.IsVisible = !FloatLock.Locked;
             PointerExited += (s, e) => ControlPanel.IsVisible = false;
             PanelBorder.PointerPressed += (s, e) =>
             {
-                if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && e.Source is not Button)
+                if (!FloatLock.Locked && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && e.Source is not Button)
                     BeginMoveDrag(e);
             };
             Resizer(LeftEdge, WindowEdge.West);
             Resizer(RightEdge, WindowEdge.East);
+            Resizer(TopEdge, WindowEdge.North);
+            Resizer(BottomEdge, WindowEdge.South);
+            Resizer(TopLeftEdge, WindowEdge.NorthWest);
+            Resizer(TopRightEdge, WindowEdge.NorthEast);
+            Resizer(BottomLeftEdge, WindowEdge.SouthWest);
+            Resizer(BottomRightEdge, WindowEdge.SouthEast);
 
             ShowPinState();
             ShowSentences();
@@ -70,9 +97,28 @@ namespace LiveCaptionsTranslator
         {
             edge.PointerPressed += (s, e) =>
             {
-                if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
-                    BeginResizeDrag(direction, e);
+                if (FloatLock.Locked || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+                    return;
+                // A height change fixes the height: the window no longer follows the content.
+                if (direction != WindowEdge.West && direction != WindowEdge.East && SizeToContent != SizeToContent.Manual)
+                {
+                    Height = Bounds.Height;
+                    SizeToContent = SizeToContent.Manual;
+                }
+                BeginResizeDrag(direction, e);
             };
+        }
+
+        private void ApplyLock()
+        {
+            ClickThrough.Set(this, FloatLock.Locked);
+            if (FloatLock.Locked)
+                ControlPanel.IsVisible = false;
+        }
+
+        private void LockButton_Click(object? sender, RoutedEventArgs e)
+        {
+            FloatLock.Locked = true;
         }
 
         // The window may grow down to the bottom of the work area; longer content scrolls to its newest line.

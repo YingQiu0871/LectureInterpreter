@@ -72,6 +72,8 @@
                             Click="OnlyModeButton_Click" />
                     <Button Classes="tool" Content="换序" ToolTip.Tip="交换原文和译文的上下顺序"
                             Click="SwitchModeButton_Click" />
+                    <Button Classes="tool" Margin="6,1,1,1" Content="锁定"
+                            ToolTip.Tip="锁定（鼠标穿透，在主窗口「浮窗」菜单里解锁）" Click="LockButton_Click" />
                 </WrapPanel>
             </Grid>
         </Border>

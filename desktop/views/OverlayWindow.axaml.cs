@@ -54,11 +54,15 @@ namespace LiveCaptionsTranslator
             Opened += (s, e) => Translator.Caption.PropertyChanged += OnCaptionChanged;
             Closed += (s, e) => Translator.Caption.PropertyChanged -= OnCaptionChanged;
 
-            PointerEntered += (s, e) => ControlPanel.IsVisible = true;
+            FloatLock.Changed += ApplyLock;
+            Closed += (s, e) => FloatLock.Changed -= ApplyLock;
+            Opened += (s, e) => ApplyLock();
+
+            PointerEntered += (s, e) => ControlPanel.IsVisible = !FloatLock.Locked;
             PointerExited += (s, e) => ControlPanel.IsVisible = false;
             CaptionGrid.PointerPressed += (s, e) =>
             {
-                if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && e.Source is not Button)
+                if (!FloatLock.Locked && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && e.Source is not Button)
                     BeginMoveDrag(e);
             };
             Resizer(TopEdge, WindowEdge.North);
@@ -78,9 +82,21 @@ namespace LiveCaptionsTranslator
         {
             edge.PointerPressed += (s, e) =>
             {
-                if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+                if (!FloatLock.Locked && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
                     BeginResizeDrag(direction, e);
             };
+        }
+
+        private void ApplyLock()
+        {
+            ClickThrough.Set(this, FloatLock.Locked);
+            if (FloatLock.Locked)
+                ControlPanel.IsVisible = false;
+        }
+
+        private void LockButton_Click(object? sender, RoutedEventArgs e)
+        {
+            FloatLock.Locked = true;
         }
 
         // The captions change on the translation threads: draw them on the UI thread. Only the overlay's own

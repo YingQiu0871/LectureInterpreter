@@ -44,9 +44,11 @@ namespace LiveCaptionsTranslator
                 RegisterHotKeys();
                 HwndSource.FromHwnd(new WindowInteropHelper(this).Handle)?.AddHook(ThemeHook);
             };
+            FloatLock.Changed += OnFloatLockChanged;
             Closed += (s, e) =>
             {
                 UnregisterHotKeys();
+                FloatLock.Changed -= OnFloatLockChanged;
                 BilingualWindow?.Close();
             };
             Speaker.MutedChanged += muted => Dispatcher.InvokeAsync(() => ShowSpeakerState(muted));
@@ -273,6 +275,7 @@ namespace LiveCaptionsTranslator
         {
             OverlayMenuItem.IsChecked = OverlayWindow != null;
             BilingualMenuItem.IsChecked = BilingualWindow != null;
+            LockMenuItem.IsChecked = FloatLock.Locked;
             UpdateFloatMenuButton();
         }
 
@@ -292,6 +295,22 @@ namespace LiveCaptionsTranslator
         private void BilingualMenuItem_Click(object sender, RoutedEventArgs e)
         {
             BilingualModeButton_Click(BilingualModeButton, e);
+        }
+
+        // IsCheckable has already toggled the item, so take the state from it.
+        private void LockMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            FloatLock.Locked = LockMenuItem.IsChecked;
+        }
+
+        private void OnFloatLockChanged()
+        {
+            LockMenuItem.IsChecked = FloatLock.Locked;
+            if (FloatLock.Locked)
+            {
+                SnackbarHost.Show("浮窗已锁定", "鼠标可以点到下面的页面；在「浮窗」菜单里取消锁定。",
+                    SnackbarType.Info, timeout: 3, closeButton: true);
+            }
         }
 
         // The app icon is embedded in the exe (ApplicationIcon); show it next to the title.

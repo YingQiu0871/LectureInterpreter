@@ -183,6 +183,17 @@
                                                   Stroke="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=ContentPresenter}}" />
                                         </Grid>
                                     </ToggleButton>
+                                    <Border Height="1" Margin="8,2" Background="{DynamicResource CardBorderBrush}" />
+                                    <ToggleButton x:Name="LockModeButton" Classes="menuitem"
+                                                  ToolTip.Tip="锁定后浮窗不能移动，鼠标穿透到下面的页面" Click="LockModeButton_Click">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <TextBlock Text="锁定浮窗（鼠标穿透）" VerticalAlignment="Center" />
+                                            <Path Grid.Column="1" Data="M0,4 L3.5,7.5 L10,0.5" StrokeThickness="1.8"
+                                                  StrokeLineCap="Round" StrokeJoin="Round" VerticalAlignment="Center"
+                                                  IsVisible="{Binding IsChecked, RelativeSource={RelativeSource FindAncestor, AncestorType=ToggleButton}}"
+                                                  Stroke="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=ContentPresenter}}" />
+                                        </Grid>
+                                    </ToggleButton>
                                 </StackPanel>
                             </Flyout>
                         </Button.Flyout>

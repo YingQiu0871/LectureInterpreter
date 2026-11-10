@@ -63,16 +63,29 @@ namespace LiveCaptionsTranslator
 
             ApplyFontSize();
             ApplyBackgroundOpacity();
+
+            FloatLock.Changed += ApplyLock;
+            Closed += (s, e) => FloatLock.Changed -= ApplyLock;
+            SourceInitialized += (s, e) => ApplyLock();
         }
 
-        private void Border_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void ApplyLock()
         {
-            if (e.LeftButton == MouseButtonState.Pressed)
-                this.DragMove();
+            FloatWindow.ApplyClickThrough(this, FloatLock.Locked);
+            if (FloatLock.Locked)
+                ControlPanel.Visibility = Visibility.Collapsed;
+        }
+
+        private void Window_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            FloatWindow.DragFrom(this, e);
         }
 
         private void TopThumb_OnDragDelta(object sender, DragDeltaEventArgs e)
         {
+            if (FloatLock.Locked)
+                return;
+
             double newHeight = this.Height - e.VerticalChange;
 
             if (newHeight >= this.MinHeight)
@@ -84,6 +97,9 @@ namespace LiveCaptionsTranslator
 
         private void BottomThumb_OnDragDelta(object sender, DragDeltaEventArgs e)
         {
+            if (FloatLock.Locked)
+                return;
+
             double newHeight = this.Height + e.VerticalChange;
 
             if (newHeight >= this.MinHeight)
@@ -94,6 +110,9 @@ namespace LiveCaptionsTranslator
 
         private void LeftThumb_OnDragDelta(object sender, DragDeltaEventArgs e)
         {
+            if (FloatLock.Locked)
+                return;
+
             double newWidth = this.Width - e.HorizontalChange;
 
             if (newWidth >= this.MinWidth)
@@ -105,6 +124,9 @@ namespace LiveCaptionsTranslator
 
         private void RightThumb_OnDragDelta(object sender, DragDeltaEventArgs e)
         {
+            if (FloatLock.Locked)
+                return;
+
             double newWidth = this.Width + e.HorizontalChange;
 
             if (newWidth >= this.MinWidth)
@@ -144,6 +166,8 @@ namespace LiveCaptionsTranslator
 
         private void Window_MouseEnter(object sender, MouseEventArgs e)
         {
+            if (FloatLock.Locked)
+                return;
             ControlPanel.Visibility = Visibility.Visible;
         }
 
@@ -299,10 +323,7 @@ namespace LiveCaptionsTranslator
 
         private void ClickThrough_Click(object sender, RoutedEventArgs e)
         {
-            var hwnd = new WindowInteropHelper(this).Handle;
-            var extendedStyle = WindowsAPI.GetWindowLong(hwnd, WindowsAPI.GWL_EXSTYLE);
-            WindowsAPI.SetWindowLong(hwnd, WindowsAPI.GWL_EXSTYLE, extendedStyle | WindowsAPI.WS_EX_TRANSPARENT);
-            ControlPanel.Visibility = Visibility.Collapsed;
+            FloatLock.Locked = true;
         }
 
         public void ResizeForOnlyMode()
