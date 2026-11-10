@@ -7,12 +7,12 @@
         MinWidth="750" MinHeight="420"
         WindowStartupLocation="CenterScreen">
     <Window.Styles>
-        <!-- Capsule buttons of the top bar: same height, text centered both ways -->
+        <!-- Top-bar buttons: radius matches 结束本节, same height, text centered both ways -->
         <Style Selector="Button.pill, ToggleButton.pill">
             <Setter Property="Height" Value="32" />
             <Setter Property="MinWidth" Value="76" />
             <Setter Property="Padding" Value="16,0" />
-            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="CornerRadius" Value="8" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
