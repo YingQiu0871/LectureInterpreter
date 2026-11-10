@@ -150,6 +150,12 @@
                                         IsCheckable="True"
                                         Click="BilingualMenuItem_Click"
                                         Header="双语浮窗" />
+                                    <Separator />
+                                    <MenuItem
+                                        x:Name="LockMenuItem"
+                                        IsCheckable="True"
+                                        Click="LockMenuItem_Click"
+                                        Header="锁定浮窗（鼠标穿透）" />
                                 </ContextMenu>
                             </ui:Button.ContextMenu>
                         </ui:Button>

@@ -47,18 +47,28 @@ namespace LiveCaptionsTranslator
             SourceInitialized += (s, e) => LimitHeight();
 
             RestorePlace();
+            if (Look.Height > 0)
+            {
+                // The user has chosen a height: stop following the content (it scrolls to the newest line).
+                Height = Math.Clamp(Look.Height, MinHeight, SystemParameters.WorkArea.Height);
+                SizeToContent = SizeToContent.Manual;
+            }
             LimitHeight();
             LocationChanged += (s, e) =>
             {
                 WindowHandler.SaveState(this, Translator.Setting);
                 LimitHeight();
             };
-            // The height follows the text, so only a change of the width is worth saving.
+            // Unless the user has set a height, it follows the text, so only the width is worth saving.
             SizeChanged += (s, e) =>
             {
                 if (e.WidthChanged)
                     WindowHandler.SaveState(this, Translator.Setting);
             };
+
+            FloatLock.Changed += ApplyLock;
+            Closed += (s, e) => FloatLock.Changed -= ApplyLock;
+            SourceInitialized += (s, e) => ApplyLock();
 
             ShowPinState();
             ShowSentences();
@@ -187,6 +197,8 @@ namespace LiveCaptionsTranslator
 
         private void Window_MouseEnter(object sender, MouseEventArgs e)
         {
+            if (FloatLock.Locked)
+                return;
             ControlPanel.Visibility = Visibility.Visible;
         }
 
@@ -195,10 +207,21 @@ namespace LiveCaptionsTranslator
             ControlPanel.Visibility = Visibility.Collapsed;
         }
 
-        private void Panel_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void ApplyLock()
         {
-            if (e.LeftButton == MouseButtonState.Pressed)
-                DragMove();
+            FloatWindow.ApplyClickThrough(this, FloatLock.Locked);
+            if (FloatLock.Locked)
+                ControlPanel.Visibility = Visibility.Collapsed;
+        }
+
+        private void Window_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            FloatWindow.DragFrom(this, e);
+        }
+
+        private void LockButton_Click(object sender, RoutedEventArgs e)
+        {
+            FloatLock.Locked = true;
         }
 
         private void PinButton_Click(object sender, RoutedEventArgs e)
@@ -247,6 +270,8 @@ namespace LiveCaptionsTranslator
 
         private void LeftThumb_OnDragDelta(object sender, DragDeltaEventArgs e)
         {
+            if (FloatLock.Locked)
+                return;
             double newWidth = Width - e.HorizontalChange;
             if (newWidth >= MinWidth)
             {
@@ -257,9 +282,77 @@ namespace LiveCaptionsTranslator
 
         private void RightThumb_OnDragDelta(object sender, DragDeltaEventArgs e)
         {
+            if (FloatLock.Locked)
+                return;
             double newWidth = Width + e.HorizontalChange;
             if (newWidth >= MinWidth)
                 Width = newWidth;
+        }
+
+        // Changing the height fixes it: the window no longer follows the content.
+        private void FixHeight()
+        {
+            if (SizeToContent == SizeToContent.Manual)
+                return;
+            Height = ActualHeight;
+            SizeToContent = SizeToContent.Manual;
+        }
+
+        // Save the chosen height once, when the drag ends.
+        private void HeightThumb_DragCompleted(object sender, DragCompletedEventArgs e)
+        {
+            if (!FloatLock.Locked && SizeToContent == SizeToContent.Manual)
+                Look.Height = Height;
+        }
+
+        private void TopThumb_OnDragDelta(object sender, DragDeltaEventArgs e)
+        {
+            if (FloatLock.Locked)
+                return;
+            FixHeight();
+            double newHeight = Height - e.VerticalChange;
+            if (newHeight >= MinHeight && Top + e.VerticalChange >= SystemParameters.VirtualScreenTop)
+            {
+                Top += e.VerticalChange;
+                LimitHeight();
+                Height = newHeight;
+            }
+        }
+
+        private void BottomThumb_OnDragDelta(object sender, DragDeltaEventArgs e)
+        {
+            if (FloatLock.Locked)
+                return;
+            FixHeight();
+            double newHeight = Math.Min(Height + e.VerticalChange, MaxHeight);
+            if (newHeight >= MinHeight)
+            {
+                Height = newHeight;
+            }
+        }
+
+        private void TopLeftThumb_OnDragDelta(object sender, DragDeltaEventArgs e)
+        {
+            TopThumb_OnDragDelta(sender, e);
+            LeftThumb_OnDragDelta(sender, e);
+        }
+
+        private void TopRightThumb_OnDragDelta(object sender, DragDeltaEventArgs e)
+        {
+            TopThumb_OnDragDelta(sender, e);
+            RightThumb_OnDragDelta(sender, e);
+        }
+
+        private void BottomLeftThumb_OnDragDelta(object sender, DragDeltaEventArgs e)
+        {
+            BottomThumb_OnDragDelta(sender, e);
+            LeftThumb_OnDragDelta(sender, e);
+        }
+
+        private void BottomRightThumb_OnDragDelta(object sender, DragDeltaEventArgs e)
+        {
+            BottomThumb_OnDragDelta(sender, e);
+            RightThumb_OnDragDelta(sender, e);
         }
     }
 }

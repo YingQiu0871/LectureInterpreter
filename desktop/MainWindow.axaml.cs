@@ -40,6 +40,7 @@ namespace LiveCaptionsTranslator
             // The "浮窗" button lights up while one of the two floating windows is on.
             OverlayModeButton.IsCheckedChanged += (s, e) => ShowFloatState();
             BilingualModeButton.IsCheckedChanged += (s, e) => ShowFloatState();
+            FloatLock.Changed += OnFloatLockChanged;
 
             KeyBindings.Add(new KeyBinding
             {
@@ -64,6 +65,7 @@ namespace LiveCaptionsTranslator
             Closed += (s, e) =>
             {
                 SnackbarHost.Shown -= ShowToast;
+                FloatLock.Changed -= OnFloatLockChanged;
                 OverlayWindow?.Close();
                 BilingualWindow?.Close();
             };
@@ -167,6 +169,21 @@ namespace LiveCaptionsTranslator
             };
             BilingualModeButton.IsChecked = true;
             BilingualWindow.Show();
+        }
+
+        private void LockModeButton_Click(object? sender, RoutedEventArgs e)
+        {
+            FloatLock.Locked = LockModeButton.IsChecked == true;
+        }
+
+        private void OnFloatLockChanged()
+        {
+            LockModeButton.IsChecked = FloatLock.Locked;
+            if (FloatLock.Locked)
+            {
+                SnackbarHost.Show("浮窗已锁定", "鼠标可以点到下面的页面；在「浮窗」菜单里取消锁定。",
+                    SnackbarType.Info, timeout: 3, closeButton: true);
+            }
         }
 
         private void LogOnlyButton_Click(object? sender, RoutedEventArgs e)

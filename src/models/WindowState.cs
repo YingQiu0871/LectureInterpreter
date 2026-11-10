@@ -174,6 +174,7 @@ namespace LiveCaptionsTranslator.models
         private int opacity = 153;
         private bool topmost = true;
         private int sentences = 3;
+        private double height = 0;
 
         public int FontSize
         {
@@ -211,6 +212,17 @@ namespace LiveCaptionsTranslator.models
             {
                 sentences = value;
                 OnPropertyChanged("Sentences");
+            }
+        }
+
+        // Height the user dragged the window to; 0 means the window follows its content.
+        public double Height
+        {
+            get => height;
+            set
+            {
+                height = value;
+                OnPropertyChanged("Height");
             }
         }
 

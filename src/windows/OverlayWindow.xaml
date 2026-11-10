@@ -15,6 +15,7 @@
     Background="Transparent"
     MouseEnter="Window_MouseEnter"
     MouseLeave="Window_MouseLeave"
+    PreviewMouseLeftButtonDown="Window_PreviewMouseLeftButtonDown"
     ResizeMode="CanResize"
     ShowInTaskbar="False"
     Topmost="True"
@@ -36,8 +37,7 @@
             x:Name="BorderBackground"
             Margin="5"
             Background="#80111827"
-            CornerRadius="12"
-            MouseLeftButtonDown="Border_MouseLeftButtonDown">
+            CornerRadius="12">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
@@ -247,7 +247,7 @@
                         Cursor="Hand"
                         Icon="{ui:SymbolIcon lockClosed16,
                                              Filled=False}"
-                        ToolTip="鼠标穿透" />
+                        ToolTip="锁定（鼠标穿透，在主窗口「浮窗」菜单里解锁）" />
                 </WrapPanel>
             </Grid>
         </Border>
