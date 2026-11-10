@@ -217,7 +217,8 @@ namespace LiveCaptionsTranslator
                 : new GridLength(Math.Max(Translator.Setting.MainWindow.SectionPanelWidth, 180));
             Splitter.IsVisible = !largeMode;
             RightPane.IsVisible = !largeMode;
-            LeftPane.Margin = new Thickness(16, 16, largeMode ? 16 : 0, 8);
+            Grid.SetRowSpan(LeftPane, largeMode ? 1 : 2);
+            LeftPane.Margin = new Thickness(16, 16, largeMode ? 16 : 0, largeMode ? 8 : 16);
             ApplyFontSizes();
         }
 

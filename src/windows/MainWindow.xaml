@@ -71,7 +71,7 @@
                             VerticalContentAlignment="Center"
                             Appearance="Primary"
                             Click="StartButton_Click"
-                            CornerRadius="16"
+                            CornerRadius="8"
                             Content="开始"
                             FontSize="13"
                             FontWeight="SemiBold"
@@ -85,7 +85,7 @@
                             VerticalContentAlignment="Center"
                             Appearance="Secondary"
                             Click="LogOnlyButton_Click"
-                            CornerRadius="16"
+                            CornerRadius="8"
                             Content="暂停翻译"
                             FontSize="13"
                             Icon="{ui:SymbolIcon Pause16,

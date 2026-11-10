@@ -21,7 +21,7 @@
             <ColumnDefinition x:Name="SectionColumn" Width="320" MinWidth="180" />
         </Grid.ColumnDefinitions>
 
-        <Grid Grid.Column="0" Margin="12,8,0,4">
+        <Grid x:Name="LeftPane" Grid.Column="0" Grid.RowSpan="2" Margin="12,8,0,12">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />

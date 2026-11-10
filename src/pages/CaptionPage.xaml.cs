@@ -58,6 +58,8 @@ namespace LiveCaptionsTranslator
                 SectionColumn.Width = new GridLength(0);
                 SectionPanel.Visibility = Visibility.Collapsed;
                 SectionSplitter.Visibility = Visibility.Collapsed;
+                Grid.SetRowSpan(LeftPane, 1);
+                LeftPane.Margin = new Thickness(12, 8, 0, 4);
             }
             else
             {
@@ -65,6 +67,8 @@ namespace LiveCaptionsTranslator
                 SectionColumn.Width = new GridLength(Math.Max(Translator.Setting.MainWindow.SectionPanelWidth, 180));
                 SectionPanel.Visibility = Visibility.Visible;
                 SectionSplitter.Visibility = Visibility.Visible;
+                Grid.SetRowSpan(LeftPane, 2);
+                LeftPane.Margin = new Thickness(12, 8, 0, 12);
             }
             ApplyFontSizes();
         }
