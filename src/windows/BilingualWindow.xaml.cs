@@ -77,30 +77,14 @@ namespace LiveCaptionsTranslator
 
         private void RestorePlace()
         {
-            double left, top, width = Width;
-            try
+            var bound = WindowHandler.LoadState(this, Translator.Setting);
+            // The width is kept even when the place is gone (a screen was unplugged).
+            if (!bound.IsEmpty && bound.Width > 0)
+                Width = Math.Clamp(bound.Width, MinWidth, Math.Max(MinWidth, SystemParameters.WorkArea.Width));
+            if (WindowHandler.IsOnScreen(bound))
             {
-                var bound = WindowHandler.LoadState(this, Translator.Setting);
-                left = bound.Left;
-                top = bound.Top;
-                width = bound.Width;
-            }
-            catch (Exception)
-            {
-                left = double.NaN;
-                top = double.NaN;
-            }
-
-            Width = Math.Clamp(width, MinWidth, SystemParameters.WorkArea.Width);
-            double screenLeft = SystemParameters.VirtualScreenLeft;
-            double screenTop = SystemParameters.VirtualScreenTop;
-            bool onScreen = !double.IsNaN(left) && !double.IsNaN(top) &&
-                left + Width > screenLeft + 50 && left < screenLeft + SystemParameters.VirtualScreenWidth - 50 &&
-                top >= screenTop && top < screenTop + SystemParameters.VirtualScreenHeight - 50;
-            if (onScreen)
-            {
-                Left = left;
-                Top = top;
+                Left = bound.Left;
+                Top = bound.Top;
             }
             else
             {
@@ -142,7 +126,7 @@ namespace LiveCaptionsTranslator
             if (items.Count == 0)
             {
                 HintText.FontSize = Look.FontSize * 0.8;
-                HintText.Text = feed.SessionStarted ? "正在听……" : "点击「开始」后这里显示原文和译文";
+                HintText.Text = feed.Listening ? "正在听……" : "点击「开始」后这里显示原文和译文";
                 HintText.Visibility = Visibility.Visible;
                 PairScroll.ScrollToTop();
                 return;

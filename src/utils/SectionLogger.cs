@@ -224,17 +224,19 @@ namespace LiveCaptionsTranslator.utils
             await command.ExecuteNonQueryAsync(token);
         }
 
+        // The paragraphs that cover sentences in the history rows (afterHistoryId, upToHistoryId].
         public static async Task<List<ParagraphEntry>> LoadParagraphs(long afterHistoryId,
-            CancellationToken token = default)
+            long upToHistoryId = long.MaxValue, CancellationToken token = default)
         {
             var paragraphs = new List<ParagraphEntry>();
             await using var connection = Open();
             await using var command = new SqliteCommand(@"
                 SELECT Time, FirstHistoryId, LastHistoryId, Source, Translation
                 FROM Paragraph
-                WHERE LastHistoryId > @after
+                WHERE LastHistoryId > @after AND FirstHistoryId <= @upTo
                 ORDER BY FirstHistoryId ASC", connection);
             command.Parameters.AddWithValue("@after", afterHistoryId);
+            command.Parameters.AddWithValue("@upTo", upToHistoryId);
 
             await using var reader = await command.ExecuteReaderAsync(token);
             while (await reader.ReadAsync(token))

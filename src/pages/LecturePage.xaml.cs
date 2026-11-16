@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Windows;
@@ -19,6 +18,7 @@ namespace LiveCaptionsTranslator
         private const string AUTO_OCR = "自动";
         private const string AUTO_LANGUAGE = "自动判断";
         private const string DEFAULT_OUTPUT = "Windows 默认输出设备";
+        private const string MISSING_OUTPUT = "上次选的设备（现在没有连接）";
 
         public record ApiChoice(string Key, string Name);
 
@@ -44,15 +44,15 @@ namespace LiveCaptionsTranslator
             Loaded += (s, e) =>
             {
                 (App.Current.MainWindow as MainWindow)?.AutoHeightAdjust(minHeight: MIN_HEIGHT);
-                Summarizer.CurrentPageChanged += OnCurrentPageChanged;
-                Translator.Setting.MainWindow.PropertyChanged += OnMainWindowStateChanged;
+                Subscribe(false);
+                Subscribe(true);
                 BindApiCard();
                 initializing = true;
-                // One failing loader (e.g. an audio device that can't be read) must not leave the page read-only.
+                // One failing loader (e.g. an OCR language list that can't be read) must not leave the page read-only.
                 foreach (Action load in new Action[]
                          {
-                             LoadEngine, () => LoadApiSetting(), LoadTranslateSetting, LoadDevices, LoadOcrLanguages, LoadVoices,
-                             ShowSlidesInfo, ShowLiveCaptionsState, ShowSaveFolder, LoadAppearance
+                             LoadEngine, () => LoadApiSetting(), LoadTranslateSetting, ShowDevices, LoadOcrLanguages,
+                             ShowVoices, ShowSlidesInfo, ShowLiveCaptionsState, ShowSaveFolder, LoadAppearance
                          })
                 {
                     try
@@ -65,11 +65,13 @@ namespace LiveCaptionsTranslator
                     }
                 }
                 initializing = false;
+                // The lists above are the ones of the last visit; Windows is asked again without the page waiting.
+                _ = LoadDevices();
+                _ = LoadVoices();
             };
             Unloaded += (s, e) =>
             {
-                Summarizer.CurrentPageChanged -= OnCurrentPageChanged;
-                Translator.Setting.MainWindow.PropertyChanged -= OnMainWindowStateChanged;
+                Subscribe(false);
                 if (subscribedConfig != null)
                 {
                     subscribedConfig.PropertyChanged -= OnApiConfigChanged;
@@ -77,6 +79,41 @@ namespace LiveCaptionsTranslator
                 }
                 initializing = true;
             };
+        }
+
+        private void Subscribe(bool on)
+        {
+            if (on)
+            {
+                Summarizer.CurrentPageChanged += OnCurrentPageChanged;
+                SlideDeck.LoadingChanged += OnSlidesLoadingChanged;
+                Translator.Setting.MainWindow.PropertyChanged += OnMainWindowStateChanged;
+                Translator.Setting.PropertyChanged += OnSettingChanged;
+            }
+            else
+            {
+                Summarizer.CurrentPageChanged -= OnCurrentPageChanged;
+                SlideDeck.LoadingChanged -= OnSlidesLoadingChanged;
+                Translator.Setting.MainWindow.PropertyChanged -= OnMainWindowStateChanged;
+                Translator.Setting.PropertyChanged -= OnSettingChanged;
+            }
+        }
+
+        // The API settings window switched to another configuration (no property name), or added or removed
+        // one: card ① is about a different configuration now. It is only shown: a new, empty one gets its
+        // defaults when this page is opened the next time, not while it is being filled in over there.
+        private void OnSettingChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName is not (null or nameof(Setting.Configs)))
+                return;
+            Dispatcher.InvokeAsync(() =>
+            {
+                if (!IsLoaded || ReferenceEquals(ApiConfig, subscribedConfig))
+                    return;
+                BindApiCard();
+                LoadApiSetting(applyDefaults: false);
+                TestApiResult.Text = string.Empty;
+            });
         }
 
         private void LoadAppearance()
@@ -167,13 +204,12 @@ namespace LiveCaptionsTranslator
                 return;
 
             setting.Lecture.SummaryConfigName = name;
-            setting.Save();
             BindApiCard();
             LoadApiSetting();
             TestApiResult.Text = string.Empty;
         }
 
-        private void LoadApiSetting(bool refreshProviders = true)
+        private void LoadApiSetting(bool refreshProviders = true, bool applyDefaults = true)
         {
             var config = ApiConfig;
             if (config == null)
@@ -186,7 +222,7 @@ namespace LiveCaptionsTranslator
                     ? ApiProviders.All.Length + savedIndex : index);
             ModelBox.ItemsSource = ApiProviders.All[index].Models;
             // Fill in DeepSeek defaults on first use.
-            if (string.IsNullOrEmpty(config.ApiUrl))
+            if (applyDefaults && string.IsNullOrEmpty(config.ApiUrl))
                 ApiProviders.Apply(ApiProviders.All[index], config);
 
             FillKeyBox();
@@ -231,7 +267,7 @@ namespace LiveCaptionsTranslator
                     return;
                 Translator.Setting.ConfigIndices[Summarizer.SUMMARY_API] = slotIndex;
                 Translator.Setting.Lecture.SummaryConfigName = string.Empty;
-                Translator.Setting.Save();
+                Setting.SaveSoon();
                 BindApiCard();
                 LoadApiSetting(false);
                 TestApiResult.Text = string.Empty;
@@ -309,16 +345,17 @@ namespace LiveCaptionsTranslator
             int index = (sender as System.Windows.Controls.Button)?.Tag is int slotIndex ? slotIndex : -1;
             var slots = Translator.Setting.Configs[Summarizer.SUMMARY_API];
             if (index < 0 || index >= slots.Count || slots.Count <= 1) return;
-            if (MessageBox.Show($"删除配置“{slots[index].ConfigName}”？", "删除配置",
-                    MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
             string name = slots[index].ConfigName;
+            string label = string.IsNullOrWhiteSpace(name) ? $"配置 {index + 1}" : name.Trim();
+            if (MessageBox.Show($"删除配置“{label}”？", "删除配置",
+                    MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
             slots.RemoveAt(index);
             int current = Translator.Setting.ConfigIndices[Summarizer.SUMMARY_API];
             Translator.Setting.ConfigIndices[Summarizer.SUMMARY_API] = current == index
                 ? Math.Min(index, slots.Count - 1) : current > index ? current - 1 : current;
             if (Translator.Setting.Lecture.SummaryConfigName == name)
                 Translator.Setting.Lecture.SummaryConfigName = string.Empty;
-            Translator.Setting.Save();
+            Setting.SaveSoon();
             BindApiCard();
             LoadApiSetting();
             TestApiResult.Text = string.Empty;
@@ -340,14 +377,13 @@ namespace LiveCaptionsTranslator
             int current = Translator.Setting.ConfigIndices[Summarizer.SUMMARY_API];
             if (current == index) Translator.Setting.ConfigIndices[Summarizer.SUMMARY_API] = target;
             else if (current == target) Translator.Setting.ConfigIndices[Summarizer.SUMMARY_API] = index;
-            Translator.Setting.Save();
+            Setting.SaveSoon();
             RefreshProviders(selected);
             ProviderBox.IsDropDownOpen = true;
         }
 
         private void OpenAsrQuota_click(object sender, RoutedEventArgs e) =>
-            Process.Start(new ProcessStartInfo("https://bailian.console.aliyun.com/cn-beijing/costing-balance/free-quota?model=asr")
-            { UseShellExecute = true });
+            ShellUtil.OpenLink("https://bailian.console.aliyun.com/cn-beijing/costing-balance/free-quota?model=asr");
 
         private void SaveApiConfig_click(object sender, RoutedEventArgs e)
         {
@@ -380,7 +416,7 @@ namespace LiveCaptionsTranslator
             Translator.Setting.Configs[Summarizer.SUMMARY_API].Add(saved);
             Translator.Setting.ConfigIndices[Summarizer.SUMMARY_API] = Translator.Setting.Configs[Summarizer.SUMMARY_API].Count - 1;
             Translator.Setting.Lecture.SummaryConfigName = string.Empty;
-            Translator.Setting.Save();
+            Setting.SaveSoon();
             BindApiCard();
             RefreshProviders(ApiProviders.All.Length + Translator.Setting.OpenAIConfigs.ToList().IndexOf(saved));
             FillKeyBox();
@@ -388,8 +424,8 @@ namespace LiveCaptionsTranslator
             TestApiResult.Text = $"已保存配置：{name}";
         }
 
-        // Saved on every keystroke / paste, independent of the page state, so the key can't be lost
-        // by switching pages.
+        // Taken over on every keystroke / paste, independent of the page state, so the key can't be lost
+        // by switching pages. Changing the key asks for the settings to be saved by itself.
         private void ApiKeyBox_PasswordChanged(object sender, RoutedEventArgs e)
         {
             if (fillingKeyBox || ApiConfig == null)
@@ -407,7 +443,6 @@ namespace LiveCaptionsTranslator
                 ApiConfig.ApiKey = key;
                 if (firstKey)
                     SwitchTranslateApiToSummary();
-                Translator.Setting?.Save();
             }
             ShowApiKeyStatus();
         }
@@ -494,7 +529,7 @@ namespace LiveCaptionsTranslator
             ShowAsrKeyStatus();
         }
 
-        private void EngineBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private async void EngineBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (initializing || EngineBox.SelectedIndex < 0)
                 return;
@@ -502,17 +537,25 @@ namespace LiveCaptionsTranslator
             Translator.Setting.Lecture.Engine = engine;
             AliyunPanel.Visibility = engine == RecognitionEngine.Aliyun ? Visibility.Visible : Visibility.Collapsed;
             ShowLanguageHint();
+            if (ClassSession.IsRunning || ClassSession.IsStarting)
+            {
+                // The class keeps the engine it started with, and LiveCaptions stays as that engine needs it.
+                SnackbarHost.Show("识别方式已更改。", "点“停止”再点“开始”后生效。", SnackbarType.Info, timeout: 3);
+                return;
+            }
             // LiveCaptions is only needed by the system engine; with the cloud engine it is closed to save power
             // (it is started again when a class with the system engine starts).
-            if (engine == RecognitionEngine.Aliyun && !ClassSession.IsRunning)
+            if (engine == RecognitionEngine.Aliyun)
             {
-                Translator.CloseLiveCaptions();
+                // Not on the UI thread: closing it waits for its process to end.
+                await Task.Run(Translator.CloseLiveCaptions);
                 ShowLiveCaptionsState();
             }
             else if (Translator.Window != null && LiveCaptionsHandler.IsHidden)
             {
                 try
                 {
+                    // Out of the way so far (minimized); as the system engine's source it has to be on screen.
                     LiveCaptionsHandler.HideLiveCaptions(Translator.Window);
                 }
                 catch (Exception)
@@ -520,8 +563,6 @@ namespace LiveCaptionsTranslator
                     // Best effort: the LiveCaptions window may already be gone.
                 }
             }
-            if (ClassSession.IsRunning)
-                SnackbarHost.Show("识别方式已更改。", "点“停止”再点“开始”后生效。", SnackbarType.Info, timeout: 3);
         }
 
         private void AsrLanguageBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -664,17 +705,26 @@ namespace LiveCaptionsTranslator
 
         private async void LiveCaptionsButton_click(object sender, RoutedEventArgs e)
         {
+            // What the button says it does.
+            bool show = LiveCaptionsHandler.IsHidden || Translator.Window == null;
+            LiveCaptionsButton.IsEnabled = false;
             try
             {
-                var window = Translator.Window ?? await Task.Run(Translator.EnsureLiveCaptions);
-                if (LiveCaptionsHandler.IsHidden)
+                // Started first if it is not running: it may have been closed by hand, or not be needed so far
+                // (cloud engine). Starting it can take seconds.
+                var window = await Task.Run(Translator.EnsureLiveCaptions);
+                if (show)
                     LiveCaptionsHandler.RestoreLiveCaptions(window);
                 else
                     LiveCaptionsHandler.HideLiveCaptions(window);
             }
             catch (Exception ex)
             {
-                SnackbarHost.Show("[ERROR] 操作失败。", ex.Message, SnackbarType.Error, timeout: 2);
+                SnackbarHost.Show("[ERROR] 操作失败。", ex.Message, SnackbarType.Error, timeout: 3);
+            }
+            finally
+            {
+                LiveCaptionsButton.IsEnabled = true;
             }
             ShowLiveCaptionsState();
         }
@@ -723,33 +773,77 @@ namespace LiveCaptionsTranslator
             }
         }
 
-        private void LoadDevices()
+        // The sound devices and voices as Windows listed them last, kept for the next visit of the page (which is
+        // built anew every time): asking for them takes a moment, more so with Bluetooth devices, and the page
+        // should not hang for it.
+        private static List<AudioDevice> microphones = new();
+        private static List<AudioDevice> outputs = new();
+        private static bool devicesKnown = false;
+        private static List<string> installedVoices = new();
+        private int deviceRound = 0;
+
+        private async Task LoadDevices()
+        {
+            int round = ++deviceRound;
+            List<AudioDevice> capture, render;
+            try
+            {
+                (capture, render) = await Task.Run(() =>
+                    (AudioDevices.List(DataFlow.Capture), AudioDevices.List(DataFlow.Render)));
+            }
+            catch (Exception)
+            {
+                return;
+            }
+            // Asked again meanwhile (the refresh button), or the page was left; or nothing is new.
+            if (round != deviceRound || !IsLoaded ||
+                (devicesKnown && capture.SequenceEqual(microphones) && render.SequenceEqual(outputs)))
+                return;
+            microphones = capture;
+            outputs = render;
+            devicesKnown = true;
+            ShowDevices();
+        }
+
+        private void ShowDevices()
         {
             bool wasInitializing = initializing;
             initializing = true;
+            try
+            {
+                SourceBox.SelectedIndex = (int)Translator.Setting.Lecture.InputSource;
+                MicBox.IsEnabled = Translator.Setting.Lecture.InputSource == InputSource.Microphone;
+                // The very first visit: the lists stay empty for the moment it takes to read them, instead of
+                // calling the chosen earphones "not connected".
+                if (!devicesKnown)
+                    return;
 
-            SourceBox.SelectedIndex = (int)Translator.Setting.Lecture.InputSource;
+                MicBox.ItemsSource = microphones;
+                MicBox.SelectedItem = microphones.FirstOrDefault(device => device.IsDefault);
 
-            var microphones = AudioDevices.List(DataFlow.Capture);
-            MicBox.ItemsSource = microphones;
-            MicBox.SelectedItem = microphones.FirstOrDefault(device => device.IsDefault);
-            MicBox.IsEnabled = Translator.Setting.Lecture.InputSource == InputSource.Microphone;
-
-            var outputs = new List<object> { DEFAULT_OUTPUT };
-            var renderDevices = AudioDevices.List(DataFlow.Render);
-            outputs.AddRange(renderDevices);
-            SpeechDeviceBox.ItemsSource = outputs;
-            string speechDeviceId = Translator.Setting.Lecture.SpeechDeviceId;
-            SpeechDeviceBox.SelectedItem = renderDevices.FirstOrDefault(device => device.Id == speechDeviceId)
-                                           ?? (object)DEFAULT_OUTPUT;
-            ShowSpeechDeviceHint();
-
-            initializing = wasInitializing;
+                var choices = new List<object> { DEFAULT_OUTPUT };
+                choices.AddRange(outputs);
+                string speechDeviceId = Translator.Setting.Lecture.SpeechDeviceId;
+                var chosen = outputs.FirstOrDefault(device => device.Id == speechDeviceId);
+                if (chosen == null && !string.IsNullOrEmpty(speechDeviceId))
+                {
+                    // Earphones that are not connected right now. They stay the choice, and are shown as that.
+                    chosen = new AudioDevice(speechDeviceId, MISSING_OUTPUT, false);
+                    choices.Add(chosen);
+                }
+                SpeechDeviceBox.ItemsSource = choices;
+                SpeechDeviceBox.SelectedItem = chosen ?? (object)DEFAULT_OUTPUT;
+                ShowSpeechDeviceHint();
+            }
+            finally
+            {
+                initializing = wasInitializing;
+            }
         }
 
         private void RefreshDevices_click(object sender, RoutedEventArgs e)
         {
-            LoadDevices();
+            _ = LoadDevices();
         }
 
         private async void SourceBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -761,12 +855,16 @@ namespace LiveCaptionsTranslator
             MicBox.IsEnabled = source == InputSource.Microphone;
             ShowSpeechDeviceHint();
 
+            const string SET_AT_START = "✓ 已保存，点“开始”时会自动设置好系统实时辅助字幕。";
             var window = Translator.Window;
             if (window == null)
             {
-                SourceStatus.Text = Translator.Setting.Lecture.Engine == RecognitionEngine.Aliyun
-                    ? "✓ 已保存。阿里云识别会直接使用这里选的声音来源。"
-                    : "✓ 已保存，点“开始”时会自动设置好系统实时辅助字幕。";
+                bool cloud = (ClassSession.IsRunning ? ClassSession.Engine : Translator.Setting.Lecture.Engine) ==
+                             RecognitionEngine.Aliyun;
+                // The cloud engine opens its source when the class starts.
+                SourceStatus.Text = !cloud ? SET_AT_START
+                    : ClassSession.IsRunning ? "✓ 已保存。正在上的这节课还在听原来的来源，点“停止”再点“开始”后生效。"
+                    : "✓ 已保存。阿里云识别会直接使用这里选的声音来源。";
                 return;
             }
 
@@ -798,25 +896,38 @@ namespace LiveCaptionsTranslator
                 SourceStatus.Text = useMicrophone
                     ? "没能自动设置。已打开实时字幕的设置菜单，请在\"首选项\"里勾选\"包含麦克风音频\"，然后点\"隐藏\"。"
                     : "没能自动设置。已打开实时字幕的设置菜单，请在\"首选项\"里取消\"包含麦克风音频\"，然后点\"隐藏\"。";
-                await Task.Run(() => LiveCaptionsMicrophone.ShowSettings(window));
+                try
+                {
+                    await Task.Run(() => LiveCaptionsMicrophone.ShowSettings(window));
+                }
+                catch (Exception)
+                {
+                    // LiveCaptions is not running any more (closed by hand): the next class sets it up.
+                    SourceStatus.Text = SET_AT_START;
+                }
             }
         }
 
-        private void MicBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private async void MicBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (initializing || MicBox.SelectedItem is not AudioDevice device || device.IsDefault)
                 return;
             try
             {
                 AudioDevices.SetDefault(device.Id);
-                Translator.RestartLiveCaptions();
+                // LiveCaptions takes the new default microphone when it starts: a running class starts it again
+                // at once, otherwise the next class does.
+                await Task.Run(Translator.CloseLiveCaptions);
                 SourceStatus.Text = $"✓ 已改用：{device.Name}";
             }
             catch (Exception ex)
             {
                 SourceStatus.Text = $"✗ 切换麦克风失败：{ex.Message}";
+                // Back to the microphone that still is the default.
+                ShowDevices();
             }
-            LoadDevices();
+            ShowLiveCaptionsState();
+            await LoadDevices();
         }
 
         private void SpeechDeviceBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -830,10 +941,16 @@ namespace LiveCaptionsTranslator
 
         private void ShowSpeechDeviceHint()
         {
+            if (!devicesKnown)
+                return;
             string speechDeviceId = Translator.Setting.Lecture.SpeechDeviceId;
-            bool onDefault = string.IsNullOrEmpty(speechDeviceId) ||
-                             speechDeviceId == AudioDevices.DefaultId(DataFlow.Render);
-            SpeechDeviceHint.Text = onDefault
+            var device = outputs.FirstOrDefault(output => output.Id == speechDeviceId);
+            if (!string.IsNullOrEmpty(speechDeviceId) && device == null)
+            {
+                SpeechDeviceHint.Text = "这个设备现在没有连接，播报不会出声；连上以后会从它播出。";
+                return;
+            }
+            SpeechDeviceHint.Text = device == null || device.IsDefault
                 ? "播报和电脑声音走同一个设备，实时字幕会听到播报，所以播报时会暂停接收字幕。" +
                   "线下课建议在这里直接选蓝牙耳机，并把 Windows 默认输出设为电脑扬声器。"
                 : "播报只从这个设备播出，不会被实时字幕听到。";
@@ -862,8 +979,27 @@ namespace LiveCaptionsTranslator
             Dispatcher.InvokeAsync(ShowSlidesInfo);
         }
 
+        private void OnSlidesLoadingChanged()
+        {
+            Dispatcher.InvokeAsync(ShowSlidesInfo);
+        }
+
+        // Whether this page is reading a file, and shows how far that is.
+        private bool readingSlides = false;
+
         private void ShowSlidesInfo()
         {
+            // A file is being read, maybe since before this page was opened, or from the timeline page: not a
+            // second one on top of it.
+            LoadSlidesButton.IsEnabled = !SlideDeck.IsLoading;
+            if (SlideDeck.IsLoading)
+            {
+                if (!readingSlides)
+                    SlidesInfo.Text = "读取中……";
+                // Nor is the file before it taken away meanwhile: the one being read takes its place.
+                ClearSlidesButton.Visibility = Visibility.Collapsed;
+                return;
+            }
             if (!SlideDeck.IsLoaded)
             {
                 SlidesInfo.Text = "未上传课件：按话题变化分节。";
@@ -884,6 +1020,7 @@ namespace LiveCaptionsTranslator
 
             SlidesInfo.Text = "读取中……";
             LoadSlidesButton.IsEnabled = false;
+            readingSlides = true;
             try
             {
                 await SlideDeck.Load(dialog.FileName, new Progress<string>(text => SlidesInfo.Text = text));
@@ -895,7 +1032,7 @@ namespace LiveCaptionsTranslator
             }
             finally
             {
-                LoadSlidesButton.IsEnabled = true;
+                readingSlides = false;
             }
             ShowSlidesInfo();
         }
@@ -906,14 +1043,43 @@ namespace LiveCaptionsTranslator
             ShowSlidesInfo();
         }
 
-        private void LoadVoices()
+        private async Task LoadVoices()
         {
-            var voices = new List<string> { AUTO_VOICE };
-            voices.AddRange(Speaker.GetVoices());
-            VoiceBox.ItemsSource = voices;
+            List<string> voices;
+            try
+            {
+                voices = await Task.Run(Speaker.GetVoices);
+            }
+            catch (Exception)
+            {
+                return;
+            }
+            if (!IsLoaded || voices.SequenceEqual(installedVoices))
+                return;
+            installedVoices = voices;
+            ShowVoices();
+        }
 
-            string current = Translator.Setting.Lecture.VoiceName;
-            VoiceBox.SelectedItem = voices.Contains(current) ? current : AUTO_VOICE;
+        private void ShowVoices()
+        {
+            bool wasInitializing = initializing;
+            initializing = true;
+            try
+            {
+                var voices = new List<string> { AUTO_VOICE };
+                voices.AddRange(installedVoices);
+                string current = Translator.Setting.Lecture.VoiceName;
+                // A chosen voice stays in the list while the voices are still being read, or when it was removed
+                // from Windows (the speaker then picks one by language).
+                if (!string.IsNullOrEmpty(current) && !voices.Contains(current))
+                    voices.Add(current);
+                VoiceBox.ItemsSource = voices;
+                VoiceBox.SelectedItem = string.IsNullOrEmpty(current) ? AUTO_VOICE : current;
+            }
+            finally
+            {
+                initializing = wasInitializing;
+            }
         }
 
         private void VoiceBox_SelectionChanged(object sender, SelectionChangedEventArgs e)

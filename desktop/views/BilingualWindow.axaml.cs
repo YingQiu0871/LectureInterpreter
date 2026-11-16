@@ -145,7 +145,7 @@ namespace LiveCaptionsTranslator
             if (items.Count == 0)
             {
                 HintText.FontSize = Look.FontSize * 0.8;
-                HintText.Text = feed.SessionStarted ? "正在听……" : "点击「开始」后这里显示原文和译文";
+                HintText.Text = feed.Listening ? "正在听……" : "点击「开始」后这里显示原文和译文";
                 HintText.IsVisible = true;
                 PairScroll.ScrollToHome();
                 return;

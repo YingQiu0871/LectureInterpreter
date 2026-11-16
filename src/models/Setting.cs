@@ -177,10 +177,28 @@ namespace LiveCaptionsTranslator.models
             }
         }
 
-        public TranslateAPIConfig this[string key] =>
-            configs.ContainsKey(key) && configIndices.ContainsKey(key)
-                ? configs[key][configIndices[key]]
-                : new TranslateAPIConfig();
+        // The selected slot of an API. Translations read it on background threads while the settings window adds
+        // and removes slots, so an index that is (for a moment) out of range gives the nearest slot instead of an error.
+        public TranslateAPIConfig this[string key]
+        {
+            get
+            {
+                if (!configs.TryGetValue(key, out var slots) || slots == null ||
+                    !configIndices.TryGetValue(key, out int index))
+                    return new TranslateAPIConfig();
+                int count = slots.Count;
+                if (count == 0)
+                    return new TranslateAPIConfig();
+                try
+                {
+                    return slots[Math.Clamp(index, 0, count - 1)];
+                }
+                catch (ArgumentOutOfRangeException)
+                {
+                    return new TranslateAPIConfig();
+                }
+            }
+        }
 
         // Finds one named OpenAI-compatible slot.
         // Returns null when the name is empty or no slot carries that name, so callers can fall back.
@@ -231,7 +249,7 @@ namespace LiveCaptionsTranslator.models
                 },
                 {
                     "OverlayWindow", string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                        "{0}, {1}, {2}, {3}", (screenWidth - 650) / 2, screenHeight * 5 / 6 - 135, 650, 135)
+                        "{0}, {1}, {2}, {3}", (screenWidth - 480) / 2, screenHeight * 5 / 6 - 100, 480, 100)
                 },
                 {
                     "BilingualWindow", string.Format(System.Globalization.CultureInfo.InvariantCulture,
@@ -274,7 +292,7 @@ namespace LiveCaptionsTranslator.models
             string jsonPath = AppPaths.SettingFile;
             try
             {
-                return Load(jsonPath);
+                return LoadPatiently(jsonPath);
             }
             catch (Exception ex) when (ex is JsonException or NotSupportedException or InvalidCastException
                                            or InvalidOperationException)
@@ -289,7 +307,24 @@ namespace LiveCaptionsTranslator.models
                 {
                     // Best effort: without a backup the unreadable file is simply replaced.
                 }
-                return Load(jsonPath);
+                return Complete(new Setting());
+            }
+        }
+
+        // Another program (a virus scanner, a sync tool) may hold the file for a moment. Wait for it instead of
+        // starting with default settings, which would then be saved over the user's own.
+        private static Setting LoadPatiently(string jsonPath)
+        {
+            for (int attempt = 0; ; attempt++)
+            {
+                try
+                {
+                    return Load(jsonPath);
+                }
+                catch (IOException) when (attempt < 5)
+                {
+                    Thread.Sleep(200);
+                }
             }
         }
 
@@ -308,32 +343,67 @@ namespace LiveCaptionsTranslator.models
             else
                 setting = new Setting();
 
+            return Complete(setting);
+        }
+
+        // Fills in what a settings file from an older version (or a hand-edited one) does not have.
+        private static Setting Complete(Setting setting)
+        {
+            var defaults = new Setting();
+            setting.configs ??= new Dictionary<string, List<TranslateAPIConfig>>();
+            setting.configIndices ??= new Dictionary<string, int>();
+            setting.windowBounds ??= new Dictionary<string, string>();
+            setting.mainWindowState ??= new MainWindowState();
+            setting.overlayWindowState ??= new OverlayWindowState();
+            setting.bilingualWindowState ??= new BilingualWindowState();
+            setting.lectureState ??= new LectureState();
+
             // Ensure all required API configs are present
             foreach (string key in TranslateAPI.TRANSLATE_FUNCTIONS.Keys)
             {
-                if (setting.Configs.ContainsKey(key))
+                if (setting.configs.TryGetValue(key, out var slots) && slots != null && slots.Count > 0)
                     continue;
                 var configType = Type.GetType($"LiveCaptionsTranslator.models.{key}Config");
                 if (configType != null && typeof(TranslateAPIConfig).IsAssignableFrom(configType))
-                    setting.Configs[key] = [(TranslateAPIConfig)Activator.CreateInstance(configType)];
+                    setting.configs[key] = [(TranslateAPIConfig)Activator.CreateInstance(configType)];
                 else
-                    setting.Configs[key] = [new TranslateAPIConfig()];
+                    setting.configs[key] = [new TranslateAPIConfig()];
             }
 
-            // Settings files from before the bilingual window have no bounds for it.
-            if (!setting.WindowBounds.ContainsKey("BilingualWindow"))
-                setting.WindowBounds["BilingualWindow"] = new Setting().WindowBounds["BilingualWindow"];
+            // Settings files from before a window existed have no bounds for it.
+            foreach (var bounds in defaults.windowBounds)
+            {
+                if (!setting.windowBounds.ContainsKey(bounds.Key))
+                    setting.windowBounds[bounds.Key] = bounds.Value;
+            }
 
             // Ensure ConfigIndices has all keys (for upgrades from older setting.json)
             foreach (string key in TranslateAPI.TRANSLATE_FUNCTIONS.Keys)
             {
-                if (!setting.ConfigIndices.ContainsKey(key))
-                    setting.ConfigIndices[key] = 0;
+                if (!setting.configIndices.ContainsKey(key))
+                    setting.configIndices[key] = 0;
             }
+
+            // An index past the end of its list (a list shortened by hand) would be an error wherever a slot is
+            // removed or shown by its number.
+            foreach (var (key, slots) in setting.configs)
+            {
+                if (slots != null && setting.configIndices.TryGetValue(key, out int index) &&
+                    (index < 0 || index >= slots.Count))
+                    setting.configIndices[key] = 0;
+            }
+
+            // The translation API named in the file may be gone (renamed in an update, or a typo).
+            if (string.IsNullOrEmpty(setting.apiName) || !TranslateAPI.TRANSLATE_FUNCTIONS.ContainsKey(setting.apiName))
+                setting.apiName = defaults.apiName;
+            if (string.IsNullOrEmpty(setting.targetLanguage))
+                setting.targetLanguage = defaults.targetLanguage;
+            if (string.IsNullOrEmpty(setting.prompt))
+                setting.prompt = defaults.prompt;
 
 #if !WINDOWS
             // Windows Live Captions does not exist here: a settings file copied from Windows must not select it.
-            setting.Lecture.Engine = RecognitionEngine.Aliyun;
+            setting.lectureState.Engine = RecognitionEngine.Aliyun;
 #endif
 
             return setting;
@@ -341,6 +411,9 @@ namespace LiveCaptionsTranslator.models
 
         public void Save()
         {
+            // Everything changed so far is in this write: a save still waiting for its turn is not needed any more.
+            if (ReferenceEquals(this, Translator.Setting))
+                Interlocked.Exchange(ref savePending, 0);
             Save(AppPaths.SettingFile);
         }
 
@@ -350,25 +423,73 @@ namespace LiveCaptionsTranslator.models
             Converters = { new ConfigDictConverter() }
         };
 
+        private const int SAVE_DELAY_MS = 400;
+        private const int MAX_SAVE_RETRIES = 5;
+
         private static readonly object saveLock = new();
         private static string? lastSaveError = null;
+        private static int savePending = 0;
+        private static int saveRetries = 0;
+        private static readonly System.Threading.Timer saveTimer =
+            new(_ => Flush(), null, Timeout.Infinite, Timeout.Infinite);
+
+        static Setting()
+        {
+            // Changes still waiting for their save are written when the program exits.
+            AppDomain.CurrentDomain.ProcessExit += (_, _) => Flush();
+        }
+
+        // Saves a moment later on a background thread, once for all the changes made until then. Every changed
+        // property asks for a save, and dragging a slider or a window changes one dozens of times a second.
+        public static void SaveSoon()
+        {
+            if (Translator.Setting == null)
+                return;
+            if (Interlocked.Exchange(ref savePending, 1) == 0)
+                saveTimer.Change(SAVE_DELAY_MS, Timeout.Infinite);
+        }
+
+        // Writes the changes that are still waiting for their save, if any (e.g. before the program exits).
+        public static void Flush()
+        {
+            try
+            {
+                if (Interlocked.Exchange(ref savePending, 0) == 1)
+                    Translator.Setting?.Save(AppPaths.SettingFile);
+            }
+            catch (Exception ex)
+            {
+                // Runs on a timer thread, where an exception would end the program.
+                ErrorLog.Write("Setting.Flush", ex);
+            }
+        }
 
         public void Save(string jsonPath)
         {
-            // Settings are saved from several threads (UI, speech, summaries), so serialize the writes,
-            // and never let a failed write break whatever changed the setting.
+            // Settings are saved from several threads (UI, speech, summaries, the timer of SaveSoon), so serialize
+            // the writes, and never let a failed write break whatever changed the setting.
             lock (saveLock)
             {
                 try
                 {
-                    using (FileStream fileStream = File.Open(jsonPath, FileMode.Create, FileAccess.Write, FileShare.Read))
-                    {
-                        JsonSerializer.Serialize(fileStream, this, JsonOptions);
-                    }
+                    byte[] json = JsonSerializer.SerializeToUtf8Bytes(this, JsonOptions);
+                    ReplaceFile(jsonPath, json);
                     lastSaveError = null;
+                    saveRetries = 0;
                 }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
+                                               or InvalidOperationException or ArgumentException)
                 {
+                    // The file is held by another program for a moment, or a list changed on another thread while
+                    // it was written out (which shows as a changed collection, or as an index that is no longer
+                    // there). The old file is still complete, so try again shortly before complaining.
+                    if (ReferenceEquals(this, Translator.Setting) && saveRetries < MAX_SAVE_RETRIES)
+                    {
+                        saveRetries++;
+                        SaveSoon();
+                        return;
+                    }
+                    ErrorLog.Write("Setting.Save", ex);
                     if (lastSaveError == ex.Message)
                         return;
                     lastSaveError = ex.Message;
@@ -379,10 +500,44 @@ namespace LiveCaptionsTranslator.models
             }
         }
 
+        // Writes a complete new file and puts it in the place of the old one. A crash or a power cut in the
+        // middle of a write then leaves the old settings, not half a file (which would cost every setting, API keys
+        // included).
+        private static void ReplaceFile(string path, byte[] content)
+        {
+            string temp = path + ".tmp";
+            using (var stream = new FileStream(temp, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                stream.Write(content, 0, content.Length);
+                stream.Flush(true);
+            }
+            try
+            {
+                File.Move(temp, path, true);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Something keeps the settings file open (a sync or backup tool), so it cannot be replaced; writing
+                // into it may still work.
+                using (var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.Read))
+                {
+                    stream.Write(content, 0, content.Length);
+                }
+                try
+                {
+                    File.Delete(temp);
+                }
+                catch (Exception)
+                {
+                    // Best effort: the next save overwrites it.
+                }
+            }
+        }
+
         public void OnPropertyChanged([CallerMemberName] string? propName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
-            Translator.Setting?.Save();
+            SaveSoon();
         }
     }
 }

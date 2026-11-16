@@ -73,7 +73,9 @@ namespace LiveCaptionsTranslator.utils
         // A refined paragraph, read as one piece.
         public static void EnqueueParagraph(string translatedText)
         {
-            if (Muted || Lecture == null || Lecture.SpeakMode != SpeakMode.SummaryAndTranslation)
+            // The last paragraph is refined a moment after "停止": the earphones stay quiet then.
+            if (Muted || Lecture == null || Lecture.SpeakMode != SpeakMode.SummaryAndTranslation ||
+                !ClassSession.IsRunning)
                 return;
             string text = CleanForSpeech(translatedText);
             if (string.IsNullOrWhiteSpace(text))
@@ -87,7 +89,8 @@ namespace LiveCaptionsTranslator.utils
 
         public static void EnqueueTranslation(string sourceText, string translatedText)
         {
-            if (Muted || Lecture == null)
+            // Translations still on their way when the class stops are logged, but no longer read aloud.
+            if (Muted || Lecture == null || !ClassSession.IsRunning)
                 return;
             // Interpretation reads every sentence at once. Otherwise, with paragraph refinement on, the refined
             // paragraph is read instead of each raw sentence (a few seconds later, but more accurate).
@@ -155,6 +158,23 @@ namespace LiveCaptionsTranslator.utils
         {
             lock (queueLock)
                 queue.Clear();
+        }
+
+        // Only called by the worker. A problem that stays (earphones that are not connected) fails for every
+        // sentence: it is shown once in a while, not once a sentence.
+        private static readonly TimeSpan FAILURE_NOTE_INTERVAL = TimeSpan.FromMinutes(1);
+        private static string lastFailure = string.Empty;
+        private static DateTime lastFailureTime = DateTime.MinValue;
+
+        private static void ReportFailure(string title, string message, SnackbarType type)
+        {
+            var now = DateTime.Now;
+            string failure = title + message;
+            if (failure == lastFailure && now - lastFailureTime < FAILURE_NOTE_INTERVAL)
+                return;
+            lastFailure = failure;
+            lastFailureTime = now;
+            SnackbarHost.Show(title, message, type, timeout: 4, closeButton: true);
         }
 
         // The culture of what is spoken: the lecture language in 原语言模式, otherwise the target language.

@@ -40,8 +40,8 @@ namespace LiveCaptionsTranslator.utils
                 _ = Reload();
             }
         }
-        // Finished sentences after the class started; no hint is needed once there is anything to show.
-        public bool SessionStarted => ClassSession.FirstHistoryId >= 0;
+        // Whether a class is running: the hint shown while there is nothing to show yet goes by it.
+        public bool Listening => ClassSession.IsRunning;
         public bool OriginalOnly => Translator.Setting.Lecture.SkipTranslation;
         public IReadOnlyList<Pair> Finished => finished;
 

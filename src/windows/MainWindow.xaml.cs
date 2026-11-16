@@ -45,6 +45,7 @@ namespace LiveCaptionsTranslator
                 HwndSource.FromHwnd(new WindowInteropHelper(this).Handle)?.AddHook(ThemeHook);
             };
             FloatLock.Changed += OnFloatLockChanged;
+            Closing += MainWindow_Closing;
             Closed += (s, e) =>
             {
                 UnregisterHotKeys();
@@ -64,18 +65,17 @@ namespace LiveCaptionsTranslator
                 CheckForFirstUse();
             };
 
-            double screenWidth = SystemParameters.PrimaryScreenWidth;
-            double screenHeight = SystemParameters.PrimaryScreenHeight;
-
+            // Where it was the last time, on whichever screen; in the middle of the main screen when that place
+            // is gone (a screen was unplugged) or nothing usable was saved.
             var windowState = WindowHandler.LoadState(this, Translator.Setting);
-            if (windowState.Left <= 0 || windowState.Left >= screenWidth ||
-                windowState.Top <= 0 || windowState.Top >= screenHeight)
+            if (WindowHandler.IsOnScreen(windowState))
+                WindowHandler.RestoreState(this, windowState);
+            else
             {
                 WindowHandler.RestoreState(this, new Rect(
-                    (screenWidth - DEFAULT_WIDTH) / 2, (screenHeight - DEFAULT_HEIGHT) / 2, DEFAULT_WIDTH, DEFAULT_HEIGHT));
+                    (SystemParameters.PrimaryScreenWidth - DEFAULT_WIDTH) / 2,
+                    (SystemParameters.PrimaryScreenHeight - DEFAULT_HEIGHT) / 2, DEFAULT_WIDTH, DEFAULT_HEIGHT));
             }
-            else
-                WindowHandler.RestoreState(this, windowState);
             // A saved window shorter than the minimum height (e.g. a thin caption strip) gets the default height.
             if (Height < MinHeight)
                 Height = DEFAULT_HEIGHT;
@@ -156,61 +156,52 @@ namespace LiveCaptionsTranslator
 
         private void OverlayModeButton_Click(object sender, RoutedEventArgs e)
         {
-            var button = sender as Button;
-            var symbolIcon = button?.Icon as SymbolIcon;
-
-            if (OverlayWindow == null)
+            if (OverlayWindow != null)
             {
-                symbolIcon.Symbol = SymbolRegular.ClosedCaption24;
-                symbolIcon.Filled = true;
+                OverlayWindow.Close();
+                return;
+            }
 
-                OverlayWindow = new OverlayWindow();
-                OverlayWindow.SizeChanged +=
-                    (s, e) => WindowHandler.SaveState(OverlayWindow, Translator.Setting);
-                OverlayWindow.LocationChanged +=
-                    (s, e) => WindowHandler.SaveState(OverlayWindow, Translator.Setting);
+            var overlay = new OverlayWindow();
+            overlay.SizeChanged += (s, args) => WindowHandler.SaveState(overlay, Translator.Setting);
+            overlay.LocationChanged += (s, args) => WindowHandler.SaveState(overlay, Translator.Setting);
+            // However it is closed (the menu, Alt+F4): the menu and the buttons follow.
+            overlay.Closed += (s, args) =>
+            {
+                if (ReferenceEquals(OverlayWindow, overlay))
+                    OverlayWindow = null;
+                ShowOverlayState();
+            };
 
-                double screenWidth = SystemParameters.PrimaryScreenWidth;
-                double screenHeight = SystemParameters.PrimaryScreenHeight;
-
-                var windowState = WindowHandler.LoadState(OverlayWindow, Translator.Setting);
-                if (windowState.Left <= 0 || windowState.Left >= screenWidth ||
-                    windowState.Top <= 0 || windowState.Top >= screenHeight)
-                {
-                    WindowHandler.RestoreState(OverlayWindow, new Rect(
-                        (screenWidth - 480) / 2, screenHeight * 5 / 6 - 100, 480, 100));
-                }
-                else
-                {
-                    // A saved width of exactly 650 means the former default: use the current, smaller default.
-                    if (Math.Abs(windowState.Width - 650) < 1)
-                        windowState.Width = 480;
-                    WindowHandler.RestoreState(OverlayWindow, windowState);
-                }
-
-                OverlayWindow.Show();
-                UpdateFloatMenuButton();
+            var windowState = WindowHandler.LoadState(overlay, Translator.Setting);
+            if (WindowHandler.IsOnScreen(windowState))
+            {
+                // A saved width of exactly 650 means the former default: use the current, smaller default.
+                if (Math.Abs(windowState.Width - 650) < 1)
+                    windowState.Width = 480;
+                WindowHandler.RestoreState(overlay, windowState);
             }
             else
             {
-                symbolIcon.Symbol = SymbolRegular.ClosedCaptionOff24;
-                symbolIcon.Filled = false;
-
-                switch (OverlayWindow.OnlyMode)
-                {
-                    case CaptionVisible.TranslationOnly:
-                        OverlayWindow.OnlyMode = CaptionVisible.SubtitleOnly;
-                        OverlayWindow.OnlyMode = CaptionVisible.Both;
-                        break;
-                    case CaptionVisible.SubtitleOnly:
-                        OverlayWindow.OnlyMode = CaptionVisible.Both;
-                        break;
-                }
-
-                OverlayWindow.Close();
-                OverlayWindow = null;
-                UpdateFloatMenuButton();
+                WindowHandler.RestoreState(overlay, new Rect(
+                    (SystemParameters.PrimaryScreenWidth - 480) / 2,
+                    SystemParameters.PrimaryScreenHeight * 5 / 6 - 100, 480, 100));
             }
+
+            OverlayWindow = overlay;
+            overlay.Show();
+            ShowOverlayState();
+        }
+
+        private void ShowOverlayState()
+        {
+            bool open = OverlayWindow != null;
+            if (OverlayModeButton.Icon is SymbolIcon icon)
+            {
+                icon.Symbol = open ? SymbolRegular.ClosedCaption24 : SymbolRegular.ClosedCaptionOff24;
+                icon.Filled = open;
+            }
+            UpdateFloatMenuButton();
         }
 
         private void BilingualModeButton_Click(object sender, RoutedEventArgs e)
@@ -340,11 +331,7 @@ namespace LiveCaptionsTranslator
         private async void StartButton_Click(object sender, RoutedEventArgs e)
         {
             if (ClassSession.IsRunning)
-            {
-                long lectureId = ClassSession.CurrentLectureId;
-                ClassSession.Stop();
-                await LectureSaving.SaveAfterStop(lectureId);
-            }
+                await StopAndSave();
             else
             {
                 RootNavigation.Navigate(typeof(CaptionPage));
@@ -352,13 +339,93 @@ namespace LiveCaptionsTranslator
             }
         }
 
+        // The save flow that follows "停止", while it runs (it asks for a name, and waits for the last summary).
+        private Task? saving;
+        private bool closeAsked = false;
+        private bool closeConfirmed = false;
+
+        private async Task StopAndSave()
+        {
+            long lectureId = ClassSession.CurrentLectureId;
+            ClassSession.Stop();
+            var task = LectureSaving.SaveAfterStop(lectureId);
+            saving = task;
+            try
+            {
+                await task;
+            }
+            finally
+            {
+                if (ReferenceEquals(saving, task))
+                    saving = null;
+            }
+        }
+
+        // Closing the window in the middle of a class would end the program with the class unsaved: the sentences
+        // still being translated, the summary of the last section and the Markdown file would be missing. So the
+        // class is stopped and saved first, as "停止" does, and the window closes when that is done.
+        private async void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (closeConfirmed || (!ClassSession.IsRunning && !ClassSession.IsStarting && saving == null))
+                return;
+            e.Cancel = true;
+            // Closing again while the question is open, or while the class is being saved, changes nothing.
+            if (closeAsked)
+                return;
+            closeAsked = true;
+            // No new class from here on (see ShowSessionState).
+            ShowSessionState();
+            try
+            {
+                if (ClassSession.IsRunning || ClassSession.IsStarting)
+                {
+                    if (WindowState == WindowState.Minimized)
+                        WindowState = WindowState.Normal;
+                    if (!await LectureDialogs.Confirm("正在上课", "退出前会先停止并保存本节课。", "停止并退出"))
+                        return;
+                    // A class that was only just starting has to be there before it can be stopped (or has
+                    // failed to start, and then there is nothing to save).
+                    if (ClassSession.IsStarting)
+                        SnackbarHost.Show("这节课还在启动", "启动完成后会停止、保存并退出。", SnackbarType.Info, timeout: 3);
+                    while (ClassSession.IsStarting)
+                        await Task.Delay(100);
+                    // (Not running now: it did not start after all.)
+                    if (ClassSession.IsRunning)
+                        await StopAndSave();
+                }
+                if (saving is Task pending)
+                {
+                    SnackbarHost.Show("正在保存这节课", "保存完会自动退出。", SnackbarType.Info, timeout: 3);
+                    await pending;
+                }
+            }
+            catch (Exception ex)
+            {
+                // Whatever went wrong, the window can still be closed.
+                ErrorLog.Write("MainWindow.Closing", ex);
+            }
+            finally
+            {
+                closeAsked = false;
+                ShowSessionState();
+            }
+            closeConfirmed = true;
+            // Not from inside the closing that was cancelled above, which WPF refuses: with nothing left to wait
+            // for, this point is reached without having left it.
+            _ = Dispatcher.InvokeAsync(Close);
+        }
+
         private void ShowSessionState()
         {
-            StartButton.IsEnabled = !ClassSession.IsStarting;
+            // Not while the class is being saved for the exit either: the window closes when that is done, and a
+            // class started in between would end with it, unsaved.
+            StartButton.IsEnabled = !ClassSession.IsStarting && !closeAsked;
             StartButton.Content = ClassSession.IsStarting ? "启动中…" : ClassSession.IsRunning ? "停止" : "开始";
-            StartButton.Appearance = ClassSession.IsRunning ? ControlAppearance.Danger : ControlAppearance.Primary;
+            // Red only where it says "停止": a class counts as running a moment before it has finished starting.
+            bool stops = ClassSession.IsRunning && !ClassSession.IsStarting;
+            StartButton.Appearance = stops ? ControlAppearance.Danger : ControlAppearance.Primary;
             if (StartButton.Icon is SymbolIcon icon)
-                icon.Symbol = ClassSession.IsRunning ? SymbolRegular.Stop16 : SymbolRegular.Play16;
+                icon.Symbol = stops ? SymbolRegular.Stop16 : SymbolRegular.Play16;
         }
 
         private void SpeechSwitch_Click(object sender, RoutedEventArgs e)
@@ -450,8 +517,15 @@ namespace LiveCaptionsTranslator
                 return;
 
             RootNavigation.Navigate(typeof(LecturePage));
-            if (Translator.Window != null)
-                LiveCaptionsHandler.RestoreLiveCaptions(Translator.Window);
+            try
+            {
+                if (Translator.Window != null)
+                    LiveCaptionsHandler.RestoreLiveCaptions(Translator.Window);
+            }
+            catch (Exception)
+            {
+                // Live Captions was closed in the meantime: the welcome window explains how to show it.
+            }
 
             Dispatcher.InvokeAsync(() =>
             {
@@ -487,7 +561,10 @@ namespace LiveCaptionsTranslator
 
         private void KeepOnScreen()
         {
+            // The work area of the main screen is the one known here: a window on another screen stays as it is.
             var workArea = SystemParameters.WorkArea;
+            if (Left < workArea.Left - 50 || Left >= workArea.Right || Top < workArea.Top - 50 || Top >= workArea.Bottom)
+                return;
             double height = Math.Max(Height, MinHeight);
             if (height > workArea.Height)
                 Height = height = workArea.Height;

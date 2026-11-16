@@ -15,6 +15,10 @@ namespace LiveCaptionsTranslator
         private const int BIG_ORIGINAL_FONT_SIZE = 15;
         private const int BIG_TRANSLATED_FONT_SIZE = 26;
 
+        // The sentences of this class. The page is kept alive between visits, and so is its list.
+        private readonly TranscriptView transcript = new();
+        private bool followTranscript = true;
+
         public CaptionPage()
         {
             InitializeComponent();
@@ -23,30 +27,44 @@ namespace LiveCaptionsTranslator
             SectionColumn.Width = new GridLength(Math.Max(Translator.Setting.MainWindow.SectionPanelWidth, 180));
             ScrollHelper.UseOwnScrollViewer(this, TranscriptScroll, SectionScroll);
 
+            TranscriptList.ItemsSource = transcript.Lines;
+            transcript.Updated += () =>
+                TranscriptEmptyHint.Visibility = transcript.Lines.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            TranscriptScroll.ScrollChanged += TranscriptScroll_ScrollChanged;
+
             Loaded += async (s, e) =>
             {
                 AutoHeight();
-                Summarizer.SectionSummarized += OnSectionSummarized;
-                Translator.TranslationLogged += OnTranslationLogged;
-                Refiner.ParagraphRefined += OnTranslationLogged;
-                ClassSession.StateChanged += OnSessionChanged;
-                Summarizer.StatusChanged += OnSummaryStatusChanged;
+                Subscribe(false);
+                Subscribe(true);
                 OnSummaryStatusChanged();
-                await LoadTranscript();
+                await transcript.Reload();
                 await LoadSections(scrollToEnd: true);
             };
-            Unloaded += (s, e) =>
-            {
-                Summarizer.SectionSummarized -= OnSectionSummarized;
-                Translator.TranslationLogged -= OnTranslationLogged;
-                Refiner.ParagraphRefined -= OnTranslationLogged;
-                ClassSession.StateChanged -= OnSessionChanged;
-                Summarizer.StatusChanged -= OnSummaryStatusChanged;
-            };
+            Unloaded += (s, e) => Subscribe(false);
 
             ApplyFontSizes();
             if (bigMode)
                 BigModeToggle.IsChecked = true;
+        }
+
+        // The list keeps showing its end while sentences are added, until the reader scrolls up; scrolling back
+        // down to the end follows again. Whether the end is in view is only looked at when the reader scrolls:
+        // right after rows were added the list has grown and its place has not been moved yet.
+        private void TranscriptScroll_ScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            if (!ReferenceEquals(e.OriginalSource, TranscriptScroll))
+                return;
+            if (e.ExtentHeightChange != 0 || e.ViewportHeightChange != 0)
+            {
+                // The list or the page changed its size.
+                if (followTranscript)
+                    TranscriptScroll.ScrollToEnd();
+                else if (TranscriptScroll.ScrollableHeight <= 0)
+                    followTranscript = true;    // Nothing to scroll (a new class): its sentences are followed again.
+            }
+            else if (e.VerticalChange != 0)
+                followTranscript = TranscriptScroll.VerticalOffset >= TranscriptScroll.ScrollableHeight - 20;
         }
 
         private void BigModeToggle_Changed(object sender, RoutedEventArgs e)
@@ -70,7 +88,33 @@ namespace LiveCaptionsTranslator
                 Grid.SetRowSpan(LeftPane, 2);
                 LeftPane.Margin = new Thickness(12, 8, 0, 12);
             }
+            // The sizes of the large captions are fixed: the tips offer Ctrl + wheel only for the normal ones.
+            string tip = bigMode ? "单击复制" : "单击复制，Ctrl+滚轮调整字号";
+            OriginalCaption.ToolTip = tip;
+            TranslatedCaption.ToolTip = tip;
             ApplyFontSizes();
+        }
+
+        // The page listens to the session only while it is shown. (Taken off before being put on: `Loaded` can
+        // come twice in a row, and every sentence would then be handled twice.)
+        private void Subscribe(bool on)
+        {
+            if (on)
+            {
+                Summarizer.SectionSummarized += OnSectionSummarized;
+                Translator.TranslationLogged += OnTranslationLogged;
+                Refiner.ParagraphRefined += OnTranslationLogged;
+                ClassSession.StateChanged += OnSessionChanged;
+                Summarizer.StatusChanged += OnSummaryStatusChanged;
+            }
+            else
+            {
+                Summarizer.SectionSummarized -= OnSectionSummarized;
+                Translator.TranslationLogged -= OnTranslationLogged;
+                Refiner.ParagraphRefined -= OnTranslationLogged;
+                ClassSession.StateChanged -= OnSessionChanged;
+                Summarizer.StatusChanged -= OnSummaryStatusChanged;
+            }
         }
 
         private void EndSectionButton_Click(object sender, RoutedEventArgs e)
@@ -80,7 +124,7 @@ namespace LiveCaptionsTranslator
 
         private void OnTranslationLogged()
         {
-            Dispatcher.InvokeAsync(async () => await LoadTranscript());
+            Dispatcher.InvokeAsync(() => transcript.Reload());
         }
 
         private void OnSummaryStatusChanged()
@@ -96,38 +140,9 @@ namespace LiveCaptionsTranslator
         {
             Dispatcher.InvokeAsync(async () =>
             {
-                await LoadTranscript();
+                await transcript.Reload();
                 await LoadSections(scrollToEnd: true);
             });
-        }
-
-        // Shows every sentence logged since the class was started.
-        private async Task LoadTranscript()
-        {
-            List<HistoryLine> lines = new();
-            if (ClassSession.FirstHistoryId >= 0)
-            {
-                try
-                {
-                    lines = await SectionLogger.LoadHistoryRange(ClassSession.FirstHistoryId);
-                    var paragraphs = await SectionLogger.LoadParagraphs(ClassSession.FirstHistoryId);
-                    lines = LectureDocument.MergeParagraphs(lines, paragraphs, fadeUnrefined: Refiner.Enabled);
-                }
-                catch (Exception)
-                {
-                    return;
-                }
-            }
-
-            // Keep following new sentences unless the user scrolled up to read.
-            bool atEnd = TranscriptScroll.VerticalOffset >= TranscriptScroll.ScrollableHeight - 20;
-            TranscriptList.ItemsSource = lines;
-            TranscriptEmptyHint.Visibility = lines.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-            if (atEnd)
-            {
-                TranscriptScroll.UpdateLayout();
-                TranscriptScroll.ScrollToEnd();
-            }
         }
 
         private void OnSectionSummarized(SectionEntry section)
@@ -188,7 +203,7 @@ namespace LiveCaptionsTranslator
 
         private void ApplyFontSizes()
         {
-            // Large-text mode uses fixed sizes; Ctrl + wheel still adjusts the saved sizes for normal mode.
+            // Large-text mode has fixed sizes; the saved ones (changed with Ctrl + wheel) are those of normal mode.
             OriginalCaption.FontSize = bigMode ? BIG_ORIGINAL_FONT_SIZE : Translator.Setting.MainWindow.OriginalFontSize;
             TranslatedCaption.FontSize = bigMode ? BIG_TRANSLATED_FONT_SIZE : Translator.Setting.MainWindow.TranslatedFontSize;
         }

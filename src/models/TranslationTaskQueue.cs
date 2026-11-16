@@ -13,7 +13,28 @@ namespace LiveCaptionsTranslator.models
 
         private (string translatedText, bool isChoke, string source) output;
         // The newest displayed result and the original text it was made for.
-        public (string translatedText, bool isChoke, string source) Output => output;
+        public (string translatedText, bool isChoke, string source) Output
+        {
+            get
+            {
+                lock (_lock)
+                {
+                    return output;
+                }
+            }
+        }
+
+        // Completes when every finished sentence queued so far has been logged.
+        public Task Logged
+        {
+            get
+            {
+                lock (_lock)
+                {
+                    return logChain;
+                }
+            }
+        }
 
         // Translations are still running.
         public bool IsBusy
@@ -31,6 +52,17 @@ namespace LiveCaptionsTranslator.models
         {
             tasks = new List<TranslationTask>();
             output = (string.Empty, false, string.Empty);
+        }
+
+        // A new class starts: nothing of the last one is shown any more. Translations still on their way are
+        // logged as usual, but they no longer reach the display.
+        public void Reset()
+        {
+            lock (_lock)
+            {
+                displayedSeq = nextSeq - 1;
+                output = (string.Empty, false, string.Empty);
+            }
         }
 
         public void Enqueue(Func<CancellationToken, Task<(string, bool)>> worker, string originalText, bool isFinal)

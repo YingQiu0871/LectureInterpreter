@@ -164,7 +164,7 @@ namespace LiveCaptionsTranslator.utils
                        l.FilePath,
                        (SELECT COUNT(*) FROM TranslationHistory h
                         WHERE h.Id > l.FirstHistoryId AND h.Id <= IFNULL(l.LastHistoryId,
-                            IFNULL((SELECT MIN(n.FirstHistoryId) FROM Lecture n WHERE n.FirstHistoryId > l.FirstHistoryId),
+                            IFNULL((SELECT MIN(n.FirstHistoryId) FROM Lecture n WHERE n.Id > l.Id),
                                    9223372036854775807)))
                 FROM Lecture l JOIN Course c ON c.Id = l.CourseId
                 WHERE l.CourseId = @course
@@ -203,7 +203,10 @@ namespace LiveCaptionsTranslator.utils
             SentenceCount = reader.GetInt32(9),
         };
 
-        // The last history row of a lecture. One that was never stopped properly ends where the next one begins.
+        // The last history row of a lecture. One that was never stopped properly ends where the next one begins:
+        // the next one that was started, not the next one with a later first row. A class that ended without a
+        // sentence (the program was closed before anything was said) begins at the same row as the class after
+        // it, and would otherwise show that class's sentences as its own, and take them along when deleted.
         public static async Task<long> EffectiveLastHistoryId(LectureRecord lecture)
         {
             if (lecture.LastHistoryId is long last)
@@ -212,9 +215,9 @@ namespace LiveCaptionsTranslator.utils
                 return long.MaxValue;
             await using var connection = Open();
             await using var command = new SqliteCommand(@"
-                SELECT IFNULL((SELECT MIN(FirstHistoryId) FROM Lecture WHERE FirstHistoryId > @first),
+                SELECT IFNULL((SELECT MIN(FirstHistoryId) FROM Lecture WHERE Id > @id),
                               (SELECT IFNULL(MAX(Id), 0) FROM TranslationHistory))", connection);
-            command.Parameters.AddWithValue("@first", lecture.FirstHistoryId);
+            command.Parameters.AddWithValue("@id", lecture.Id);
             return Convert.ToInt64(await command.ExecuteScalarAsync());
         }
 
@@ -265,6 +268,9 @@ namespace LiveCaptionsTranslator.utils
             await command.ExecuteNonQueryAsync();
         }
 
+        // Raised after a lecture was deleted, with its id.
+        public static event Action<long>? LectureDeleted;
+
         // Removes the lecture together with its sentences, sections and paragraphs.
         public static async Task DeleteLecture(LectureRecord lecture)
         {
@@ -286,6 +292,29 @@ namespace LiveCaptionsTranslator.utils
                 await command.ExecuteNonQueryAsync();
             }
             await transaction.CommitAsync();
+            LectureDeleted?.Invoke(lecture.Id);
+        }
+
+        public static async Task<bool> HasSentences(LectureRecord lecture)
+        {
+            long last = await EffectiveLastHistoryId(lecture);
+            await using var connection = Open();
+            await using var command = new SqliteCommand(
+                "SELECT EXISTS (SELECT 1 FROM TranslationHistory WHERE Id > @first AND Id <= @last)", connection);
+            command.Parameters.AddWithValue("@first", lecture.FirstHistoryId);
+            command.Parameters.AddWithValue("@last", last);
+            return Convert.ToInt64(await command.ExecuteScalarAsync()) != 0;
+        }
+
+        // Removes a lecture that has no sentence (a class that failed to start, or heard nothing).
+        // Returns false when there is no such lecture or it has sentences, and is kept.
+        public static async Task<bool> DeleteIfEmpty(long id)
+        {
+            var lecture = await GetLecture(id);
+            if (lecture == null || await HasSentences(lecture))
+                return false;
+            await DeleteLecture(lecture);
+            return true;
         }
 
         public static async Task RenameCourse(long id, string name)

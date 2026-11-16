@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Windows.Automation;
 
 using LiveCaptionsTranslator.apis;
@@ -12,26 +13,49 @@ namespace LiveCaptionsTranslator.utils
 
         private static AutomationElement? captionsTextBlock = null;
 
+        private const string WINDOW_CLASS = "LiveCaptionsDesktopWindow";
+        private static readonly TimeSpan LAUNCH_TIMEOUT = TimeSpan.FromSeconds(30);
+
         public static AutomationElement LaunchLiveCaptions()
         {
             // Init
             captionsTextBlock = null;
             IsHidden = false;
             KillAllProcessesByPName(PROCESS_NAME);
-            var process = Process.Start(PROCESS_NAME);
-
-            // Search for window
-            AutomationElement? window = null;
-            for (int attemptCount = 0;
-                 window == null || window.Current.ClassName.CompareTo("LiveCaptionsDesktopWindow") != 0;
-                 attemptCount++)
+            Process? process;
+            try
             {
-                window = FindWindowByPId(process.Id);
-                if (attemptCount > 10000)
-                    throw new Exception("Failed to launch LiveCaptions!");
+                process = Process.Start(PROCESS_NAME);
             }
+            catch (Win32Exception ex)
+            {
+                throw new InvalidOperationException(
+                    "这台电脑上没有 Windows 实时辅助字幕（需要 Windows 11 22H2 或更新的系统）。", ex);
+            }
+            if (process == null)
+                throw new InvalidOperationException("实时辅助字幕没有启动。");
 
-            return window;
+            // Search for window: it appears a moment after the process starts.
+            var waited = Stopwatch.StartNew();
+            while (true)
+            {
+                try
+                {
+                    var window = FindWindowByPId(process.Id);
+                    if (window != null && window.Current.ClassName == WINDOW_CLASS)
+                        return window;
+                }
+                catch (ElementNotAvailableException)
+                {
+                    // The window found went away again: keep looking.
+                }
+                if (process.HasExited)
+                    throw new InvalidOperationException("实时辅助字幕启动后马上退出了。");
+                if (waited.Elapsed > LAUNCH_TIMEOUT)
+                    throw new InvalidOperationException(
+                        $"等了 {LAUNCH_TIMEOUT.TotalSeconds:0} 秒，实时辅助字幕的窗口还是没有出现。");
+                Thread.Sleep(30);
+            }
         }
 
         public static void KillLiveCaptions(AutomationElement window)
@@ -41,9 +65,10 @@ namespace LiveCaptionsTranslator.utils
             WindowsAPI.GetWindowThreadProcessId(hWnd, out int processId);
             var process = Process.GetProcessById(processId);
 
-            // Kill process
+            // Kill process. Not waited for without end: this runs under the lock LiveCaptions is started under
+            // (see Translator.EnsureLiveCaptions), and when the program ends.
             process.Kill();
-            process.WaitForExit();
+            process.WaitForExit(5000);
         }
 
         public static bool IsHidden { get; private set; } = false;
@@ -107,8 +132,11 @@ namespace LiveCaptionsTranslator.utils
             int exStyle = WindowsAPI.GetWindowLong(hWnd, WindowsAPI.GWL_EXSTYLE);
             ClearOldStyles(hWnd, ref exStyle);
 
-            // With Alibaba Cloud recognition its text is not used at all: just get it out of the way.
-            if (Translator.Setting?.Lecture.Engine == RecognitionEngine.Aliyun)
+            // With Alibaba Cloud recognition its text is not used at all: just get it out of the way. A running
+            // class goes by the engine it started with, whatever the settings say by now: minimized, LiveCaptions
+            // would stop writing the captions that class reads.
+            var engine = ClassSession.IsRunning ? ClassSession.Engine : Translator.Setting?.Lecture.Engine;
+            if (engine == RecognitionEngine.Aliyun)
             {
                 WindowsAPI.SetWindowLong(hWnd, WindowsAPI.GWL_EXSTYLE, exStyle | WindowsAPI.WS_EX_TOOLWINDOW);
                 WindowsAPI.SetWindowPos(hWnd, WindowsAPI.HWND_NOTOPMOST, 0, 0, 0, 0,
@@ -193,7 +221,7 @@ namespace LiveCaptionsTranslator.utils
             return false;
         }
 
-        private static AutomationElement FindWindowByPId(int processId)
+        private static AutomationElement? FindWindowByPId(int processId)
         {
             var condition = new PropertyCondition(AutomationElement.ProcessIdProperty, processId);
             return AutomationElement.RootElement.FindFirst(TreeScope.Children, condition);
@@ -239,8 +267,15 @@ namespace LiveCaptionsTranslator.utils
                 return;
             foreach (Process process in processes)
             {
-                process.Kill();
-                process.WaitForExit();
+                try
+                {
+                    process.Kill();
+                    process.WaitForExit(5000);
+                }
+                catch (Exception)
+                {
+                    // It ended by itself in the meantime, or it is not ours to end: go on with the others.
+                }
             }
         }
     }

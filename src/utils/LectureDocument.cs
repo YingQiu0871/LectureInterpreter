@@ -31,15 +31,23 @@ namespace LiveCaptionsTranslator.utils
             }
         }
 
+        // The sections as the history page lists them (the notes a model adds stripped from the translations).
+        // Read on another thread: a long class has thousands of sentences, and the page should not hang for them.
+        public static Task<List<LectureSectionView>> BuildForDisplay(LectureRecord lecture) => Task.Run(async () =>
+        {
+            var sections = await Build(lecture);
+            foreach (var line in sections.SelectMany(section => section.Lines))
+                line.TranslatedText = CleanTranslation(line.TranslatedText);
+            return sections;
+        });
+
         public static async Task<List<LectureSectionView>> Build(LectureRecord lecture)
         {
             long last = await LectureStore.EffectiveLastHistoryId(lecture);
             var lines = (await SectionLogger.LoadHistoryRange(lecture.FirstHistoryId, last))
                 .Where(line => !string.IsNullOrWhiteSpace(line.SourceText))
                 .ToList();
-            var paragraphs = (await SectionLogger.LoadParagraphs(lecture.FirstHistoryId))
-                .Where(paragraph => paragraph.FirstHistoryId <= last)
-                .ToList();
+            var paragraphs = await SectionLogger.LoadParagraphs(lecture.FirstHistoryId, last);
             var sections = await SectionLogger.LoadSectionsInRange(lecture.FirstHistoryId, last);
             lines = MergeParagraphs(lines, paragraphs, fadeUnrefined: false);
 
@@ -117,10 +125,15 @@ namespace LiveCaptionsTranslator.utils
             return merged;
         }
 
+        // What was stored as the translation of a sentence, without the notices in front of it (the time it took).
+        // A failed translation is stored as its error message and a sentence heard while translation was paused
+        // as "N/A": neither is a translation. The error is looked for first: "[ERROR] " is a notice in front as well.
         public static string CleanTranslation(string text)
         {
-            text = RegexPatterns.NoticePrefix().Replace(text ?? string.Empty, string.Empty).Trim();
-            return text == "N/A" || text.StartsWith("[ERROR]") || text.StartsWith("[WARNING]") ? string.Empty : text;
+            text = (text ?? string.Empty).Trim();
+            if (text == "N/A" || text.Contains("[ERROR]") || text.Contains("[WARNING]"))
+                return string.Empty;
+            return RegexPatterns.NoticePrefix().Replace(text, string.Empty).Trim();
         }
 
         public static async Task<string> ToMarkdown(LectureRecord lecture)
@@ -192,21 +205,36 @@ namespace LiveCaptionsTranslator.utils
             string markdown = await ToMarkdown(lecture);
             await File.WriteAllTextAsync(path, markdown, new UTF8Encoding(false));
 
-            // Renamed or moved to another course: remove the file under the old name.
-            if (!string.IsNullOrEmpty(lecture.FilePath) &&
-                !string.Equals(path, lecture.FilePath, StringComparison.OrdinalIgnoreCase))
-            {
-                try
-                {
-                    File.Delete(lecture.FilePath);
-                }
-                catch (Exception)
-                {
-                    // Best effort: the old file may already be gone or in use; the new file is saved either way.
-                }
-            }
+            string? oldPath = string.IsNullOrEmpty(lecture.FilePath) ||
+                              string.Equals(path, lecture.FilePath, StringComparison.OrdinalIgnoreCase)
+                ? null
+                : lecture.FilePath;
+            string oldDraft = LectureNotes.DraftPath(lecture);
             await LectureStore.SetFilePath(lecture.Id, path);
             lecture.FilePath = path;
+            if (oldPath == null)
+                return path;
+
+            // Renamed or moved to another course: the file under the old name goes, and the notes draft that was
+            // written next to it comes along (it is found by the name of the transcript).
+            try
+            {
+                File.Delete(oldPath);
+            }
+            catch (Exception)
+            {
+                // Best effort: the old file may already be gone or in use; the new file is saved either way.
+            }
+            try
+            {
+                string draft = LectureNotes.DraftPath(lecture);
+                if (File.Exists(oldDraft) && !File.Exists(draft))
+                    File.Move(oldDraft, draft);
+            }
+            catch (Exception)
+            {
+                // Best effort: the draft stays where it was.
+            }
             return path;
         }
     }

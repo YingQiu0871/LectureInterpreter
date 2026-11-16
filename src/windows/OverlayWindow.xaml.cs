@@ -5,7 +5,6 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
-using System.Windows.Threading;
 using Wpf.Ui.Controls;
 
 using LiveCaptionsTranslator.apis;
@@ -47,18 +46,15 @@ namespace LiveCaptionsTranslator
             InitializeComponent();
             DataContext = Translator.Caption;
 
-            Loaded += (s, e) => Translator.Caption.PropertyChanged += TranslatedChanged;
-            Unloaded += (s, e) => Translator.Caption.PropertyChanged -= TranslatedChanged;
-
             ApplyFontBold();
 
             OriginalCaptionDecorator.StrokeThickness = Translator.Setting.OverlayWindow.FontStroke;
             TranslatedCaptionDecorator.StrokeThickness = Translator.Setting.OverlayWindow.FontStroke;
 
-            OriginalCaption.Foreground = colorMap[Translator.Setting.OverlayWindow.FontColor];
-            UpdateTranslationColor(colorMap[Translator.Setting.OverlayWindow.FontColor]);
+            OriginalCaption.Foreground = FontBrush;
+            UpdateTranslationColor(FontBrush);
 
-            BorderBackground.Background = colorMap[Translator.Setting.OverlayWindow.BackgroundColor];
+            BorderBackground.Background = BackgroundBrush;
             BorderBackground.Opacity = Translator.Setting.OverlayWindow.Opacity;
 
             ApplyFontSize();
@@ -67,6 +63,26 @@ namespace LiveCaptionsTranslator
             FloatLock.Changed += ApplyLock;
             Closed += (s, e) => FloatLock.Changed -= ApplyLock;
             SourceInitialized += (s, e) => ApplyLock();
+        }
+
+        // A colour number in the settings file that this version does not have (a file edited by hand, or written
+        // by another version) must not keep the window from opening.
+        private SolidColorBrush FontBrush =>
+            colorMap.TryGetValue(Translator.Setting.OverlayWindow.FontColor, out var brush) ? brush : Brushes.White;
+        private SolidColorBrush BackgroundBrush =>
+            colorMap.TryGetValue(Translator.Setting.OverlayWindow.BackgroundColor, out var brush) ? brush : Brushes.Black;
+
+        // Closed while only one of the two lines is shown, the window would be remembered at that lower height
+        // and open too low the next time: back to both lines first, however it is closed.
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            base.OnClosing(e);
+            if (e.Cancel)
+                return;
+            if (onlyMode == CaptionVisible.TranslationOnly)
+                OnlyMode = CaptionVisible.SubtitleOnly;
+            if (onlyMode == CaptionVisible.SubtitleOnly)
+                OnlyMode = CaptionVisible.Both;
         }
 
         private void ApplyLock()
@@ -159,11 +175,6 @@ namespace LiveCaptionsTranslator
             RightThumb_OnDragDelta(sender, e);
         }
 
-        private void TranslatedChanged(object sender, PropertyChangedEventArgs e)
-        {
-            ApplyFontSize();
-        }
-
         private void Window_MouseEnter(object sender, MouseEventArgs e)
         {
             if (FloatLock.Locked)
@@ -244,11 +255,11 @@ namespace LiveCaptionsTranslator
         private void FontColorCycle_Click(object sender, RoutedEventArgs e)
         {
             Translator.Setting.OverlayWindow.FontColor++;
-            if (Translator.Setting.OverlayWindow.FontColor > ColorEnum.Black)
+            if (!colorMap.ContainsKey(Translator.Setting.OverlayWindow.FontColor))
                 Translator.Setting.OverlayWindow.FontColor = ColorEnum.White;
-            OriginalCaption.Foreground = colorMap[Translator.Setting.OverlayWindow.FontColor];
-            TranslatedCaption.Foreground = colorMap[Translator.Setting.OverlayWindow.FontColor];
-            UpdateTranslationColor(colorMap[Translator.Setting.OverlayWindow.FontColor]);
+            OriginalCaption.Foreground = FontBrush;
+            TranslatedCaption.Foreground = FontBrush;
+            UpdateTranslationColor(FontBrush);
         }
 
         private void BackgroundOpacityIncrease_Click(object sender, RoutedEventArgs e)
@@ -272,9 +283,9 @@ namespace LiveCaptionsTranslator
         private void BackgroundColorCycle_Click(object sender, RoutedEventArgs e)
         {
             Translator.Setting.OverlayWindow.BackgroundColor++;
-            if (Translator.Setting.OverlayWindow.BackgroundColor > ColorEnum.Black)
+            if (!colorMap.ContainsKey(Translator.Setting.OverlayWindow.BackgroundColor))
                 Translator.Setting.OverlayWindow.BackgroundColor = ColorEnum.White;
-            BorderBackground.Background = colorMap[Translator.Setting.OverlayWindow.BackgroundColor];
+            BorderBackground.Background = BackgroundBrush;
 
             BorderBackground.Opacity = Translator.Setting.OverlayWindow.Opacity;
             ApplyBackgroundOpacity();
@@ -360,11 +371,8 @@ namespace LiveCaptionsTranslator
 
         public void ApplyFontSize()
         {
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                OriginalCaption.FontSize = Translator.Setting.OverlayWindow.FontSize;
-                TranslatedCaption.FontSize = (int)(OriginalCaption.FontSize * 1.25);
-            }), DispatcherPriority.Background);
+            OriginalCaption.FontSize = Translator.Setting.OverlayWindow.FontSize;
+            TranslatedCaption.FontSize = (int)(OriginalCaption.FontSize * 1.25);
         }
 
         public void ApplyFontStroke()

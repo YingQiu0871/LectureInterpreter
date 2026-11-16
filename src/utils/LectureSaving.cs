@@ -18,6 +18,18 @@ namespace LiveCaptionsTranslator.utils
             try
             {
                 var lecture = await LectureStore.GetLecture(lectureId);
+                // A class in which nothing was recognized leaves no record, and there is nothing to name.
+                if (lecture != null && !await LectureStore.HasSentences(lecture))
+                {
+                    // A last sentence may still be on its way: decided once the recording is closed.
+                    await finishing;
+                    if (await LectureStore.DeleteIfEmpty(lectureId))
+                    {
+                        SnackbarHost.Show("这节课没有识别到文字，没有留下记录。", "", SnackbarType.Info, timeout: 3);
+                        return;
+                    }
+                    lecture = await LectureStore.GetLecture(lectureId);
+                }
                 if (lecture != null)
                 {
                     while (true)

@@ -33,6 +33,17 @@
             <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
+        <!--  A line that only says something after a change: no empty line until then.  -->
+        <Style
+            x:Key="StatusHint"
+            BasedOn="{StaticResource Hint}"
+            TargetType="TextBlock">
+            <Style.Triggers>
+                <Trigger Property="Text" Value="">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </Page.Resources>
 
     <ScrollViewer x:Name="PageScroll" VerticalScrollBarVisibility="Auto">
@@ -107,19 +118,22 @@
                         </ComboBox>
 
                         <TextBlock Style="{StaticResource Label}" Text="麦克风" />
-                        <StackPanel Orientation="Horizontal">
-                            <ComboBox
-                                x:Name="MicBox"
-                                MinWidth="230"
-                                SelectionChanged="MicBox_SelectionChanged" />
+                        <!--  The list gets the width that is left: a long device name is cut off there instead of pushing the button out of the card.  -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <ComboBox x:Name="MicBox" SelectionChanged="MicBox_SelectionChanged" />
                             <ui:Button
+                                Grid.Column="1"
                                 Margin="6,0,0,0"
                                 Click="RefreshDevices_click"
                                 Icon="{ui:SymbolIcon ArrowClockwise12,
                                                      Filled=False}"
                                 ToolTip="刷新设备列表" />
-                        </StackPanel>
-                        <TextBlock x:Name="SourceStatus" Style="{StaticResource Hint}" />
+                        </Grid>
+                        <TextBlock x:Name="SourceStatus" Style="{StaticResource StatusHint}" />
                         <TextBlock Style="{StaticResource Hint}" Text="选择麦克风会把它设为 Windows 默认录音设备，并重启实时字幕。不要选蓝牙耳机自带的麦克风，否则耳机会切换到通话模式，音质变差。" />
 
                         <StackPanel Margin="0,10,0,0" Orientation="Horizontal">

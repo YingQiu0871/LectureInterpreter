@@ -23,6 +23,9 @@ namespace LiveCaptionsTranslator
             Loaded += (s, e) =>
             {
                 (App.Current.MainWindow as MainWindow)?.AutoHeightAdjust(minHeight: MIN_HEIGHT);
+                // The page is kept between visits: the check at startup may have finished since it was built.
+                if (UpdateChecker.Latest != null && CheckUpdateButton.IsEnabled)
+                    ShowUpdateResult(UpdateChecker.Latest);
             };
         }
 
@@ -66,7 +69,7 @@ namespace LiveCaptionsTranslator
 
         private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
         {
-            ShellUtil.Open(e.Uri.AbsoluteUri);
+            ShellUtil.OpenLink(e.Uri.AbsoluteUri);
             e.Handled = true;
         }
     }

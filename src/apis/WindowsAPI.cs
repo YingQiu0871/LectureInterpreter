@@ -38,6 +38,14 @@ namespace LiveCaptionsTranslator.apis
         [DllImport("user32.dll", SetLastError = true)]
         public static extern bool SetForegroundWindow(nint hWnd);
 
+        [DllImport("user32.dll")]
+        public static extern bool IsIconic(nint hWnd);
+
+        // The next top-level window (after `hWndChildAfter`, 0 for the first) with this class and title; null
+        // matches any.
+        [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern nint FindWindowEx(nint hWndParent, nint hWndChildAfter, string? lpszClass, string? lpszWindow);
+
         [DllImport("user32.dll", SetLastError = true)]
         public static extern bool MoveWindow(
             nint hWnd,

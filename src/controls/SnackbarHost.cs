@@ -61,7 +61,12 @@ namespace LiveCaptionsTranslator
                     break;
             }
 
-            mainSnackbar ??= new Snackbar(mainWindow?.snackbarHost);
+            // Before the main window is built there is nowhere to show it. (A snackbar made without its place
+            // would be kept, and none would ever be shown afterwards.)
+            var presenter = mainWindow?.snackbarHost;
+            if (presenter == null)
+                return;
+            mainSnackbar ??= new Snackbar(presenter);
             snackbar = mainSnackbar;
 
             snackbar.SetCurrentValue(Snackbar.TitleProperty, title);
