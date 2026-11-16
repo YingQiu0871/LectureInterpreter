@@ -58,14 +58,26 @@ namespace LiveCaptionsTranslator.utils
             while (true)
             {
                 signal.WaitOne();
-                while (TryDequeue(out string text))
+                while (true)
                 {
+                    // Before the next text is taken: a stop from here on is meant for that text. (Cleared after
+                    // taking it, a stop in between would be forgotten and the text read all the same.)
                     stopRequested = false;
+                    if (!TryDequeue(out string text))
+                        break;
                     try
                     {
                         ApplySettings(synthesizer);
                         string deviceId = Lecture?.SpeechDeviceId ?? string.Empty;
                         using var device = string.IsNullOrEmpty(deviceId) ? null : AudioDevices.Get(deviceId);
+                        if (deviceId.Length > 0 && device?.State != DeviceState.Active)
+                        {
+                            // The chosen earphones are not connected. Not on the default device instead: in a
+                            // classroom those are the loudspeakers.
+                            ReportFailure("选的播报设备现在没有连接。",
+                                "连上以后会继续播报；也可以到“设置”页改选别的输出设备。", SnackbarType.Warning);
+                            continue;
+                        }
 
                         // Re-checked every time: the default device changes when earphones connect or disconnect.
                         speakingOnDefaultOutput = device == null ||
@@ -77,8 +89,7 @@ namespace LiveCaptionsTranslator.utils
                     }
                     catch (Exception ex)
                     {
-                        SnackbarHost.Show("[ERROR] 语音播报失败。", ex.Message, SnackbarType.Error,
-                            timeout: 3, closeButton: true);
+                        ReportFailure("[ERROR] 语音播报失败。", ex.Message, SnackbarType.Error);
                     }
                     finally
                     {
@@ -95,7 +106,12 @@ namespace LiveCaptionsTranslator.utils
             synth.SetOutputToDefaultAudioDevice();
             var prompt = synth.SpeakAsync(text);
             while (!prompt.IsCompleted)
+            {
+                // A stop that came before the prompt was queued found nothing to cancel.
+                if (stopRequested)
+                    synth.SpeakAsyncCancelAll();
                 Thread.Sleep(50);
+            }
         }
 
         // Plays on a chosen device (e.g. the earphones) while the Windows default output stays elsewhere.

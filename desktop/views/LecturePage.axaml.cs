@@ -17,6 +17,7 @@ namespace LiveCaptionsTranslator
         private const string AUTO_VOICE = "自动（按朗读的语言选择）";
         private const string AUTO_OCR = "自动";
         private const string DEFAULT_OUTPUT = "系统默认输出设备";
+        private const string MISSING_OUTPUT = "上次选的设备（现在没有连接）";
 
         public record Choice(string Tag, string Name)
         {
@@ -33,18 +34,84 @@ namespace LiveCaptionsTranslator
             .Append(new Choice(LectureLanguages.AUTO, "自动判断"))
             .ToArray();
 
+        // What the external tools (tesseract, spd-say or say, pactl) answered last: shown at once when the page
+        // opens and asked again in the background. Null until the first answer.
+        private static List<SlideOcr.OcrLanguage>? ocrLanguages;
+        private static List<string>? voices;
+        private static List<AudioDevice>? microphones;
+        private static List<AudioDevice>? outputs;
+        // The default output device, read when the devices are listed (asking costs a call to `pactl`).
+        private static string? renderDefaultId;
+
         private bool initializing = true;
-        private bool fillingKeyBox = false;
-        private bool fillingAsrKeyBox = false;
-        private readonly List<Action> pendingCommits = new();
+        private bool attached;
+        private readonly List<TextField> textFields = new();
         private readonly List<Action> sliderShown = new();
         // Set while the devices are being listed: a second refresh would only repeat the work.
         private bool loadingDevices;
-        // The default output device, read when the devices are listed (asking costs a call to `pactl`).
-        private string? renderDefaultId;
+        // Whether this page shows the lists above. They are shared: a page that was left before its answer came
+        // may have stored the very lists this one is still waiting to show.
+        private bool devicesShown, voicesShown, ocrLanguagesShown;
+        // The configuration card ① shows and listens to. Another one takes its place when the API settings
+        // window switches configurations.
+        private OpenAIConfig? subscribedConfig;
+
+        private readonly TextField asrModelField;
+        private readonly TextField asrEndpointField;
+        private readonly TextField apiUrlField;
+        private readonly TextField modelField;
+        private readonly TextField subjectField;
+        private readonly TextField glossaryField;
+        private readonly TextField summaryPromptField;
+        private readonly TextField targetLangField;
 
         private static OpenAIConfig? ApiConfig => Summarizer.Config;
         private static LectureState Lecture => Translator.Setting.Lecture;
+
+        // A text setting that is written when its box loses the focus (and when the page is left), not on every
+        // key. It remembers what it put in the box, so that only what was typed since is written: a box still
+        // showing an older value, because the setting was changed elsewhere (the API settings window, the
+        // recognition model switched for the language) or because its loader failed, never puts that value back.
+        private sealed class TextField
+        {
+            private readonly Func<string> read;
+            private readonly Action<string> write;
+            private readonly Func<string> get;
+            private readonly Action<string> set;
+            private string shown = string.Empty;
+
+            public TextField(Func<string> read, Action<string> write, Func<string> get, Action<string> set)
+            {
+                this.read = read;
+                this.write = write;
+                this.get = get;
+                this.set = set;
+            }
+
+            // Shows the setting, in place of anything typed but not written yet.
+            public void Show()
+            {
+                write(get());
+                shown = read();
+            }
+
+            // The setting was changed elsewhere: it is shown, unless something is being typed here.
+            public void Follow()
+            {
+                if (read() == shown)
+                    Show();
+            }
+
+            public void Commit()
+            {
+                string text = read();
+                if (text == shown)
+                    return;
+                shown = text;
+                if (text != get())
+                    set(text);
+            }
+        }
 
         public LecturePage()
         {
@@ -56,6 +123,7 @@ namespace LiveCaptionsTranslator
             LatencySwitch.IsChecked = Translator.Setting.MainWindow.LatencyShow;
             LatencySwitch.IsCheckedChanged += (s, e) =>
                 Translator.Setting.MainWindow.LatencyShow = LatencySwitch.IsChecked == true;
+            SwitchLabel.Attach(this);
 
             if (OperatingSystem.IsLinux())
             {
@@ -79,22 +147,24 @@ namespace LiveCaptionsTranslator
                     Lecture.AsrLanguage = choice.Tag;
             };
             AsrModelBox.ItemsSource = new[] { "paraformer-realtime-v2", "fun-asr-realtime" };
-            CommitOnLeave(AsrModelBox, () => Lecture.AsrModel, value => Lecture.AsrModel = value);
-            CommitOnLeave(AsrEndpointBox, () => Lecture.AsrEndpoint, value => Lecture.AsrEndpoint = value);
-            CommitOnLeave(ApiUrlBox, () => ApiConfig?.ApiUrl ?? string.Empty, value =>
+            asrModelField = CommitOnLeave(AsrModelBox, () => Lecture.AsrModel, value => Lecture.AsrModel = value);
+            asrEndpointField = CommitOnLeave(AsrEndpointBox, () => Lecture.AsrEndpoint,
+                value => Lecture.AsrEndpoint = value);
+            apiUrlField = CommitOnLeave(ApiUrlBox, () => ApiConfig?.ApiUrl ?? string.Empty, value =>
             {
                 if (ApiConfig != null)
                     ApiConfig.ApiUrl = value;
             });
-            CommitOnLeave(ModelBox, () => ApiConfig?.ModelName ?? string.Empty, value =>
+            modelField = CommitOnLeave(ModelBox, () => ApiConfig?.ModelName ?? string.Empty, value =>
             {
                 if (ApiConfig != null)
                     ApiConfig.ModelName = value;
             });
-            CommitOnLeave(SubjectBox, () => Lecture.Subject, value => Lecture.Subject = value);
-            CommitOnLeave(GlossaryBox, () => Lecture.Glossary, value => Lecture.Glossary = value);
-            CommitOnLeave(SummaryPromptBox, () => Lecture.SummaryPrompt, value => Lecture.SummaryPrompt = value);
-            CommitOnLeave(TargetLangBox, () => Translator.Setting.TargetLanguage, value =>
+            subjectField = CommitOnLeave(SubjectBox, () => Lecture.Subject, value => Lecture.Subject = value);
+            glossaryField = CommitOnLeave(GlossaryBox, () => Lecture.Glossary, value => Lecture.Glossary = value);
+            summaryPromptField = CommitOnLeave(SummaryPromptBox, () => Lecture.SummaryPrompt,
+                value => Lecture.SummaryPrompt = value);
+            targetLangField = CommitOnLeave(TargetLangBox, () => Translator.Setting.TargetLanguage, value =>
             {
                 if (!string.IsNullOrWhiteSpace(value))
                     Translator.Setting.TargetLanguage = value.Trim();
@@ -110,49 +180,84 @@ namespace LiveCaptionsTranslator
                 if (!initializing && SpeakModeBox.SelectedIndex >= 0)
                     Lecture.SpeakModeIndex = SpeakModeBox.SelectedIndex;
             };
+            // The name of a slider stands on the left of its row (in the page), its value on the right.
             BindSlider(MaxSectionSlider, () => Lecture.MaxSectionMinutes, v => Lecture.MaxSectionMinutes = v,
-                MaxSectionLabel, v => $"每节最长：{v}分钟");
+                MaxSectionLabel, v => $"{v} 分钟");
             BindSlider(IntervalSlider, () => Lecture.SummaryIntervalMinutes, v => Lecture.SummaryIntervalMinutes = v,
-                IntervalLabel, v => $"按时间分节：每{v}分钟一节");
-            BindSlider(RateSlider, () => Lecture.SpeechRate, v => Lecture.SpeechRate = v, RateLabel, v => $"语速：{v}");
+                IntervalLabel, v => $"每 {v} 分钟一节");
+            BindSlider(RateSlider, () => Lecture.SpeechRate, v => Lecture.SpeechRate = v, RateLabel, v => $"{v}");
             BindSlider(VolumeSlider, () => Lecture.SpeechVolume, v => Lecture.SpeechVolume = v, VolumeLabel,
-                v => $"音量：{v}");
+                v => $"{v}");
             BindSlider(SyncSlider, () => Translator.Setting.MaxSyncInterval, v => Translator.Setting.MaxSyncInterval = v,
-                SyncLabel, v => $"翻译频率：字幕每变化{v}次翻译一次");
+                SyncLabel, v => $"字幕每变化 {v} 次翻译一次");
         }
 
         protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
         {
             base.OnAttachedToVisualTree(e);
             Shell.Main?.AutoHeightAdjust(minHeight: MIN_HEIGHT);
-            Summarizer.CurrentPageChanged += OnCurrentPageChanged;
-            Lecture.PropertyChanged += OnLectureChanged;
-            if (ApiConfig != null)
-                ApiConfig.PropertyChanged += OnApiConfigChanged;
+            attached = true;
+            Subscribe(false);
+            Subscribe(true);
+            BindApiConfig();
             Load();
         }
 
         protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
         {
             base.OnDetachedFromVisualTree(e);
-            Summarizer.CurrentPageChanged -= OnCurrentPageChanged;
-            Lecture.PropertyChanged -= OnLectureChanged;
-            if (ApiConfig != null)
-                ApiConfig.PropertyChanged -= OnApiConfigChanged;
+            attached = false;
+            Subscribe(false);
+            if (subscribedConfig != null)
+            {
+                subscribedConfig.PropertyChanged -= OnApiConfigChanged;
+                subscribedConfig = null;
+            }
             // Text still being edited is kept.
-            foreach (var commit in pendingCommits)
-                commit();
+            foreach (var field in textFields)
+                field.Commit();
             initializing = true;
         }
 
-        private async void Load()
+        private void Subscribe(bool on)
+        {
+            if (on)
+            {
+                Summarizer.CurrentPageChanged += OnCurrentPageChanged;
+                SlideDeck.LoadingChanged += OnSlidesLoadingChanged;
+                Lecture.PropertyChanged += OnLectureChanged;
+                Translator.Setting.PropertyChanged += OnSettingChanged;
+            }
+            else
+            {
+                Summarizer.CurrentPageChanged -= OnCurrentPageChanged;
+                SlideDeck.LoadingChanged -= OnSlidesLoadingChanged;
+                Lecture.PropertyChanged -= OnLectureChanged;
+                Translator.Setting.PropertyChanged -= OnSettingChanged;
+            }
+        }
+
+        // Listens to the configuration card ① is about.
+        private void BindApiConfig()
+        {
+            var config = ApiConfig;
+            if (ReferenceEquals(subscribedConfig, config))
+                return;
+            if (subscribedConfig != null)
+                subscribedConfig.PropertyChanged -= OnApiConfigChanged;
+            subscribedConfig = config;
+            if (config != null)
+                config.PropertyChanged += OnApiConfigChanged;
+        }
+
+        private void Load()
         {
             initializing = true;
             // One failing loader (e.g. an audio device that can't be read) must not leave the page read-only.
             foreach (Action load in new Action[]
                      {
-                         LoadEngine, LoadSettings, LoadApiSetting, LoadTranslateSetting,
-                         ShowSlidesInfo, ShowSaveFolder
+                         LoadEngine, LoadSettings, LoadApiSetting, LoadTranslateSetting, LoadSource,
+                         ShowOcrLanguages, ShowVoices, ShowDevices, ShowSlidesInfo, ShowSaveFolder
                      })
             {
                 try
@@ -166,30 +271,23 @@ namespace LiveCaptionsTranslator
             }
             // Edits made from here on are saved: the loaders below fill their own controls under a short guard.
             initializing = false;
-            // These run external tools (tesseract, spd-say, say): off the UI thread, then the controls are filled.
+            // The lists shown so far are the ones of the last visit. The tools behind them (tesseract, spd-say
+            // or say, pactl) are asked again without the page waiting for them.
+            Refresh(LoadOcrLanguages);
+            Refresh(LoadVoices);
+            Refresh(LoadDevices);
+        }
+
+        // A list that cannot be read leaves its control as it is.
+        private static async void Refresh(Func<Task> load)
+        {
             try
             {
-                await LoadOcrLanguages();
+                await load();
             }
             catch (Exception)
             {
-                // No OCR languages are offered; the control stays empty.
-            }
-            try
-            {
-                await LoadVoices();
-            }
-            catch (Exception)
-            {
-                // No voices are offered; the control keeps the default voice.
-            }
-            try
-            {
-                await LoadDevices();
-            }
-            catch (Exception)
-            {
-                // No devices are offered; the control keeps the system default.
+                // Nothing new to show.
             }
         }
 
@@ -209,33 +307,21 @@ namespace LiveCaptionsTranslator
             }
         }
 
-        // A text field whose value is written when it loses the focus (and when the page is left), not on every key.
-        private void CommitOnLeave(EditableCombo box, Func<string> get, Action<string> set)
+        private TextField CommitOnLeave(EditableCombo box, Func<string> get, Action<string> set)
         {
-            void Commit()
-            {
-                if (!initializing && box.Text != get())
-                    set(box.Text);
-            }
-            box.LostFocus += (s, e) => Commit();
-            box.ItemPicked += item =>
-            {
-                if (!initializing && item != get())
-                    set(item);
-            };
-            pendingCommits.Add(Commit);
+            var field = new TextField(() => box.Text, text => box.Text = text, get, set);
+            box.LostFocus += (s, e) => field.Commit();
+            box.ItemPicked += item => field.Commit();
+            textFields.Add(field);
+            return field;
         }
 
-        private void CommitOnLeave(TextBox box, Func<string> get, Action<string> set)
+        private TextField CommitOnLeave(TextBox box, Func<string> get, Action<string> set)
         {
-            void Commit()
-            {
-                string text = box.Text ?? string.Empty;
-                if (!initializing && text != get())
-                    set(text);
-            }
-            box.LostFocus += (s, e) => Commit();
-            pendingCommits.Add(Commit);
+            var field = new TextField(() => box.Text ?? string.Empty, text => box.Text = text, get, set);
+            box.LostFocus += (s, e) => field.Commit();
+            textFields.Add(field);
+            return field;
         }
 
         private void BindSlider(Slider slider, Func<int> get, Action<int> set, TextBlock label, Func<int, string> text)
@@ -264,11 +350,11 @@ namespace LiveCaptionsTranslator
             LatencySwitch.IsChecked = Translator.Setting.MainWindow.LatencyShow;
             foreach (var show in sliderShown)
                 show();
-            AsrModelBox.Text = Lecture.AsrModel;
-            AsrEndpointBox.Text = Lecture.AsrEndpoint;
-            SubjectBox.Text = Lecture.Subject;
-            GlossaryBox.Text = Lecture.Glossary;
-            SummaryPromptBox.Text = Lecture.SummaryPrompt;
+            asrModelField.Show();
+            asrEndpointField.Show();
+            subjectField.Show();
+            glossaryField.Show();
+            summaryPromptField.Show();
         }
 
         private void LoadApiSetting()
@@ -276,56 +362,109 @@ namespace LiveCaptionsTranslator
             var config = ApiConfig;
             if (config == null)
                 return;
+            // Fill in DeepSeek defaults on first use.
+            if (string.IsNullOrEmpty(config.ApiUrl))
+                ApiProviders.Apply(ApiProviders.All[ApiProviders.IndexOf(config.ApiUrl)], config);
+            ShowApiSetting();
+        }
 
+        private void ShowApiSetting()
+        {
+            var config = ApiConfig;
+            if (config == null)
+                return;
             int index = ApiProviders.IndexOf(config.ApiUrl);
             ProviderBox.SelectedIndex = index;
             ModelBox.ItemsSource = ApiProviders.All[index].Models;
-            // Fill in DeepSeek defaults on first use.
-            if (string.IsNullOrEmpty(config.ApiUrl))
-                ApiProviders.Apply(ApiProviders.All[index], config);
-
             ShowApiFields();
             FillKeyBox();
         }
 
         private void ShowApiFields()
         {
-            ApiUrlBox.Text = ApiConfig?.ApiUrl ?? string.Empty;
-            ModelBox.Text = ApiConfig?.ModelName ?? string.Empty;
+            apiUrlField.Show();
+            modelField.Show();
         }
 
+        // The box tells of its new text a moment later (`TextChanged` is posted): by then the text is the saved
+        // key, which is how the handler knows there is nothing to take over.
         private void FillKeyBox()
         {
-            fillingKeyBox = true;
             ApiKeyBox.Text = ApiConfig?.ApiKey ?? string.Empty;
-            fillingKeyBox = false;
             ShowApiKeyStatus();
         }
 
-        // The recognition model was switched by the code (free quota used up).
+        // Changed by the code and not on this page: the recognition model (free quota used up), the glossary
+        // (terms extracted from the slides arrive after the page was left and opened again).
         private void OnLectureChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName != nameof(LectureState.AsrModel))
-                return;
-            Dispatcher.UIThread.Post(() =>
+            var field = e.PropertyName switch
             {
-                if (AsrModelBox.Text != Lecture.AsrModel)
-                    AsrModelBox.Text = Lecture.AsrModel;
-            });
+                nameof(LectureState.AsrModel) => asrModelField,
+                nameof(LectureState.Glossary) => glossaryField,
+                _ => null,
+            };
+            if (field != null)
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (attached)
+                        field.Follow();
+                });
         }
 
+        // Changed elsewhere (e.g. the API settings window): show it here too.
         private void OnApiConfigChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName != nameof(OpenAIConfig.ApiKey))
+            switch (e.PropertyName)
+            {
+                case nameof(OpenAIConfig.ApiKey):
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (!attached)
+                            return;
+                        string key = ApiConfig?.ApiKey ?? string.Empty;
+                        if (ApiKeyBox.Text != key && !ApiKeyBox.IsKeyboardFocusWithin)
+                            FillKeyBox();
+                        else
+                            ShowApiKeyStatus();
+                    });
+                    break;
+                case nameof(OpenAIConfig.ApiUrl):
+                case nameof(OpenAIConfig.ModelName):
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (!attached || ApiConfig == null)
+                            return;
+                        apiUrlField.Follow();
+                        modelField.Follow();
+                        // The provider is told from the address. Without one it stays as picked ("其他" empties
+                        // the address for a new one to be typed).
+                        int index = ApiProviders.IndexOf(ApiConfig.ApiUrl);
+                        if (ApiConfig.ApiUrl.Length > 0 && ProviderBox.SelectedIndex != index)
+                            Fill(() =>
+                            {
+                                ProviderBox.SelectedIndex = index;
+                                ModelBox.ItemsSource = ApiProviders.All[index].Models;
+                            });
+                    });
+                    break;
+            }
+        }
+
+        // The API settings window switched to another configuration (no property name), or added or removed
+        // one: card ① is about a different configuration now. It is only shown: a new, empty one gets its
+        // defaults when this page is opened the next time, not while it is being filled in over there.
+        private void OnSettingChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName is not (null or nameof(Setting.Configs)))
                 return;
             Dispatcher.UIThread.Post(() =>
             {
-                // Changed elsewhere (e.g. the API settings window): show it here too.
-                string key = ApiConfig?.ApiKey ?? string.Empty;
-                if (ApiKeyBox.Text != key && !ApiKeyBox.IsKeyboardFocusWithin)
-                    FillKeyBox();
-                else
-                    ShowApiKeyStatus();
+                if (!attached || ReferenceEquals(ApiConfig, subscribedConfig))
+                    return;
+                BindApiConfig();
+                Fill(ShowApiSetting);
+                TestApiResult.Text = string.Empty;
             });
         }
 
@@ -340,11 +479,11 @@ namespace LiveCaptionsTranslator
             TestApiResult.Text = string.Empty;
         }
 
-        // Saved on every keystroke / paste, independent of the page state, so the key can't be lost
-        // by switching pages.
+        // Taken over on every keystroke / paste, independent of the page state, so the key can't be lost
+        // by switching pages. Changing the key asks for the settings to be saved by itself.
         private void ApiKeyBox_TextChanged(object? sender, TextChangedEventArgs e)
         {
-            if (fillingKeyBox || ApiConfig == null)
+            if (ApiConfig == null)
                 return;
             string key = ApiProviders.CleanKey(ApiKeyBox.Text ?? string.Empty);
             // Only the user clearing the box may erase a saved key, never a control reloading itself.
@@ -359,7 +498,6 @@ namespace LiveCaptionsTranslator
                 ApiConfig.ApiKey = key;
                 if (firstKey)
                     SwitchTranslateApiToSummary();
-                Translator.Setting?.Save();
             }
             ShowApiKeyStatus();
         }
@@ -420,16 +558,12 @@ namespace LiveCaptionsTranslator
         private void LoadEngine()
         {
             AsrLanguageBox.SelectedItem = ASR_LANGUAGES.FirstOrDefault(c => c.Tag == LectureLanguages.Code(Lecture.AsrLanguage));
-            fillingAsrKeyBox = true;
             AsrKeyBox.Text = Lecture.AsrApiKey;
-            fillingAsrKeyBox = false;
             ShowAsrKeyStatus();
         }
 
         private void AsrKeyBox_TextChanged(object? sender, TextChangedEventArgs e)
         {
-            if (fillingAsrKeyBox)
-                return;
             string key = ApiProviders.CleanKey(AsrKeyBox.Text ?? string.Empty);
             if (key.Length == 0 && Lecture.AsrApiKey.Length > 0 && !AsrKeyBox.IsKeyboardFocusWithin)
             {
@@ -492,7 +626,7 @@ namespace LiveCaptionsTranslator
             if (!supportedLanguages.ContainsKey(targetLang))
                 supportedLanguages[targetLang] = targetLang;
             TargetLangBox.ItemsSource = supportedLanguages.Keys.ToList();
-            TargetLangBox.Text = targetLang;
+            targetLangField.Show();
         }
 
         private void ApiSettingButton_Click(object? sender, RoutedEventArgs e)
@@ -502,12 +636,12 @@ namespace LiveCaptionsTranslator
 
         private async void ExtractGlossary_Click(object? sender, RoutedEventArgs e)
         {
-            Lecture.Glossary = GlossaryBox.Text ?? string.Empty;
+            glossaryField.Commit();
             await RunBusy(ExtractGlossaryButton, GlossaryResult, "正在从课件中提取术语……", async () =>
             {
                 var (text, added) = await Glossary.ExtractFromSlides();
                 Lecture.Glossary = text;
-                GlossaryBox.Text = text;
+                glossaryField.Show();
                 return added > 0 ? $"新增 {added} 个术语，请检查一下译法" : "没有发现新的术语";
             });
         }
@@ -515,8 +649,8 @@ namespace LiveCaptionsTranslator
         private async void TestApi_Click(object? sender, RoutedEventArgs e)
         {
             // Commit fields that only update on lost focus.
-            foreach (var commit in pendingCommits)
-                commit();
+            foreach (var field in textFields)
+                field.Commit();
 
             await RunBusy(TestApiButton, TestApiResult, "测试中……", async () =>
             {
@@ -543,6 +677,53 @@ namespace LiveCaptionsTranslator
             }
         }
 
+        // The part of the sound settings that does not wait for the device lists.
+        private void LoadSource()
+        {
+            SourceBox.SelectedIndex = (int)Lecture.InputSource;
+            bool mac = OperatingSystem.IsMacOS();
+            // macOS has no list of microphones: the system default one is used.
+            MicPanel.IsVisible = !mac;
+            MicHint.Text = mac
+                ? "用的是系统默认麦克风，可在系统设置的“声音”里更换。第一次使用时 macOS 会请求麦克风权限。"
+                : "这里选的麦克风只供本程序录音，不会更改系统的默认录音设备。不要选蓝牙耳机自带的麦克风，否则耳机会切换到通话模式，音质变差。";
+            MicBox.IsEnabled = Lecture.InputSource == InputSource.Microphone;
+
+            // On Linux the speaker always plays on the system default output, so no picker.
+            bool pickable = !OperatingSystem.IsLinux();
+            SpeechDeviceLabel.IsVisible = pickable;
+            SpeechDeviceBox.IsVisible = pickable;
+        }
+
+        private void ShowDevices()
+        {
+            ShowSpeechDeviceHint();
+            if (microphones == null || outputs == null)
+                return;
+            devicesShown = true;
+
+            // A chosen microphone that is not plugged in shows as the default one, which is what a class then uses.
+            MicBox.ItemsSource = microphones;
+            string chosen = DesktopSettings.MicrophoneId;
+            MicBox.SelectedItem = microphones.FirstOrDefault(device => device.Id == chosen && chosen.Length > 0)
+                                  ?? microphones.FirstOrDefault(device => device.IsDefault);
+
+            if (OperatingSystem.IsLinux())
+                return;
+            var items = new List<object> { DEFAULT_OUTPUT };
+            items.AddRange(outputs);
+            string speechDeviceId = Lecture.SpeechDeviceId;
+            object? selected = outputs.FirstOrDefault(device => device.Id == speechDeviceId);
+            if (selected == null && speechDeviceId.Length > 0)
+            {
+                // Shown as what it is, not as the default device: speech only ever goes to the chosen device.
+                selected = new AudioDevice(speechDeviceId, MISSING_OUTPUT, false);
+                items.Add(selected);
+            }
+            SpeechDeviceBox.ItemsSource = items;
+            SpeechDeviceBox.SelectedItem = selected ?? DEFAULT_OUTPUT;
+        }
+
         private async Task LoadDevices()
         {
             if (loadingDevices)
@@ -551,40 +732,17 @@ namespace LiveCaptionsTranslator
             RefreshDevicesButton.IsEnabled = false;
             try
             {
-                var microphones = await Task.Run(() => AudioDevices.ListAsync(DataFlow.Capture));
-                var renderDevices = await Task.Run(() => AudioDevices.ListAsync(DataFlow.Render));
-                renderDefaultId = await Task.Run(() => AudioDevices.DefaultIdAsync(DataFlow.Render));
-                Fill(() =>
-                {
-                    SourceBox.SelectedIndex = (int)Lecture.InputSource;
-                    bool mac = OperatingSystem.IsMacOS();
-                    // macOS has no list of microphones: the system default one is used.
-                    MicPanel.IsVisible = !mac;
-                    MicHint.Text = mac
-                        ? "用的是系统默认麦克风，可在系统设置的“声音”里更换。第一次使用时 macOS 会请求麦克风权限。"
-                        : "这里选的麦克风只供本程序录音，不会更改系统的默认录音设备。不要选蓝牙耳机自带的麦克风，否则耳机会切换到通话模式，音质变差。";
-
-                    MicBox.ItemsSource = microphones;
-                    string chosen = DesktopSettings.MicrophoneId;
-                    MicBox.SelectedItem = microphones.FirstOrDefault(device => device.Id == chosen && chosen.Length > 0)
-                                          ?? microphones.FirstOrDefault(device => device.IsDefault);
-                    MicBox.IsEnabled = Lecture.InputSource == InputSource.Microphone;
-
-                    // On Linux the speaker always plays on the system default output, so no picker.
-                    bool pickable = !OperatingSystem.IsLinux();
-                    SpeechDeviceLabel.IsVisible = pickable;
-                    SpeechDeviceBox.IsVisible = pickable;
-                    if (pickable)
-                    {
-                        var outputs = new List<object> { DEFAULT_OUTPUT };
-                        outputs.AddRange(renderDevices);
-                        SpeechDeviceBox.ItemsSource = outputs;
-                        string speechDeviceId = Lecture.SpeechDeviceId;
-                        SpeechDeviceBox.SelectedItem = renderDevices.FirstOrDefault(device => device.Id == speechDeviceId)
-                                                       ?? (object)DEFAULT_OUTPUT;
-                    }
-                    ShowSpeechDeviceHint();
-                });
+                var capture = await Task.Run(() => AudioDevices.ListAsync(DataFlow.Capture));
+                var render = await Task.Run(() => AudioDevices.ListAsync(DataFlow.Render));
+                string? renderDefault = await Task.Run(() => AudioDevices.DefaultIdAsync(DataFlow.Render));
+                // Unchanged lists are left alone: filling them again would close a list that is open.
+                if (devicesShown && microphones != null && outputs != null && microphones.SequenceEqual(capture) &&
+                    outputs.SequenceEqual(render) && renderDefaultId == renderDefault)
+                    return;
+                microphones = capture;
+                outputs = render;
+                renderDefaultId = renderDefault;
+                Fill(ShowDevices);
             }
             finally
             {
@@ -605,8 +763,10 @@ namespace LiveCaptionsTranslator
             var source = (InputSource)SourceBox.SelectedIndex;
             Lecture.InputSource = source;
             MicBox.IsEnabled = source == InputSource.Microphone;
-            ShowSpeechDeviceHint();
-            SourceStatus.Text = "已保存。阿里云识别会直接使用这里选的声音来源。";
+            // The source is taken when a class starts.
+            SourceStatus.Text = ClassSession.IsRunning
+                ? "已保存。正在上的这节课还在听原来的来源，点“停止”再点“开始”后生效。"
+                : "已保存。阿里云识别会直接使用这里选的声音来源。";
         }
 
         private void MicBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -617,7 +777,9 @@ namespace LiveCaptionsTranslator
             string source = device.IsDefault ? string.Empty : device.Id;
             DesktopSettings.MicrophoneId = source;
             CloudAsr.MicrophoneSource = source.Length == 0 ? null : source;
-            SourceStatus.Text = $"已改用：{device.Name}。点“停止”再点“开始”后生效。";
+            SourceStatus.Text = ClassSession.IsRunning
+                ? $"已改用：{device.Name}。正在上的这节课点“停止”再点“开始”后生效。"
+                : $"已改用：{device.Name}。";
         }
 
         private void SpeechDeviceBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -636,6 +798,11 @@ namespace LiveCaptionsTranslator
                 return;
             }
             string speechDeviceId = Lecture.SpeechDeviceId;
+            if (speechDeviceId.Length > 0 && outputs != null && outputs.All(device => device.Id != speechDeviceId))
+            {
+                SpeechDeviceHint.Text = "这个设备现在没有连接，播报不会出声；连上以后会从它播出。";
+                return;
+            }
             bool onDefault = string.IsNullOrEmpty(speechDeviceId) ||
                              speechDeviceId == renderDefaultId;
             SpeechDeviceHint.Text = onDefault
@@ -644,20 +811,28 @@ namespace LiveCaptionsTranslator
                 : "播报只从这个设备播出，不会被识别听到。";
         }
 
-        private async Task LoadOcrLanguages()
+        private void ShowOcrLanguages()
         {
-            var languages = new List<object> { AUTO_OCR };
-            var available = await Task.Run(SlideOcr.AvailableLanguages);
-            languages.AddRange(available);
-            Fill(() =>
-            {
-                OcrLanguageBox.ItemsSource = languages;
-                string current = Lecture.OcrLanguage;
-                OcrLanguageBox.SelectedItem = available.FirstOrDefault(l => l.Tag == current) ?? (object)AUTO_OCR;
-            });
             OcrHint.Text = "上传后按老师讲到的页码分节，小结也会参考这一页的文字纠正术语。没有文字的页面（扫描件、图片）会自动用 Tesseract OCR 识别；" +
                            "OCR 语言来自已安装的 Tesseract 语言包。也支持 .pptx。" +
                            (SlideOcr.IsAvailable ? string.Empty : "\n还没有找到 OCR 工具：请安装 poppler-utils（pdftoppm）和 tesseract。");
+            if (ocrLanguages == null)
+                return;
+            ocrLanguagesShown = true;
+            var languages = new List<object> { AUTO_OCR };
+            languages.AddRange(ocrLanguages);
+            OcrLanguageBox.ItemsSource = languages;
+            string current = Lecture.OcrLanguage;
+            OcrLanguageBox.SelectedItem = ocrLanguages.FirstOrDefault(l => l.Tag == current) ?? (object)AUTO_OCR;
+        }
+
+        private async Task LoadOcrLanguages()
+        {
+            var available = await Task.Run(SlideOcr.AvailableLanguages);
+            if (ocrLanguagesShown && ocrLanguages != null && ocrLanguages.SequenceEqual(available))
+                return;
+            ocrLanguages = available;
+            Fill(ShowOcrLanguages);
         }
 
         private void OcrLanguageBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -673,8 +848,27 @@ namespace LiveCaptionsTranslator
             Dispatcher.UIThread.Post(ShowSlidesInfo);
         }
 
+        private void OnSlidesLoadingChanged()
+        {
+            Dispatcher.UIThread.Post(ShowSlidesInfo);
+        }
+
+        // Whether this page is reading a file, and shows how far that is.
+        private bool readingSlides = false;
+
         private void ShowSlidesInfo()
         {
+            // A file is being read, maybe since before this page was opened, or from the timeline page: not a
+            // second one on top of it.
+            LoadSlidesButton.IsEnabled = !SlideDeck.IsLoading;
+            if (SlideDeck.IsLoading)
+            {
+                if (!readingSlides)
+                    SlidesInfo.Text = "读取中……";
+                // Nor is the file before it taken away meanwhile: the one being read takes its place.
+                ClearSlidesButton.IsVisible = false;
+                return;
+            }
             if (!SlideDeck.IsLoaded)
             {
                 SlidesInfo.Text = "未上传课件：按话题变化分节。";
@@ -695,6 +889,7 @@ namespace LiveCaptionsTranslator
 
             SlidesInfo.Text = "读取中……";
             LoadSlidesButton.IsEnabled = false;
+            readingSlides = true;
             try
             {
                 await SlideDeck.Load(path, new Progress<string>(text => SlidesInfo.Text = text));
@@ -706,7 +901,7 @@ namespace LiveCaptionsTranslator
             }
             finally
             {
-                LoadSlidesButton.IsEnabled = true;
+                readingSlides = false;
             }
             ShowSlidesInfo();
         }
@@ -717,16 +912,28 @@ namespace LiveCaptionsTranslator
             ShowSlidesInfo();
         }
 
+        private void ShowVoices()
+        {
+            if (voices == null)
+                return;
+            voicesShown = true;
+            var items = new List<string> { AUTO_VOICE };
+            items.AddRange(voices);
+            // The chosen voice stays in the list even if it is not installed right now: it is the one in use.
+            string current = Lecture.VoiceName;
+            if (current.Length > 0 && !items.Contains(current))
+                items.Add(current);
+            VoiceBox.ItemsSource = items;
+            VoiceBox.SelectedItem = current.Length > 0 ? current : AUTO_VOICE;
+        }
+
         private async Task LoadVoices()
         {
-            var voices = new List<string> { AUTO_VOICE };
-            voices.AddRange(await Task.Run(Speaker.GetVoices));
-            Fill(() =>
-            {
-                VoiceBox.ItemsSource = voices;
-                string current = Lecture.VoiceName;
-                VoiceBox.SelectedItem = voices.Contains(current) ? current : AUTO_VOICE;
-            });
+            var installed = await Task.Run(Speaker.GetVoices);
+            if (voicesShown && voices != null && voices.SequenceEqual(installed))
+                return;
+            voices = installed;
+            Fill(ShowVoices);
         }
 
         private void VoiceBox_SelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -757,7 +964,7 @@ namespace LiveCaptionsTranslator
         private void ResetPrompt_Click(object? sender, RoutedEventArgs e)
         {
             Lecture.SummaryPrompt = LectureState.DEFAULT_SUMMARY_PROMPT;
-            SummaryPromptBox.Text = Lecture.SummaryPrompt;
+            summaryPromptField.Show();
         }
     }
 }

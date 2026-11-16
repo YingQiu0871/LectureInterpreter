@@ -81,21 +81,7 @@ namespace LiveCaptionsTranslator.apis
                 new BaseLLMConfig.Message { role = "user", content = $"🔤 {text} 🔤" }
             };
 
-            if (Translator.Setting.ContextAware)
-            {
-                foreach (var entry in Translator.Caption.AwareContexts)
-                {
-                    string translatedText = entry.TranslatedText;
-                    if (translatedText.Contains("[ERROR]") || translatedText.Contains("[WARNING]"))
-                        continue;
-                    translatedText = RegexPatterns.NoticePrefix().Replace(translatedText, "");
-
-                    messages.InsertRange(1, [
-                        new BaseLLMConfig.Message { role = "user", content = $"🔤 {entry.SourceText} 🔤" },
-                        new BaseLLMConfig.Message { role = "assistant", content = $"{translatedText}" }
-                    ]);
-                }
-            }
+            messages.InsertRange(1, ContextMessages());
 
             if (string.IsNullOrWhiteSpace(config.ApiKey))
                 return "[ERROR] 翻译失败：还没有填 API Key，请到“设置”页的“模型与 API”里填写。";
@@ -134,6 +120,10 @@ namespace LiveCaptionsTranslator.apis
                         return "[ERROR] 翻译失败：接口返回了空结果。";
                     string output = responseObj.choices[0].message.content ?? "";
                     return RegexPatterns.ModelThinking().Replace(output, "");
+                }
+                catch (OperationCanceledException) when (!token.IsCancellationRequested)
+                {
+                    return "[ERROR] 翻译失败：请求超时（超过 8 秒），请换一个更快的接口或检查网络。";
                 }
                 catch (OperationCanceledException)
                 {
@@ -193,9 +183,12 @@ namespace LiveCaptionsTranslator.apis
                 }
                 else
                 {
+                    // Sentences are translated in parallel: each request walks the formats on its own, starting
+                    // from the one that worked last, instead of all of them advancing one shared index.
+                    int format = Volatile.Read(ref openai_fallback_index);
                     while (true)
                     {
-                        var requestData = LLMRequestDataFactory.Create(openai_fallback_index,
+                        var requestData = LLMRequestDataFactory.Create(format,
                             config.ModelName, messages, config.Temperature);
                         string jsonContent = JsonSerializer.Serialize(requestData, requestData.GetType());
                         // Set the key on each request: sentences are translated in parallel, and changing the
@@ -209,16 +202,19 @@ namespace LiveCaptionsTranslator.apis
                         response = await client.SendAsync(request, token);
                         if (response.StatusCode != HttpStatusCode.BadRequest &&
                             response.StatusCode != HttpStatusCode.UnprocessableEntity)
+                        {
+                            Volatile.Write(ref openai_fallback_index, format);
                             break;
+                        }
                         // The account has no balance: another request format would fail the same way.
                         if (TextUtil.IsArrears(await response.Content.ReadAsStringAsync()))
                             break;
                         await Task.Delay(15);
 
-                        openai_fallback_index++;
-                        if (openai_fallback_index >= LLMRequestDataFactory.FallbackCount)
+                        format++;
+                        if (format >= LLMRequestDataFactory.FallbackCount)
                         {
-                            openai_fallback_index = 0;
+                            Volatile.Write(ref openai_fallback_index, 0);
                             break;
                         }
                     }
@@ -264,6 +260,25 @@ namespace LiveCaptionsTranslator.apis
             }
             else
                 return HttpError(response);
+        }
+
+        // The sentences before this one and their translations as chat turns, oldest first as in a conversation.
+        // Empty unless the context-aware mode is on.
+        internal static List<BaseLLMConfig.Message> ContextMessages()
+        {
+            var turns = new List<BaseLLMConfig.Message>();
+            if (Translator.Setting?.ContextAware != true || Translator.Caption == null)
+                return turns;
+            foreach (var entry in Translator.Caption.AwareContexts)
+            {
+                string translatedText = entry.TranslatedText;
+                if (translatedText.Contains("[ERROR]") || translatedText.Contains("[WARNING]"))
+                    continue;
+                translatedText = RegexPatterns.NoticePrefix().Replace(translatedText, "");
+                turns.Add(new BaseLLMConfig.Message { role = "user", content = $"🔤 {entry.SourceText} 🔤" });
+                turns.Add(new BaseLLMConfig.Message { role = "assistant", content = translatedText });
+            }
+            return turns;
         }
 
         // System message excluded: the context pairs whose two sides both have text, then the final user message.
@@ -386,21 +401,7 @@ namespace LiveCaptionsTranslator.apis
                 new BaseLLMConfig.Message { role = "user", content = $"🔤 {text} 🔤" }
             };
 
-            if (Translator.Setting.ContextAware)
-            {
-                foreach (var entry in Translator.Caption.AwareContexts)
-                {
-                    string translatedText = entry.TranslatedText;
-                    if (translatedText.Contains("[ERROR]") || translatedText.Contains("[WARNING]"))
-                        continue;
-                    translatedText = RegexPatterns.NoticePrefix().Replace(translatedText, "");
-
-                    messages.InsertRange(1, [
-                        new BaseLLMConfig.Message { role = "user", content = $"🔤 {entry.SourceText} 🔤" },
-                        new BaseLLMConfig.Message { role = "assistant", content = $"{translatedText}" }
-                    ]);
-                }
-            }
+            messages.InsertRange(1, ContextMessages());
 
             var requestData = LLMRequestDataFactory.Create("Ollama", config.ModelName, messages, config.Temperature);
             requestData.keep_alive = config.keep_alive;
@@ -535,21 +536,7 @@ namespace LiveCaptionsTranslator.apis
                 new BaseLLMConfig.Message { role = "user", content = $"🔤 {text} 🔤" }
             };
 
-            if (Translator.Setting.ContextAware)
-            {
-                foreach (var entry in Translator.Caption.AwareContexts)
-                {
-                    string translatedText = entry.TranslatedText;
-                    if (translatedText.Contains("[ERROR]") || translatedText.Contains("[WARNING]"))
-                        continue;
-                    translatedText = RegexPatterns.NoticePrefix().Replace(translatedText, "");
-
-                    messages.InsertRange(1, [
-                        new BaseLLMConfig.Message { role = "user", content = $"🔤 {entry.SourceText} 🔤" },
-                        new BaseLLMConfig.Message { role = "assistant", content = $"{translatedText}" }
-                    ]);
-                }
-            }
+            messages.InsertRange(1, ContextMessages());
 
             var requestData = LLMRequestDataFactory.Create("OpenRouter", config.ModelName, messages, config.Temperature);
 

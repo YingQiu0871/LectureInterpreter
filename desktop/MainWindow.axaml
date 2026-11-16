@@ -144,14 +144,15 @@
                     <ToggleButton x:Name="LogOnlyButton" Classes="pill" Content="暂停翻译"
                                   ToolTip.Tip="暂停翻译（只记录原文）" Click="LogOnlyButton_Click" />
 
-                    <Border Width="1" Height="20" Margin="6,0" Background="{DynamicResource CardBorderBrush}" />
+                    <Border Width="1" Height="20" Margin="4,0" Background="{DynamicResource CardBorderBrush}" />
 
                     <!-- Output -->
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="2"
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,4,0"
                                 ToolTip.Tip="打开 / 关闭耳机播报 (Ctrl+Alt+M)">
-                        <TextBlock Text="耳机播报" FontSize="13" VerticalAlignment="Center" />
-                        <ToggleSwitch x:Name="SpeechSwitch" OnContent="{x:Null}" OffContent="{x:Null}"
-                                      VerticalAlignment="Center" Click="SpeechSwitch_Click" />
+                        <TextBlock Text="耳机播报" FontSize="13" VerticalAlignment="Center"
+                                   PointerReleased="SpeechLabel_PointerReleased" />
+                        <ToggleSwitch x:Name="SpeechSwitch" Classes="bare" Margin="8,0,-12,0"
+                                      AutomationProperties.Name="耳机播报" Click="SpeechSwitch_Click" />
                     </StackPanel>
                     <Button x:Name="FloatButton" Classes="pill" ToolTip.Tip="悬浮字幕、双语浮窗">
                         <StackPanel Orientation="Horizontal" Spacing="7">
@@ -199,7 +200,7 @@
                         </Button.Flyout>
                     </Button>
 
-                    <Border Width="1" Height="20" Margin="6,0" Background="{DynamicResource CardBorderBrush}" />
+                    <Border Width="1" Height="20" Margin="4,0" Background="{DynamicResource CardBorderBrush}" />
 
                     <!-- Window -->
                     <ToggleButton x:Name="TopmostButton" Classes="icon" ToolTip.Tip="窗口置顶"

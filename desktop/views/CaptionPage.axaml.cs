@@ -5,7 +5,6 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
-using Avalonia.VisualTree;
 
 using LiveCaptionsTranslator.models;
 using LiveCaptionsTranslator.utils;
@@ -14,15 +13,24 @@ namespace LiveCaptionsTranslator
 {
     public partial class CaptionPage : UserControl
     {
+        private readonly TranscriptView transcript = new();
+        private bool followTranscript = true;
+        private int captionPending = 0;
         private bool showOriginal = true;
         // Large-caption mode is remembered for this run only (the page is kept alive by the main window).
         private static bool largeMode;
         private const int LARGE_ORIGINAL_SIZE = 15;
         private const int LARGE_TRANSLATED_SIZE = 26;
+        // The least width in which the status of the summaries is still a line of words and not a column of them.
+        private const double MIN_STATUS_WIDTH = 140;
 
         public CaptionPage()
         {
             InitializeComponent();
+            // The list changes row by row (new sentences at its end).
+            TranscriptList.ItemsSource = transcript.Lines;
+            transcript.Updated += () => TranscriptEmptyHint.IsVisible = transcript.Lines.Count == 0;
+            TranscriptScroll.ScrollChanged += TranscriptScroll_ScrollChanged;
             ApplyLayout();
             LargeModeButton.IsChecked = largeMode;
             LargeModeButton.Click += (s, e) =>
@@ -33,6 +41,8 @@ namespace LiveCaptionsTranslator
 
             Splitter.DragCompleted += (s, e) =>
                 Translator.Setting.MainWindow.SectionPanelWidth = Math.Round(Root.ColumnDefinitions[2].ActualWidth);
+            EndSectionButton.SizeChanged += (s, e) => PlaceStatus();
+            RightPane.SizeChanged += (s, e) => PlaceStatus();
 
             // The copy handlers sit on the lists, because their items are made from templates.
             TranscriptList.AddHandler(PointerPressedEvent, TextBlock_Pressed, RoutingStrategies.Bubble);
@@ -53,34 +63,55 @@ namespace LiveCaptionsTranslator
         protected override async void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
         {
             base.OnAttachedToVisualTree(e);
-            (Shell.Main)?.AutoHeightAdjust(minHeight: (int)Shell.Main.MinHeight);
-            Summarizer.SectionSummarized += OnSectionSummarized;
-            Translator.TranslationLogged += OnTranslationLogged;
-            Refiner.ParagraphRefined += OnTranslationLogged;
-            ClassSession.StateChanged += OnSessionChanged;
-            Summarizer.StatusChanged += OnSummaryStatusChanged;
-            Translator.Caption.PropertyChanged += OnCaptionChanged;
+            if (Shell.Main is MainWindow main)
+                main.AutoHeightAdjust(minHeight: (int)main.MinHeight);
+            Subscribe(false);
+            Subscribe(true);
             ShowCaption();
             OnSummaryStatusChanged();
-            await LoadTranscript();
+            await transcript.Reload();
             await LoadSections(scrollToEnd: true);
         }
 
         protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
         {
             base.OnDetachedFromVisualTree(e);
-            Summarizer.SectionSummarized -= OnSectionSummarized;
-            Translator.TranslationLogged -= OnTranslationLogged;
-            Refiner.ParagraphRefined -= OnTranslationLogged;
-            ClassSession.StateChanged -= OnSessionChanged;
-            Summarizer.StatusChanged -= OnSummaryStatusChanged;
-            Translator.Caption.PropertyChanged -= OnCaptionChanged;
+            Subscribe(false);
         }
 
-        // The caption changes on the translation threads: update the texts on the UI thread.
+        private void Subscribe(bool on)
+        {
+            if (on)
+            {
+                Summarizer.SectionSummarized += OnSectionSummarized;
+                Translator.TranslationLogged += OnTranslationLogged;
+                Refiner.ParagraphRefined += OnTranslationLogged;
+                ClassSession.StateChanged += OnSessionChanged;
+                Summarizer.StatusChanged += OnSummaryStatusChanged;
+                Translator.Caption.PropertyChanged += OnCaptionChanged;
+            }
+            else
+            {
+                Summarizer.SectionSummarized -= OnSectionSummarized;
+                Translator.TranslationLogged -= OnTranslationLogged;
+                Refiner.ParagraphRefined -= OnTranslationLogged;
+                ClassSession.StateChanged -= OnSessionChanged;
+                Summarizer.StatusChanged -= OnSummaryStatusChanged;
+                Translator.Caption.PropertyChanged -= OnCaptionChanged;
+            }
+        }
+
+        // The caption changes on the translation threads, several of its properties at a time and many times a
+        // second: the texts are updated on the UI thread, once for all the changes that came in until then.
         private void OnCaptionChanged(object? sender, PropertyChangedEventArgs e)
         {
-            Dispatcher.UIThread.Post(ShowCaption);
+            if (Interlocked.Exchange(ref captionPending, 1) == 1)
+                return;
+            Dispatcher.UIThread.Post(() =>
+            {
+                Interlocked.Exchange(ref captionPending, 0);
+                ShowCaption();
+            });
         }
 
         private void ShowCaption()
@@ -89,7 +120,9 @@ namespace LiveCaptionsTranslator
             OriginalCaption.Text = caption.DisplayOriginalCaption;
             TranslatedCaption.Text = caption.DisplayTranslatedCaption;
             StatusHint.Text = caption.StatusHint;
-            StatusHint.IsVisible = string.IsNullOrEmpty(caption.DisplayOriginalCaption);
+            // (It stands where the two lines are: only while both are empty.)
+            StatusHint.IsVisible = string.IsNullOrEmpty(caption.DisplayOriginalCaption) &&
+                                   string.IsNullOrEmpty(caption.DisplayTranslatedCaption);
             WarningText.Text = caption.SourceWarning;
             WarningBorder.IsVisible = caption.IsSourceWarningVisible;
 
@@ -98,20 +131,34 @@ namespace LiveCaptionsTranslator
             if (showOriginal != caption.IsOriginalVisible)
             {
                 showOriginal = caption.IsOriginalVisible;
-                ShowTranscriptOriginals();
+                // A style hides the originals of the rows, those still to come included.
+                TranscriptList.Classes.Set("noOriginal", !showOriginal);
             }
         }
 
-        private void ShowTranscriptOriginals()
+        // The list keeps showing its end while sentences are added, until the reader scrolls up; scrolling back
+        // down to the end follows again. Whether the end is in view is only looked at when the reader scrolls:
+        // right after rows were added the list has grown and its place has not been moved yet.
+        private void TranscriptScroll_ScrollChanged(object? sender, ScrollChangedEventArgs e)
         {
-            foreach (var block in TranscriptList.GetVisualDescendants().OfType<TextBlock>()
-                         .Where(b => b.Classes.Contains("original")))
-                block.IsVisible = showOriginal;
+            if (!ReferenceEquals(e.Source, TranscriptScroll))
+                return;
+            double scrollable = TranscriptScroll.Extent.Height - TranscriptScroll.Viewport.Height;
+            if (e.ExtentDelta.Y != 0 || e.ViewportDelta.Y != 0)
+            {
+                // The list or the page changed its size.
+                if (followTranscript)
+                    TranscriptScroll.ScrollToEnd();
+                else if (scrollable <= 0)
+                    followTranscript = true;    // Nothing to scroll (a new class): its sentences are followed again.
+            }
+            else if (e.OffsetDelta.Y != 0)
+                followTranscript = TranscriptScroll.Offset.Y >= scrollable - 20;
         }
 
         private void OnTranslationLogged()
         {
-            Dispatcher.UIThread.Post(async () => await LoadTranscript());
+            Dispatcher.UIThread.Post(() => _ = transcript.Reload());
         }
 
         private void OnSummaryStatusChanged()
@@ -127,39 +174,9 @@ namespace LiveCaptionsTranslator
         {
             Dispatcher.UIThread.Post(async () =>
             {
-                await LoadTranscript();
+                await transcript.Reload();
                 await LoadSections(scrollToEnd: true);
             });
-        }
-
-        // Shows every sentence logged since the class was started.
-        private async Task LoadTranscript()
-        {
-            List<HistoryLine> lines = new();
-            if (ClassSession.FirstHistoryId >= 0)
-            {
-                try
-                {
-                    lines = await SectionLogger.LoadHistoryRange(ClassSession.FirstHistoryId);
-                    var paragraphs = await SectionLogger.LoadParagraphs(ClassSession.FirstHistoryId);
-                    lines = LectureDocument.MergeParagraphs(lines, paragraphs, fadeUnrefined: Refiner.Enabled);
-                }
-                catch (Exception)
-                {
-                    return;
-                }
-            }
-
-            // Keep following new sentences unless the user scrolled up to read.
-            bool atEnd = TranscriptScroll.Offset.Y >= TranscriptScroll.Extent.Height - TranscriptScroll.Viewport.Height - 20;
-            TranscriptList.ItemsSource = lines;
-            TranscriptEmptyHint.IsVisible = lines.Count == 0;
-            Dispatcher.UIThread.Post(() =>
-            {
-                ShowTranscriptOriginals();
-                if (atEnd)
-                    TranscriptScroll.ScrollToEnd();
-            }, DispatcherPriority.Background);
         }
 
         private void OnSectionSummarized(SectionEntry section)
@@ -208,6 +225,15 @@ namespace LiveCaptionsTranslator
             TranslatedCaption.FontSize = largeMode ? LARGE_TRANSLATED_SIZE : Translator.Setting.MainWindow.TranslatedFontSize;
         }
 
+        // The status of the summaries stands to the left of the button that ends a section and keeps clear of
+        // it. In a column too narrow for words next to the button it stands above the button.
+        private void PlaceStatus()
+        {
+            bool beside = RightPane.Bounds.Width - EndSectionButton.Bounds.Width - 12 >= MIN_STATUS_WIDTH;
+            StatusHost.Margin = new Thickness(2, 0, beside ? EndSectionButton.Bounds.Width + 28 : 16, 16);
+            SummaryStatus.Margin = new Thickness(0, 0, 0, beside ? 0 : EndSectionButton.Bounds.Height + 8);
+        }
+
         // Large-caption mode hides the section column; the current sentence is shown big at the bottom.
         private void ApplyLayout()
         {
@@ -217,8 +243,13 @@ namespace LiveCaptionsTranslator
                 : new GridLength(Math.Max(Translator.Setting.MainWindow.SectionPanelWidth, 180));
             Splitter.IsVisible = !largeMode;
             RightPane.IsVisible = !largeMode;
+            StatusHost.IsVisible = !largeMode;
             Grid.SetRowSpan(LeftPane, largeMode ? 1 : 2);
-            LeftPane.Margin = new Thickness(16, 16, largeMode ? 16 : 0, largeMode ? 8 : 16);
+            LeftPane.Margin = new Thickness(16, 16, largeMode ? 16 : 0, largeMode ? 12 : 16);
+            // The sizes of the large captions are fixed: the tips offer Ctrl + wheel only for the normal ones.
+            string tip = largeMode ? "单击复制" : "单击复制，Ctrl+滚轮调整字号";
+            ToolTip.SetTip(OriginalCaption, tip);
+            ToolTip.SetTip(TranslatedCaption, tip);
             ApplyFontSizes();
         }
 

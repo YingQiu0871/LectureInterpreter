@@ -18,6 +18,17 @@ namespace LiveCaptionsTranslator
                 started = true;
             }
 
+            AppDomain.CurrentDomain.UnhandledException += (s, e) =>
+            {
+                ErrorLog.Write("Fatal", e.ExceptionObject?.ToString() ?? "unknown error");
+                models.Setting.Flush();
+            };
+            TaskScheduler.UnobservedTaskException += (s, e) =>
+            {
+                ErrorLog.Write("Task", e.Exception);
+                e.SetObserved();
+            };
+
             // Settings and history are kept in the user's data folder, so do not depend on how the program was started.
             Directory.SetCurrentDirectory(AppPaths.DataDirectory);
             AppDomain.CurrentDomain.ProcessExit += (s, e) => Shutdown();

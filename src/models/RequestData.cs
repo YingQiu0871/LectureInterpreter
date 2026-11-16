@@ -13,7 +13,8 @@ namespace LiveCaptionsTranslator.models
         public List<BaseLLMConfig.Message> messages { get; set; } = messages;
         public double temperature { get; set; } = temperature;
 
-        public int max_tokens { get; set; } = 128;
+        // Room for the translation of one long sentence; a tighter limit cuts it off in the middle.
+        public int max_tokens { get; set; } = 512;
         public bool stream { get; set; } = false;
 
         /// <summary>

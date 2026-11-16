@@ -96,7 +96,10 @@ namespace LiveCaptionsTranslator
                 // Keep going instead of retrying the same sentences forever.
                 failures = 0;
                 source = string.Join(" ", batch.Select(line => line.SourceText));
-                translation = string.Join(" ", batch.Select(line => StripLatency(line.TranslatedText)));
+                // Without the sentences that have no translation (a failed request, translation paused).
+                translation = string.Join(" ", batch
+                    .Select(line => LectureDocument.CleanTranslation(line.TranslatedText))
+                    .Where(text => text.Length > 0));
             }
 
             await SectionLogger.AddParagraph(batch[0].Time, batch[0].Id, batch[^1].Id, source, translation);
@@ -154,8 +157,5 @@ namespace LiveCaptionsTranslator
                 throw new FormatException("模型返回了空内容。");
             return (source.Trim(), translation.Trim());
         }
-
-        private static string StripLatency(string text) =>
-            RegexPatterns.NoticePrefix().Replace(text, string.Empty).Trim();
     }
 }

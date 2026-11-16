@@ -37,25 +37,46 @@ namespace LiveCaptionsTranslator.utils
         // A page with less text than this is treated as scanned and read with OCR.
         private const int MIN_TEXT_CHARS = 30;
 
+        private static int loading = 0;
+
+        // Whether a file is being read. One at a time: with OCR that takes minutes, and it goes on when the page
+        // that started it is left. A second file read on top of the first would leave whichever is done last,
+        // with the counts of the two mixed up.
+        public static bool IsLoading => Volatile.Read(ref loading) != 0;
+
+        // Raised when reading a file begins and when it ends, whatever came of it.
+        public static event Action? LoadingChanged;
+
         public static async Task Load(string path, IProgress<string>? progress = null)
         {
-            string extension = Path.GetExtension(path).ToLowerInvariant();
-            lastOcrPageCount = 0;
-            var loaded = extension switch
+            if (Interlocked.Exchange(ref loading, 1) != 0)
+                throw new InvalidOperationException("上一份课件还在读取，请等它读完。");
+            try
             {
-                ".pdf" => await ReadPdfWithOcr(path, progress),
-                ".pptx" => await Task.Run(() => ReadPptx(path)),
-                ".ppt" => throw new NotSupportedException("不支持旧版 .ppt，请在 PowerPoint 里另存为 .pdf 或 .pptx。"),
-                _ => throw new NotSupportedException("只支持 PDF 和 PPTX 课件。"),
-            };
+                LoadingChanged?.Invoke();
+                string extension = Path.GetExtension(path).ToLowerInvariant();
+                lastOcrPageCount = 0;
+                var loaded = extension switch
+                {
+                    ".pdf" => await ReadPdfWithOcr(path, progress),
+                    ".pptx" => await Task.Run(() => ReadPptx(path)),
+                    ".ppt" => throw new NotSupportedException("不支持旧版 .ppt，请在 PowerPoint 里另存为 .pdf 或 .pptx。"),
+                    _ => throw new NotSupportedException("只支持 PDF 和 PPTX 课件。"),
+                };
 
-            if (loaded.Count == 0 || loaded.All(page => string.IsNullOrEmpty(page.Text)))
-                throw new InvalidDataException("课件里没有读到文字。");
+                if (loaded.Count == 0 || loaded.All(page => string.IsNullOrEmpty(page.Text)))
+                    throw new InvalidDataException("课件里没有读到文字。");
 
-            pages = loaded;
-            FileName = Path.GetFileName(path);
-            OcrPageCount = lastOcrPageCount;
-            Changed?.Invoke();
+                pages = loaded;
+                FileName = Path.GetFileName(path);
+                OcrPageCount = lastOcrPageCount;
+                Changed?.Invoke();
+            }
+            finally
+            {
+                Volatile.Write(ref loading, 0);
+                LoadingChanged?.Invoke();
+            }
         }
 
         // Text layer first; pages without one (scans, slides exported as pictures) go through OCR.

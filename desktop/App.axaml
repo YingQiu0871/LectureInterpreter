@@ -22,6 +22,9 @@
                     <SolidColorBrush x:Key="SegHoverBrush" Color="#E4E9F1" />
                     <SolidColorBrush x:Key="DangerBrush" Color="#E5484D" />
                     <SolidColorBrush x:Key="DangerHoverBrush" Color="#D63B40" />
+                    <!-- The outline of what can be typed in or picked from: a shade darker than a card's. -->
+                    <SolidColorBrush x:Key="InputBorderBrush" Color="#D3DAE5" />
+                    <SolidColorBrush x:Key="InputBorderHoverBrush" Color="#B4BFCE" />
 
                     <SolidColorBrush x:Key="ButtonBackground" Color="#F1F4F9" />
                     <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#E6EBF3" />
@@ -29,15 +32,67 @@
                     <SolidColorBrush x:Key="ButtonBorderBrush" Color="#E3E8EF" />
                     <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#D5DCE8" />
                     <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#C9D2E0" />
+                    <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#F3F5F9" />
+                    <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="#EBEEF3" />
+                    <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#A9B3C1" />
                     <SolidColorBrush x:Key="ToggleButtonBackground" Color="#F1F4F9" />
                     <SolidColorBrush x:Key="ToggleButtonBackgroundPointerOver" Color="#E6EBF3" />
                     <SolidColorBrush x:Key="ToggleButtonBorderBrush" Color="#E3E8EF" />
                     <SolidColorBrush x:Key="ToggleButtonBorderBrushPointerOver" Color="#D5DCE8" />
-                    <SolidColorBrush x:Key="ExpanderHeaderBackground" Color="#F1F4F9" />
-                    <SolidColorBrush x:Key="ExpanderHeaderBackgroundPointerOver" Color="#E6EBF3" />
-                    <SolidColorBrush x:Key="ExpanderHeaderBackgroundPressed" Color="#E6EBF3" />
-                    <SolidColorBrush x:Key="ExpanderHeaderBorderBrush" Color="#E3E8EF" />
-                    <SolidColorBrush x:Key="ExpanderHeaderBorderBrushPointerOver" Color="#E3E8EF" />
+
+                    <!-- Text boxes and lists: the quiet outline, the accent only while typing. -->
+                    <SolidColorBrush x:Key="TextControlBackground" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="TextControlBackgroundDisabled" Color="#F3F5F9" />
+                    <SolidColorBrush x:Key="TextControlBorderBrush" Color="#D3DAE5" />
+                    <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#B4BFCE" />
+                    <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="#1E6FD9" />
+                    <SolidColorBrush x:Key="TextControlBorderBrushDisabled" Color="#E3E8EF" />
+                    <SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="#9AA5B4" />
+                    <SolidColorBrush x:Key="TextControlPlaceholderForegroundPointerOver" Color="#9AA5B4" />
+                    <SolidColorBrush x:Key="TextControlPlaceholderForegroundFocused" Color="#9AA5B4" />
+                    <SolidColorBrush x:Key="ComboBoxBackground" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="#F6F8FB" />
+                    <SolidColorBrush x:Key="ComboBoxBackgroundDisabled" Color="#F3F5F9" />
+                    <SolidColorBrush x:Key="ComboBoxBorderBrush" Color="#D3DAE5" />
+                    <SolidColorBrush x:Key="ComboBoxBorderBrushPointerOver" Color="#B4BFCE" />
+                    <SolidColorBrush x:Key="ComboBoxBorderBrushPressed" Color="#1E6FD9" />
+                    <SolidColorBrush x:Key="ComboBoxBorderBrushDisabled" Color="#E3E8EF" />
+                    <SolidColorBrush x:Key="ComboBoxForegroundDisabled" Color="#9AA5B4" />
+                    <SolidColorBrush x:Key="ComboBoxDropDownGlyphForeground" Color="#6B7685" />
+                    <SolidColorBrush x:Key="ComboBoxDropDownGlyphForegroundDisabled" Color="#B4BFCE" />
+                    <SolidColorBrush x:Key="ComboBoxDropDownBorderBrush" Color="#E3E8EF" />
+
+                    <!-- Switches, check boxes and sliders that are off: grey, not black. -->
+                    <SolidColorBrush x:Key="ToggleSwitchStrokeOff" Color="#9AA5B4" />
+                    <SolidColorBrush x:Key="ToggleSwitchStrokeOffPointerOver" Color="#6B7685" />
+                    <SolidColorBrush x:Key="ToggleSwitchStrokeOffPressed" Color="#6B7685" />
+                    <SolidColorBrush x:Key="ToggleSwitchKnobFillOff" Color="#7C8797" />
+                    <SolidColorBrush x:Key="ToggleSwitchKnobFillOffPointerOver" Color="#6B7685" />
+                    <SolidColorBrush x:Key="ToggleSwitchKnobFillOffPressed" Color="#6B7685" />
+                    <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUnchecked" Color="#9AA5B4" />
+                    <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUncheckedPointerOver" Color="#6B7685" />
+                    <SolidColorBrush x:Key="SliderTrackFill" Color="#D3DAE5" />
+                    <SolidColorBrush x:Key="SliderTrackFillPointerOver" Color="#D3DAE5" />
+                    <SolidColorBrush x:Key="SliderTrackFillPressed" Color="#D3DAE5" />
+
+                    <!-- "高级：…": a line of text that opens, not a box. -->
+                    <SolidColorBrush x:Key="ExpanderHeaderBackground" Color="Transparent" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBackgroundPointerOver" Color="Transparent" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBackgroundPressed" Color="Transparent" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBorderBrush" Color="Transparent" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBorderBrushPointerOver" Color="Transparent" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBorderBrushPressed" Color="Transparent" />
+                    <SolidColorBrush x:Key="ExpanderHeaderForeground" Color="#6B7685" />
+                    <SolidColorBrush x:Key="ExpanderHeaderForegroundPointerOver" Color="#1E6FD9" />
+                    <SolidColorBrush x:Key="ExpanderHeaderForegroundPressed" Color="#1E6FD9" />
+                    <SolidColorBrush x:Key="ExpanderChevronForeground" Color="#6B7685" />
+                    <SolidColorBrush x:Key="ExpanderChevronForegroundPointerOver" Color="#1E6FD9" />
+                    <SolidColorBrush x:Key="ExpanderChevronForegroundPressed" Color="#1E6FD9" />
+                    <SolidColorBrush x:Key="ExpanderContentBackground" Color="Transparent" />
+                    <SolidColorBrush x:Key="ExpanderContentBorderBrush" Color="Transparent" />
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Dark">
                     <SolidColorBrush x:Key="AppBgBrush" Color="#1A1F27" />
@@ -54,6 +109,8 @@
                     <SolidColorBrush x:Key="SegHoverBrush" Color="#343D4B" />
                     <SolidColorBrush x:Key="DangerBrush" Color="#E5484D" />
                     <SolidColorBrush x:Key="DangerHoverBrush" Color="#F0575C" />
+                    <SolidColorBrush x:Key="InputBorderBrush" Color="#3D4757" />
+                    <SolidColorBrush x:Key="InputBorderHoverBrush" Color="#56637A" />
 
                     <SolidColorBrush x:Key="ButtonBackground" Color="#2E3642" />
                     <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#38424F" />
@@ -61,17 +118,81 @@
                     <SolidColorBrush x:Key="ButtonBorderBrush" Color="#3A4452" />
                     <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="#4A5668" />
                     <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="#566277" />
+                    <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#262D38" />
+                    <SolidColorBrush x:Key="ButtonBorderBrushDisabled" Color="#2D3541" />
+                    <SolidColorBrush x:Key="ButtonForegroundDisabled" Color="#5E6A7B" />
                     <SolidColorBrush x:Key="ToggleButtonBackground" Color="#2E3642" />
                     <SolidColorBrush x:Key="ToggleButtonBackgroundPointerOver" Color="#38424F" />
                     <SolidColorBrush x:Key="ToggleButtonBorderBrush" Color="#3A4452" />
                     <SolidColorBrush x:Key="ToggleButtonBorderBrushPointerOver" Color="#4A5668" />
-                    <SolidColorBrush x:Key="ExpanderHeaderBackground" Color="#2E3642" />
-                    <SolidColorBrush x:Key="ExpanderHeaderBackgroundPointerOver" Color="#38424F" />
-                    <SolidColorBrush x:Key="ExpanderHeaderBackgroundPressed" Color="#38424F" />
-                    <SolidColorBrush x:Key="ExpanderHeaderBorderBrush" Color="#3A4452" />
-                    <SolidColorBrush x:Key="ExpanderHeaderBorderBrushPointerOver" Color="#3A4452" />
+
+                    <SolidColorBrush x:Key="TextControlBackground" Color="#1C222B" />
+                    <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="#1C222B" />
+                    <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="#1C222B" />
+                    <SolidColorBrush x:Key="TextControlBackgroundDisabled" Color="#262D38" />
+                    <SolidColorBrush x:Key="TextControlBorderBrush" Color="#3D4757" />
+                    <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="#56637A" />
+                    <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="#2E8FE8" />
+                    <SolidColorBrush x:Key="TextControlBorderBrushDisabled" Color="#323A47" />
+                    <SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="#6F7B8C" />
+                    <SolidColorBrush x:Key="TextControlPlaceholderForegroundPointerOver" Color="#6F7B8C" />
+                    <SolidColorBrush x:Key="TextControlPlaceholderForegroundFocused" Color="#6F7B8C" />
+                    <SolidColorBrush x:Key="ComboBoxBackground" Color="#1C222B" />
+                    <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="#1C222B" />
+                    <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="#1A1F27" />
+                    <SolidColorBrush x:Key="ComboBoxBackgroundDisabled" Color="#262D38" />
+                    <SolidColorBrush x:Key="ComboBoxBorderBrush" Color="#3D4757" />
+                    <SolidColorBrush x:Key="ComboBoxBorderBrushPointerOver" Color="#56637A" />
+                    <SolidColorBrush x:Key="ComboBoxBorderBrushPressed" Color="#2E8FE8" />
+                    <SolidColorBrush x:Key="ComboBoxBorderBrushDisabled" Color="#323A47" />
+                    <SolidColorBrush x:Key="ComboBoxForegroundDisabled" Color="#6F7B8C" />
+                    <SolidColorBrush x:Key="ComboBoxDropDownGlyphForeground" Color="#9AA5B4" />
+                    <SolidColorBrush x:Key="ComboBoxDropDownGlyphForegroundDisabled" Color="#56637A" />
+                    <SolidColorBrush x:Key="ComboBoxDropDownBorderBrush" Color="#3A4452" />
+
+                    <SolidColorBrush x:Key="ToggleSwitchStrokeOff" Color="#6F7B8C" />
+                    <SolidColorBrush x:Key="ToggleSwitchStrokeOffPointerOver" Color="#9AA5B4" />
+                    <SolidColorBrush x:Key="ToggleSwitchStrokeOffPressed" Color="#9AA5B4" />
+                    <SolidColorBrush x:Key="ToggleSwitchKnobFillOff" Color="#8A96A6" />
+                    <SolidColorBrush x:Key="ToggleSwitchKnobFillOffPointerOver" Color="#9AA5B4" />
+                    <SolidColorBrush x:Key="ToggleSwitchKnobFillOffPressed" Color="#9AA5B4" />
+                    <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUnchecked" Color="#6F7B8C" />
+                    <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeUncheckedPointerOver" Color="#9AA5B4" />
+                    <SolidColorBrush x:Key="SliderTrackFill" Color="#3D4757" />
+                    <SolidColorBrush x:Key="SliderTrackFillPointerOver" Color="#3D4757" />
+                    <SolidColorBrush x:Key="SliderTrackFillPressed" Color="#3D4757" />
+
+                    <SolidColorBrush x:Key="ExpanderHeaderBackground" Color="Transparent" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBackgroundPointerOver" Color="Transparent" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBackgroundPressed" Color="Transparent" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBorderBrush" Color="Transparent" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBorderBrushPointerOver" Color="Transparent" />
+                    <SolidColorBrush x:Key="ExpanderHeaderBorderBrushPressed" Color="Transparent" />
+                    <SolidColorBrush x:Key="ExpanderHeaderForeground" Color="#9AA5B4" />
+                    <SolidColorBrush x:Key="ExpanderHeaderForegroundPointerOver" Color="#5FC3F9" />
+                    <SolidColorBrush x:Key="ExpanderHeaderForegroundPressed" Color="#5FC3F9" />
+                    <SolidColorBrush x:Key="ExpanderChevronForeground" Color="#9AA5B4" />
+                    <SolidColorBrush x:Key="ExpanderChevronForegroundPointerOver" Color="#5FC3F9" />
+                    <SolidColorBrush x:Key="ExpanderChevronForegroundPressed" Color="#5FC3F9" />
+                    <SolidColorBrush x:Key="ExpanderContentBackground" Color="Transparent" />
+                    <SolidColorBrush x:Key="ExpanderContentBorderBrush" Color="Transparent" />
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
+
+            <!-- Sizes: one text size for controls, one height, thin sliders, flat "高级" rows. -->
+            <x:Double x:Key="ControlContentThemeFontSize">13</x:Double>
+            <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
+            <GridLength x:Key="SliderPreContentMargin">4</GridLength>
+            <GridLength x:Key="SliderPostContentMargin">4</GridLength>
+            <x:Double x:Key="SliderHorizontalThumbWidth">16</x:Double>
+            <x:Double x:Key="SliderHorizontalThumbHeight">16</x:Double>
+            <CornerRadius x:Key="SliderThumbCornerRadius">8</CornerRadius>
+            <x:Double x:Key="ExpanderMinHeight">32</x:Double>
+            <Thickness x:Key="ExpanderHeaderPadding">0</Thickness>
+            <Thickness x:Key="ExpanderHeaderBorderThickness">0</Thickness>
+            <Thickness x:Key="ExpanderChevronMargin">8,0,-8,0</Thickness>
+            <Thickness x:Key="ExpanderContentPadding">0</Thickness>
+            <Thickness x:Key="ExpanderContentDownBorderThickness">0</Thickness>
         </ResourceDictionary>
     </Application.Resources>
 
@@ -83,8 +204,18 @@
             </FluentTheme.Palettes>
         </FluentTheme>
 
+        <!--
+            One look for every page:
+            - distances are 4, 8, 12 or 16: 16 around a page and inside a card, 12 between cards and between the
+              fields of a card, 8 between buttons of a row, 6 between a name and its field;
+            - text is 12 (notes), 13 (everything to read or press) or 15 (the title of a card);
+            - controls are 32 high with a radius of 8, cards have a radius of 12;
+            - the accent color is kept for the one thing a page is about: the main button, the place in the
+              navigation, the sentence being spoken, what is switched on.
+        -->
         <Style Selector="Window">
             <Setter Property="FontFamily" Value="Noto Sans CJK SC, PingFang SC, Microsoft YaHei, WenQuanYi Zen Hei, WenQuanYi Micro Hei, sans-serif" />
+            <Setter Property="FontSize" Value="13" />
             <Setter Property="Background" Value="{DynamicResource AppBgBrush}" />
         </Style>
 
@@ -96,6 +227,13 @@
             <Setter Property="CornerRadius" Value="12" />
             <Setter Property="Padding" Value="16" />
         </Style>
+        <!-- A card that opens something: its outline answers the pointer. -->
+        <Style Selector="Border.card.link">
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Border.card.link:pointerover">
+            <Setter Property="BorderBrush" Value="{DynamicResource BrandBrush}" />
+        </Style>
 
         <!-- Text levels -->
         <Style Selector="TextBlock.title">
@@ -106,7 +244,7 @@
         <Style Selector="TextBlock.label">
             <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="Medium" />
-            <Setter Property="Margin" Value="0,14,0,6" />
+            <Setter Property="Margin" Value="0,12,0,6" />
         </Style>
         <Style Selector="TextBlock.hint">
             <Setter Property="FontSize" Value="12" />
@@ -121,18 +259,87 @@
         <Style Selector="TextBlock.accent">
             <Setter Property="Foreground" Value="{DynamicResource BrandTextBrush}" />
         </Style>
+        <!-- What an empty page says, in its middle. -->
+        <Style Selector="TextBlock.empty">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="LineHeight" Value="21" />
+            <Setter Property="MaxWidth" Value="420" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextAlignment" Value="Center" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        </Style>
+
+        <!-- The title of a numbered card: the number in a small disc, then the name. -->
+        <Style Selector="StackPanel.cardTitle">
+            <Setter Property="Orientation" Value="Horizontal" />
+            <Setter Property="Spacing" Value="8" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+        <Style Selector="StackPanel.cardTitle > TextBlock.title">
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.badge">
+            <Setter Property="Width" Value="20" />
+            <Setter Property="Height" Value="20" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Background" Value="{DynamicResource BrandSoftBrush}" />
+        </Style>
+        <Style Selector="Border.badge > TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{DynamicResource BrandTextBrush}" />
+        </Style>
+
+        <!-- A row of a form: the name on the left, its switch or its value on the right. -->
+        <Style Selector="Grid.formRow">
+            <Setter Property="Margin" Value="0,12,0,0" />
+            <Setter Property="MinHeight" Value="20" />
+        </Style>
+        <Style Selector="Grid.formRow > TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="Grid.formRow > TextBlock.value">
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="Margin" Value="12,0,0,0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        </Style>
+        <!-- A switch without a text of its own (the template keeps 12 px for one on its right). -->
+        <Style Selector="ToggleSwitch.bare">
+            <Setter Property="OnContent" Value="{x:Null}" />
+            <Setter Property="OffContent" Value="{x:Null}" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="Margin" Value="12,-6,-12,-6" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <!-- A thin line between two parts of a card. -->
+        <Style Selector="Border.divider">
+            <Setter Property="Height" Value="1" />
+            <Setter Property="Background" Value="{DynamicResource DividerBrush}" />
+        </Style>
 
         <!-- Controls -->
         <Style Selector="Button">
             <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="Padding" Value="14,7" />
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="FontSize" Value="13" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="Button.ghost">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
             <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
-            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Padding" Value="10,0" />
         </Style>
         <Style Selector="Button.ghost:pointerover /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="{DynamicResource SegBgBrush}" />
@@ -162,14 +369,31 @@
         </Style>
         <Style Selector="TextBox">
             <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Padding" Value="10,6,8,6" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style Selector="ComboBox">
             <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Padding" Value="10,0,0,0" />
+        </Style>
+        <Style Selector="ComboBoxItem">
+            <Setter Property="FontSize" Value="13" />
         </Style>
         <Style Selector="Expander">
             <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+        <Style Selector="HyperlinkButton">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="MinHeight" Value="0" />
+        </Style>
+        <Style Selector="CheckBox">
             <Setter Property="FontSize" Value="13" />
         </Style>
     </Application.Styles>

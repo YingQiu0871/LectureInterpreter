@@ -207,15 +207,70 @@ namespace LiveCaptionsTranslator.utils
 
         // (text, isSentenceEnd)
         public static event Action<string, bool>? Recognized;
+        // What to tell the user about the recognition right now; empty when all is well.
         public static event Action<string>? StatusChanged;
+
+        // What the recognizer last said about its connection, and a problem of the audio capture. The capture
+        // problem is shown for as long as it lasts: without sound the state of the connection does not matter,
+        // and its messages come and go all the time.
+        private static string sessionStatus = string.Empty;
+        private static string captureProblem = string.Empty;
+
+        private static void ReportStatus(string status)
+        {
+            sessionStatus = status;
+            RaiseStatus();
+        }
+
+        // An empty text means the problem is over.
+        private static void ReportCaptureProblem(string problem)
+        {
+            if (captureProblem == problem)
+                return;
+            captureProblem = problem;
+            RaiseStatus();
+        }
+
+        private static void RaiseStatus()
+        {
+            string problem = captureProblem;
+            StatusChanged?.Invoke(problem.Length > 0 ? problem : sessionStatus);
+        }
 
         public static void Start(bool useMicrophone)
         {
             Stop();
-            cts = new CancellationTokenSource();
-            StartCapture(useMicrophone);
-            var token = cts.Token;
-            _ = Task.Run(() => SessionLoop(token));
+            var source = new CancellationTokenSource();
+            cts = source;
+            var token = source.Token;
+            try
+            {
+                StartCapture(useMicrophone);
+            }
+            catch (Exception)
+            {
+                // Nothing is left half started.
+                Stop();
+                throw;
+            }
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await SessionLoop(token);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Stopped.
+                }
+                catch (Exception ex)
+                {
+                    // Not expected, but it must not pass unnoticed: the class would go on without any text.
+                    ErrorLog.Write("CloudAsr", ex);
+                    if (!token.IsCancellationRequested)
+                        ReportStatus($"阿里云语音识别出错：{ex.Message}");
+                }
+            });
         }
 
         public static void Stop()
@@ -229,6 +284,8 @@ namespace LiveCaptionsTranslator.utils
             {
                 pending.Clear();
             }
+            sessionStatus = string.Empty;
+            captureProblem = string.Empty;
         }
 
         // Connects, starts a task and closes it again: checks the key, the model and the network.
@@ -310,13 +367,20 @@ namespace LiveCaptionsTranslator.utils
 
         private static void StartCapture(bool useMicrophone)
         {
+            ResetSignalState();
+            isMicrophone = useMicrophone;
+            BeginCapture(useMicrophone);
+        }
+
+        // The resampler and the automatic gain start afresh with every capture device: another one has another
+        // sample rate and level. Only call it while no capture is delivering audio.
+        private static void ResetSignalState()
+        {
             accumulated = 0;
             accumulatedCount = 0;
             phase = 0;
             envelope = 0;
             gain = 1;
-            isMicrophone = useMicrophone;
-            BeginCapture(useMicrophone);
         }
 
         // Mixes to mono, resamples to 16 kHz and stores 16-bit samples for the sender.
@@ -456,7 +520,7 @@ namespace LiveCaptionsTranslator.utils
             {
                 try
                 {
-                    StatusChanged?.Invoke("正在连接阿里云语音识别……");
+                    ReportStatus("正在连接阿里云语音识别……");
                     bool keepBuffered = firstSession;
                     firstSession = false;
                     state.Started = false;
@@ -502,14 +566,14 @@ namespace LiveCaptionsTranslator.utils
                                 if (anyQuota)
                                     ReportQuotaGone(failed.Code);
                                 else
-                                    StatusChanged?.Invoke($"阿里云语音识别出错：{failed.Message}");
+                                    ReportStatus($"阿里云语音识别出错：{failed.Message}");
                                 return;
                             }
                             state.Model = next;
                             state.FellBack = true;
                             firstSession = true;
                             failures = 0;
-                            StatusChanged?.Invoke(quota
+                            ReportStatus(quota
                                 ? $"{failedModel} 免费额度已用完，正在改用 {next}……"
                                 : $"{failedModel} 无法使用，正在改用 {next}……");
                             await SyncVocabulary(state, token);
@@ -525,7 +589,7 @@ namespace LiveCaptionsTranslator.utils
                         SnackbarHost.Show("[WARNING] 术语表热词没有生效。", "这节课先不用热词继续识别，下次开始时会重新上传。",
                             SnackbarType.Warning, timeout: 5, closeButton: true);
                     }
-                    StatusChanged?.Invoke($"阿里云语音识别出错：{ex.Message}" +
+                    ReportStatus($"阿里云语音识别出错：{ex.Message}" +
                                           (failures > 1 ? $"（第 {failures} 次重试）" : "，正在重连……"));
                 }
                 try
@@ -547,7 +611,7 @@ namespace LiveCaptionsTranslator.utils
                 models = quotaModels.ToArray();
             }
             string message = QuotaMessage(code, models);
-            StatusChanged?.Invoke(message);
+            ReportStatus(message);
             SnackbarHost.Show("[ERROR] 语音识别无法继续。", message, SnackbarType.Error, timeout: 15, closeButton: true);
         }
 
@@ -575,7 +639,7 @@ namespace LiveCaptionsTranslator.utils
             {
                 if (Glossary.Current.Count == 0)
                     return;
-                StatusChanged?.Invoke("正在上传术语表热词……");
+                ReportStatus("正在上传术语表热词……");
                 state.VocabularyId = await Glossary.SyncAsrVocabulary(state.Model, token);
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested)
@@ -611,7 +675,7 @@ namespace LiveCaptionsTranslator.utils
                             started.TrySetResult();
                             Unskip(state.Model);
                             KeepSessionModel(state, token);
-                            StatusChanged?.Invoke(string.Empty);
+                            ReportStatus(string.Empty);
                             break;
                         case "result-generated":
                             OnResult(root);

@@ -111,23 +111,20 @@ namespace LiveCaptionsTranslator
                     continue;
                 AddNav(section.Nav, section.Api);
                 Sections.Children.Add(BuildSection(section));
-                SwitchConfig(section.Api, Translator.Setting.ConfigIndices[section.Api]);
+                ShowConfig(section.Api);
             }
             SelectNav(promptButton);
+            // The settings page edits the same configurations: coming back to this window shows them as they are.
+            Activated += (s, e) =>
+            {
+                foreach (string api in refreshers.Keys)
+                    ShowConfig(api);
+            };
         }
 
         private Button AddNav(string text, string tag)
         {
-            var button = new Button
-            {
-                Content = text,
-                Tag = tag,
-                Margin = new Thickness(10, 5, 5, 0),
-                Padding = new Thickness(10),
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                HorizontalContentAlignment = HorizontalAlignment.Left,
-                Background = Brushes.Transparent,
-            };
+            var button = new Button { Content = text, Tag = tag, Classes = { "navitem" } };
             button.Click += (s, e) =>
             {
                 SelectNav(button);
@@ -140,28 +137,18 @@ namespace LiveCaptionsTranslator
 
         private void SelectNav(Button button)
         {
-            if (selectedNav != null)
-                selectedNav.Background = Brushes.Transparent;
-            button.Background = new SolidColorBrush(Color.Parse("#22808080"));
+            selectedNav?.Classes.Remove("current");
+            button.Classes.Add("current");
             selectedNav = button;
         }
 
-        private static TextBlock Heading(string text) => new()
+        // A card of the page: its title, then `content`.
+        private static Border Card(string title, params Control[] content)
         {
-            Text = text,
-            Margin = new Thickness(10),
-            FontSize = 20,
-            FontWeight = FontWeight.Medium,
-        };
-
-        private static Border Card(Control content) => new()
-        {
-            Padding = new Thickness(15),
-            CornerRadius = new CornerRadius(6),
-            BorderThickness = new Thickness(1),
-            BorderBrush = new SolidColorBrush(Color.Parse("#33808080")),
-            Child = content,
-        };
+            var panel = new StackPanel { Children = { new TextBlock { Text = title, Classes = { "title" } } } };
+            panel.Children.AddRange(content);
+            return new Border { Classes = { "card" }, Margin = new Thickness(0, 0, 0, 12), Child = panel };
+        }
 
         private Control BuildPromptSection()
         {
@@ -171,28 +158,24 @@ namespace LiveCaptionsTranslator
                 TextWrapping = TextWrapping.Wrap,
                 Text = Translator.Setting.Prompt,
             };
-            box.TextChanged += (s, e) => Translator.Setting.Prompt = box.Text ?? string.Empty;
-            var panel = new StackPanel
+            box.TextChanging += (s, e) =>
             {
-                Margin = new Thickness(15, 0),
-                Children =
+                string text = box.Text ?? string.Empty;
+                if (text != Translator.Setting.Prompt)
+                    Translator.Setting.Prompt = text;
+            };
+            var notes = new TextBlock
+            {
+                Classes = { "hint" },
+                Inlines = new Avalonia.Controls.Documents.InlineCollection
                 {
-                    new TextBlock
-                    {
-                        Margin = new Thickness(2.5, 0, 0, 5),
-                        TextWrapping = TextWrapping.Wrap,
-                        Inlines = new Avalonia.Controls.Documents.InlineCollection
-                        {
-                            new Avalonia.Controls.Documents.Run("注意 1：") { FontWeight = FontWeight.Bold },
-                            new Avalonia.Controls.Documents.Run("提示词里的 {0} 代表目标语言，请确保提示词中包含 {0}。"),
-                            new Avalonia.Controls.Documents.Run("\n注意 2：") { FontWeight = FontWeight.Bold },
-                            new Avalonia.Controls.Documents.Run("原文前后会加上标记符号（默认提示词里有说明），输出时需要去掉。"),
-                        },
-                    },
-                    box,
+                    new Avalonia.Controls.Documents.Run("注意 1：") { FontWeight = FontWeight.SemiBold },
+                    new Avalonia.Controls.Documents.Run("提示词里的 {0} 代表目标语言，请确保提示词中包含 {0}。"),
+                    new Avalonia.Controls.Documents.Run("\n注意 2：") { FontWeight = FontWeight.SemiBold },
+                    new Avalonia.Controls.Documents.Run("原文前后会加上标记符号（默认提示词里有说明），输出时需要去掉。"),
                 },
             };
-            var section = new StackPanel { Margin = new Thickness(20), Children = { Heading("提示词"), Card(panel) } };
+            var section = Card("提示词", box, notes);
             sectionControls["Prompt"] = section;
             return section;
         }
@@ -200,21 +183,35 @@ namespace LiveCaptionsTranslator
         private Control BuildSection(Section spec)
         {
             string api = spec.Api;
-            var indexLabel = new TextBlock { Text = "1/1", VerticalAlignment = VerticalAlignment.Center };
+            var indexLabel = new TextBlock
+            {
+                Text = "1/1",
+                MinWidth = 32,
+                TextAlignment = TextAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
             indexLabels[api] = indexLabel;
-            var message = new TextBlock { Foreground = Brushes.OrangeRed, VerticalAlignment = VerticalAlignment.Center };
+            var message = new TextBlock
+            {
+                Foreground = Brushes.OrangeRed,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(12, 0, 0, 0),
+                TextTrimming = TextTrimming.CharacterEllipsis,
+            };
             messageLabels[api] = message;
 
-            var prior = new Button { Content = "‹", Padding = new Thickness(8, 4), Margin = new Thickness(0, 0, 10, 0) };
+            var prior = new Button { Content = "‹", Classes = { "ghost" }, Width = 32, Padding = new Thickness(0) };
+            ToolTip.SetTip(prior, "上一个配置");
             prior.Click += (s, e) => SwitchConfig(api, Translator.Setting.ConfigIndices[api] - 1);
-            var next = new Button { Content = "›", Padding = new Thickness(8, 4), Margin = new Thickness(10, 0, 0, 0) };
+            var next = new Button { Content = "›", Classes = { "ghost" }, Width = 32, Padding = new Thickness(0) };
+            ToolTip.SetTip(next, "下一个配置");
             next.Click += (s, e) => SwitchConfig(api, Translator.Setting.ConfigIndices[api] + 1);
-            var create = new Button { Content = "新建", Margin = new Thickness(0, 0, 10, 0) };
+            var create = new Button { Content = "新建" };
             create.Click += (s, e) => NewConfig(api);
-            var delete = new Button { Content = "删除" };
+            var delete = new Button { Content = "删除", Margin = new Thickness(8, 0, 0, 0) };
             delete.Click += (s, e) => DeleteConfig(api);
 
-            var header = new Grid { Margin = new Thickness(15, 0, 15, 10), ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+            var header = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto") };
             header.Children.Add(new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -222,42 +219,37 @@ namespace LiveCaptionsTranslator
                 {
                     new TextBlock
                     {
-                        Text = "当前配置：", FontWeight = FontWeight.Bold, VerticalAlignment = VerticalAlignment.Center,
-                        Margin = new Thickness(0, 0, 10, 0),
+                        Text = "当前配置", FontWeight = FontWeight.Medium, VerticalAlignment = VerticalAlignment.Center,
+                        Margin = new Thickness(0, 0, 8, 0),
                     },
                     prior, indexLabel, next,
-                    new TextBlock { Text = "", Width = 12 }, message,
                 },
             });
+            Grid.SetColumn(message, 1);
+            header.Children.Add(message);
             var actions = new StackPanel { Orientation = Orientation.Horizontal, Children = { create, delete } };
-            Grid.SetColumn(actions, 1);
+            Grid.SetColumn(actions, 2);
             header.Children.Add(actions);
 
-            var fields = new WrapPanel { Margin = new Thickness(15, 0, 0, 0) };
+            // Every field leaves 12 to its right and below it: taken back for those at the edges.
+            var fields = new WrapPanel { Margin = new Thickness(0, 0, -12, -12) };
             refreshers[api] = new List<Action>();
             foreach (var field in spec.Fields)
                 fields.Children.Add(BuildField(api, field));
 
-            var section = new StackPanel
-            {
-                Margin = new Thickness(20),
-                Children =
-                {
-                    Heading(spec.Title),
-                    Card(new StackPanel { Children = { header, new Separator { Margin = new Thickness(0, 0, 0, 10) }, fields } }),
-                },
-            };
+            var section = Card(spec.Title, header,
+                new Border { Classes = { "divider" }, Margin = new Thickness(0, 12) }, fields);
             sectionControls[api] = section;
             return section;
         }
 
         private Control BuildField(string api, Field field)
         {
-            var label = new StackPanel { Orientation = Orientation.Horizontal };
-            label.Children.Add(new TextBlock { Text = field.Label, Margin = new Thickness(2.5, 0, 0, 5) });
+            var label = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 6) };
+            label.Children.Add(new TextBlock { Text = field.Label, FontWeight = FontWeight.Medium });
             if (field.Info != null)
             {
-                var info = new TextBlock { Text = " (?)", Opacity = 0.7 };
+                var info = new TextBlock { Text = "（?）", Classes = { "secondary" } };
                 ToolTip.SetTip(info, field.Info);
                 label.Children.Add(info);
             }
@@ -269,7 +261,7 @@ namespace LiveCaptionsTranslator
                     {
                         var box = new NumericUpDown
                         {
-                            Width = 130,
+                            Width = 96,
                             Minimum = 0,
                             Maximum = 2,
                             Increment = 0.1m,
@@ -299,8 +291,13 @@ namespace LiveCaptionsTranslator
                         editor = box;
                         if (field.Kind == Kind.ModelCombo)
                         {
-                            var load = new Button { Content = "加载模型", Margin = new Thickness(10, 0, 0, 0) };
-                            var result = new TextBlock { Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+                            var load = new Button { Content = "加载模型", Margin = new Thickness(8, 0, 0, 0) };
+                            var result = new TextBlock
+                            {
+                                Classes = { "secondary" },
+                                Margin = new Thickness(8, 0, 0, 0),
+                                VerticalAlignment = VerticalAlignment.Center,
+                            };
                             load.Click += async (s, e) => await LoadModels(api, box, load, result);
                             editor = new StackPanel { Orientation = Orientation.Horizontal, Children = { box, load, result } };
                         }
@@ -309,7 +306,8 @@ namespace LiveCaptionsTranslator
                 default:
                     {
                         var box = new TextBox { Width = field.Property == "ModelName" ? 160 : 200 };
-                        box.TextChanged += (s, e) =>
+                        // Not `TextChanged`: that one is posted and arrives after `filling` is over.
+                        box.TextChanging += (s, e) =>
                         {
                             if (!filling)
                                 SetProperty(api, field.Property, box.Text ?? string.Empty);
@@ -322,7 +320,7 @@ namespace LiveCaptionsTranslator
 
             return new StackPanel
             {
-                Margin = new Thickness(0, 0, 15, 10),
+                Margin = new Thickness(0, 0, 12, 12),
                 Children = { label, editor },
             };
         }
@@ -387,6 +385,8 @@ namespace LiveCaptionsTranslator
                 messageLabels[api].Text = "至少要保留一个配置。";
                 return;
             }
+            if (configIndex < 0 || configIndex >= configs.Count)
+                return;
             configs.RemoveAt(configIndex);
             SwitchConfig(api, Math.Max(0, Math.Min(configs.Count - 1, configIndex)));
 
@@ -400,11 +400,18 @@ namespace LiveCaptionsTranslator
 
             if (Translator.Setting.ConfigIndices[api] != index)
                 Translator.Setting.ConfigIndices[api] = index;
-
-            if (indexLabels.TryGetValue(api, out var indexLabel))
-                indexLabel.Text = $"{index + 1}/{Translator.Setting.Configs[api].Count}";
             if (messageLabels.TryGetValue(api, out var message))
                 message.Text = string.Empty;
+            ShowConfig(api);
+            Translator.Setting.OnPropertyChanged(null);
+        }
+
+        // Shows the configuration in use: its position among the saved ones and its fields.
+        private void ShowConfig(string api)
+        {
+            if (indexLabels.TryGetValue(api, out var indexLabel))
+                indexLabel.Text = $"{Translator.Setting.ConfigIndices.GetValueOrDefault(api) + 1}/" +
+                                  $"{Translator.Setting.Configs[api].Count}";
 
             filling = true;
             try
@@ -416,7 +423,6 @@ namespace LiveCaptionsTranslator
             {
                 filling = false;
             }
-            Translator.Setting.OnPropertyChanged(null);
         }
     }
 }

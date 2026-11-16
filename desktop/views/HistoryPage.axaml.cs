@@ -15,6 +15,7 @@ namespace LiveCaptionsTranslator
     public partial class HistoryPage : UserControl
     {
         public const int MIN_HEIGHT = 420;
+        private const double COURSE_CARD_MIN_WIDTH = 220;
 
         private enum View { Courses, Lectures, Detail, All }
 
@@ -33,6 +34,9 @@ namespace LiveCaptionsTranslator
         {
             InitializeComponent();
             HistoryMaxRow.SelectionChanged += MaxRow_SelectionChanged;
+            // As many columns of courses as fit with at least COURSE_CARD_MIN_WIDTH each; they share the width.
+            CourseScroll.SizeChanged += (s, e) =>
+                CourseList.Columns = Math.Clamp((int)(e.NewSize.Width / (COURSE_CARD_MIN_WIDTH + 12)), 1, 6);
             HistorySearchBox.KeyDown += async (s, e) =>
             {
                 if (e.Key == Key.Enter)
@@ -50,6 +54,7 @@ namespace LiveCaptionsTranslator
         {
             base.OnAttachedToVisualTree(e);
             Shell.Main?.AutoHeightAdjust(minHeight: MIN_HEIGHT);
+            Translator.TranslationLogged -= OnTranslationLogged;
             Translator.TranslationLogged += OnTranslationLogged;
             await ShowCourses();
         }
@@ -61,11 +66,13 @@ namespace LiveCaptionsTranslator
             Translator.TranslationLogged -= OnTranslationLogged;
         }
 
+        // A new sentence shows up at the top of the first page. Other pages are left alone: loading them again
+        // would move the list under the reader's eyes.
         private void OnTranslationLogged()
         {
             Dispatcher.UIThread.Post(async () =>
             {
-                if (view == View.All)
+                if (view == View.All && currentPage == 1)
                     await LoadHistory();
             });
         }
@@ -80,12 +87,21 @@ namespace LiveCaptionsTranslator
             DetailScroll.IsVisible = view == View.Detail;
             AllView.IsVisible = view == View.All;
 
+            // What an empty level says stands in the middle of the page, not inside the list: it is taken away
+            // with the level, and put up again by whoever has loaded the next one.
+            CourseEmptyHint.IsVisible = false;
+            LectureEmptyHint.IsVisible = false;
+            DetailEmptyHint.IsVisible = false;
+
             CrumbSep1.IsVisible = view != View.Courses;
             CrumbCourse.IsVisible = CrumbSep1.IsVisible;
             CrumbCourse.Content = view == View.All ? "全部句子" : currentCourse?.Name ?? string.Empty;
             CrumbSep2.IsVisible = view == View.Detail;
             CrumbLecture.IsVisible = CrumbSep2.IsVisible;
             CrumbLecture.Text = currentLecture?.Name ?? string.Empty;
+            // The last name of the path is where the reader is.
+            CrumbHome.Classes.Set("current", view == View.Courses);
+            CrumbCourse.Classes.Set("current", view is View.Lectures or View.All);
 
             NewCourse.IsVisible = view == View.Courses;
             AllSentences.IsVisible = NewCourse.IsVisible;
@@ -107,7 +123,7 @@ namespace LiveCaptionsTranslator
                 CourseList.Children.Clear();
                 foreach (var course in courses)
                     CourseList.Children.Add(BuildCourseCard(course));
-                CourseEmptyHint.IsVisible = courses.Count == 0;
+                CourseEmptyHint.IsVisible = view == View.Courses && courses.Count == 0;
             }
             catch (Exception ex)
             {
@@ -126,7 +142,8 @@ namespace LiveCaptionsTranslator
                 LectureList.Children.Clear();
                 foreach (var lecture in lectures)
                     LectureList.Children.Add(BuildLectureCard(lecture));
-                LectureEmptyHint.IsVisible = lectures.Count == 0;
+                LectureEmptyHint.IsVisible = view == View.Lectures && ReferenceEquals(currentCourse, course)
+                    && lectures.Count == 0;
             }
             catch (Exception ex)
             {
@@ -142,9 +159,10 @@ namespace LiveCaptionsTranslator
             DetailInfo.Text = $"{lecture.CourseName} · {lecture.Info}";
             try
             {
-                var sections = await LectureDocument.Build(lecture);
-                foreach (var line in sections.SelectMany(section => section.Lines))
-                    line.TranslatedText = LectureDocument.CleanTranslation(line.TranslatedText);
+                var sections = await LectureDocument.BuildForDisplay(lecture);
+                // Another class or page was opened while this one was read.
+                if (view != View.Detail || !ReferenceEquals(currentLecture, lecture))
+                    return;
                 DetailList.ItemsSource = sections;
                 DetailEmptyHint.IsVisible = sections.Count == 0;
                 DetailScroll.ScrollToHome();
@@ -157,47 +175,74 @@ namespace LiveCaptionsTranslator
 
         // ---- Cards of the two folder levels (built here because they carry a context menu) ----
 
-        private Border BuildCard(string title, string info, string? tooltip, double width)
+        // Drawn, not characters: not every Linux font has the glyphs.
+        private const string FOLDER_ICON =
+            "M2,6 a2,2 0 0 1 2,-2 h5 l2,2.5 h9 a2,2 0 0 1 2,2 v9.5 a2,2 0 0 1 -2,2 h-16 a2,2 0 0 1 -2,-2 z";
+        private const string DOCUMENT_ICON =
+            "M6,2 h8 l5,5 v13 a2,2 0 0 1 -2,2 h-11 a2,2 0 0 1 -2,-2 v-16 a2,2 0 0 1 2,-2 z M14,2 v5 h5 M8,12 h8 M8,16 h8";
+
+        // A card of one of the two folder levels: a small picture, a name and one line about it. A long name or
+        // line is cut off with "…" inside the card, whatever its width.
+        private Border BuildCard(string icon, string iconBrush, string? iconFill, string title, string info, string? tooltip)
         {
-            var text = new StackPanel
+            var picture = new Avalonia.Controls.Shapes.Path
             {
-                Margin = new Thickness(10, 0, 0, 0),
-                Children =
-                {
-                    new TextBlock { Text = title, FontSize = 14, FontWeight = FontWeight.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis },
-                    new TextBlock { Text = info, Margin = new Thickness(0, 2, 0, 0), FontSize = 12, Classes = { "secondary" } },
-                },
+                Data = Geometry.Parse(icon),
+                Width = 24,
+                Height = 24,
+                StrokeThickness = 1.5,
+                StrokeJoin = PenLineJoin.Round,
+                StrokeLineCap = PenLineCap.Round,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            // The colours belong to the light or the dark theme: they are looked up for the theme in use, and follow it.
+            picture.Bind(Avalonia.Controls.Shapes.Shape.StrokeProperty, this.GetResourceObservable(iconBrush));
+            if (iconFill != null)
+                picture.Bind(Avalonia.Controls.Shapes.Shape.FillProperty, this.GetResourceObservable(iconFill));
+
+            var name = new TextBlock
+            {
+                Text = title,
+                FontSize = 14,
+                FontWeight = FontWeight.SemiBold,
+                TextTrimming = TextTrimming.CharacterEllipsis,
             };
             if (tooltip != null)
-                ToolTip.SetTip(text.Children[0], tooltip);
-            var card = new Border
+                ToolTip.SetTip(name, tooltip);
+            var text = new StackPanel
             {
-                Classes = { "card" },
-                Padding = new Thickness(14, 10, 14, 12),
-                Cursor = new Cursor(StandardCursorType.Hand),
-                Child = new StackPanel { Orientation = Orientation.Horizontal, Children = { text } },
+                Margin = new Thickness(12, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                Children =
+                {
+                    name,
+                    new TextBlock
+                    {
+                        Text = info,
+                        Margin = new Thickness(0, 2, 0, 0),
+                        FontSize = 12,
+                        Classes = { "secondary" },
+                        TextTrimming = TextTrimming.CharacterEllipsis,
+                    },
+                },
             };
-            if (width > 0)
-                card.Width = width;
-            return card;
+            Grid.SetColumn(text, 1);
+            return new Border
+            {
+                Classes = { "card", "link" },
+                Padding = new Thickness(14, 12),
+                Child = new Grid
+                {
+                    ColumnDefinitions = new ColumnDefinitions("Auto,*"),
+                    Children = { picture, text },
+                },
+            };
         }
 
         private Border BuildCourseCard(CourseEntry course)
         {
-            var card = BuildCard(course.Name, course.Info, course.Name, 200);
+            var card = BuildCard(FOLDER_ICON, "BrandBrush", "BrandSoftBrush", course.Name, course.Info, course.Name);
             card.Margin = new Thickness(0, 0, 12, 12);
-            ((StackPanel)card.Child!).Children.Insert(0, new Border
-            {
-                // Drawn, not a "▣" character: not every Linux font has that glyph.
-                Width = 24,
-                Height = 24,
-                Margin = new Thickness(2, 0),
-                CornerRadius = new CornerRadius(6),
-                BorderThickness = new Thickness(3),
-                VerticalAlignment = VerticalAlignment.Center,
-                BorderBrush = (IBrush?)this.FindResource("BrandBrush") ?? Brushes.SteelBlue,
-            });
-            ((StackPanel)((StackPanel)card.Child).Children[1]).Width = 140;
             AddCardActions(card, () => ShowLectures(course),
                 "重命名", () => RenameCourse(course), "删除（仅空文件夹）", () => DeleteCourse(course));
             return card;
@@ -205,8 +250,8 @@ namespace LiveCaptionsTranslator
 
         private Border BuildLectureCard(LectureRecord lecture)
         {
-            var card = BuildCard(lecture.Name, lecture.Info, null, 0);
-            card.Margin = new Thickness(0, 0, 0, 10);
+            var card = BuildCard(DOCUMENT_ICON, "TextSecondaryBrush", null, lecture.Name, lecture.Info, lecture.Name);
+            card.Margin = new Thickness(0, 0, 0, 8);
             AddCardActions(card, () => ShowDetail(lecture),
                 "重命名 / 移到其他课程", async () => await RenameLectureAndRefresh(lecture),
                 "删除这节课", () => DeleteLecture(lecture));
@@ -248,7 +293,14 @@ namespace LiveCaptionsTranslator
             string? name = await LectureDialogs.AskText("新建课程", "课程名称", string.Empty);
             if (string.IsNullOrWhiteSpace(name))
                 return;
-            await LectureStore.AddCourse(name);
+            try
+            {
+                await LectureStore.AddCourse(name);
+            }
+            catch (Exception ex)
+            {
+                SnackbarHost.Show("[ERROR] 新建课程失败。", ex.Message, SnackbarType.Error, timeout: 2);
+            }
             await ShowCourses();
         }
 
@@ -264,6 +316,8 @@ namespace LiveCaptionsTranslator
             catch (Exception)
             {
                 SnackbarHost.Show("已经有同名的课程了。", "", SnackbarType.Warning, timeout: 2);
+                // The course keeps its name, and so does the course new classes go to.
+                return;
             }
             if (Translator.Setting.Lecture.CurrentCourse == course.Name)
                 Translator.Setting.Lecture.CurrentCourse = name.Trim();
@@ -272,8 +326,17 @@ namespace LiveCaptionsTranslator
 
         private async void DeleteCourse(CourseEntry course)
         {
-            if (!await LectureStore.DeleteCourse(course.Id))
-                SnackbarHost.Show("文件夹里还有录音。", "请先进入文件夹删除或移走里面的课。", SnackbarType.Warning, timeout: 2);
+            try
+            {
+                if (!await LectureStore.DeleteCourse(course.Id))
+                    SnackbarHost.Show("文件夹里还有录音。", "请先进入文件夹删除或移走里面的课。", SnackbarType.Warning, timeout: 2);
+                else if (Translator.Setting.Lecture.CurrentCourse == course.Name)
+                    Translator.Setting.Lecture.CurrentCourse = string.Empty;
+            }
+            catch (Exception ex)
+            {
+                SnackbarHost.Show("[ERROR] 删除失败。", ex.Message, SnackbarType.Error, timeout: 2);
+            }
             await ShowCourses();
         }
 
@@ -285,28 +348,39 @@ namespace LiveCaptionsTranslator
             try
             {
                 await LectureStore.RenameLecture(lecture.Id, chosen.Name, chosen.Course);
-                var updated = await LectureStore.GetLecture(lecture.Id);
-                if (updated != null && !string.IsNullOrEmpty(updated.FilePath))
-                    await LectureDocument.Save(updated);
+                var renamed = await LectureStore.GetLecture(lecture.Id);
+                if (renamed != null && !string.IsNullOrEmpty(renamed.FilePath))
+                    await LectureDocument.Save(renamed);
             }
             catch (Exception ex)
             {
                 SnackbarHost.Show("[ERROR] 重命名失败。", ex.Message, SnackbarType.Error, timeout: 2);
             }
 
-            var courses = await LectureStore.LoadCourses();
-            currentCourse = courses.FirstOrDefault(c => c.Name == chosen.Course) ?? currentCourse;
-            if (view == View.Detail)
+            try
             {
+                // The page follows the lecture to the course it is in now (the one it was in, if that failed).
                 var updated = await LectureStore.GetLecture(lecture.Id);
                 if (updated != null)
                 {
-                    updated.SentenceCount = lecture.SentenceCount;
-                    await ShowDetail(updated);
+                    var courses = await LectureStore.LoadCourses();
+                    currentCourse = courses.FirstOrDefault(c => c.Id == updated.CourseId) ?? currentCourse;
                 }
+                if (view == View.Detail)
+                {
+                    if (updated != null)
+                    {
+                        updated.SentenceCount = lecture.SentenceCount;
+                        await ShowDetail(updated);
+                    }
+                }
+                else if (currentCourse != null)
+                    await ShowLectures(currentCourse);
             }
-            else if (currentCourse != null)
-                await ShowLectures(currentCourse);
+            catch (Exception ex)
+            {
+                SnackbarHost.Show("[ERROR] 读取录音失败。", ex.Message, SnackbarType.Error, timeout: 2, closeButton: true);
+            }
         }
 
         private async void RenameLecture_Click(object? sender, RoutedEventArgs e)
@@ -395,8 +469,16 @@ namespace LiveCaptionsTranslator
 
         private async void Delete_Click(object? sender, RoutedEventArgs e)
         {
-            if (await LectureDialogs.Confirm("要删除全部历史记录吗？",
+            // The class being recorded lives in these tables: its later sentences would belong to no class.
+            if (ClassSession.IsRunning)
+            {
+                SnackbarHost.Show("正在录制时不能全部删除。", "请先点“停止”。", SnackbarType.Warning, timeout: 2);
+                return;
+            }
+            if (!await LectureDialogs.Confirm("要删除全部历史记录吗？",
                     "所有课程里的录音、时间线上的小节总结都会一起删除（课程文件夹和已保存的文件保留），此操作无法撤销！", "删除"))
+                return;
+            try
             {
                 currentPage = 1;
                 await SQLiteHistoryLogger.ClearHistory();
@@ -404,23 +486,23 @@ namespace LiveCaptionsTranslator
                 await SectionLogger.ClearSections();
                 await LectureStore.ClearLectures();
                 Summarizer.ResetCursor();
-                await LoadHistory();
+                Translator.ClearContexts();
             }
+            catch (Exception ex)
+            {
+                SnackbarHost.Show("[ERROR] 删除失败。", ex.Message, SnackbarType.Error, timeout: 3, closeButton: true);
+            }
+            await LoadHistory();
         }
 
         private async void MaxRow_SelectionChanged(object? sender, SelectionChangedEventArgs e)
         {
-            if (HistoryMaxRow.SelectedItem is not ComboBoxItem { Tag: string tag })
+            if (HistoryMaxRow.SelectedItem is not ComboBoxItem { Tag: string tag } || !int.TryParse(tag, out int rows))
                 return;
-            maxRowPerPage = Convert.ToInt32(tag);
-
-            await LoadHistory();
-
-            if (currentPage > maxPage)
-            {
-                currentPage = maxPage;
+            maxRowPerPage = rows;
+            // Shown only on the "全部句子" view; the others have nothing to load again.
+            if (view == View.All)
                 await LoadHistory();
-            }
         }
 
         private async void Refresh_Click(object? sender, RoutedEventArgs e)
@@ -481,16 +563,23 @@ namespace LiveCaptionsTranslator
 
         private async Task LoadHistory()
         {
-            var data = await SQLiteHistoryLogger.LoadHistoryAsync(currentPage, maxRowPerPage, SearchText);
-            List<TranslationHistoryEntry> history = data.Item1;
-
-            maxPage = (data.Item2 > 0) ? data.Item2 : 1;
-
-            await Shell.OnUi(() =>
+            try
             {
+                var (history, pages) = await SQLiteHistoryLogger.LoadHistoryAsync(currentPage, maxRowPerPage, SearchText);
+                maxPage = Math.Max(pages, 1);
+                // The page shown no longer exists (rows were deleted, or there are more rows on a page now).
+                if (currentPage > maxPage)
+                {
+                    currentPage = maxPage;
+                    (history, _) = await SQLiteHistoryLogger.LoadHistoryAsync(currentPage, maxRowPerPage, SearchText);
+                }
                 HistoryList.ItemsSource = history;
-                PageNumber.Text = currentPage.ToString() + "/" + maxPage.ToString();
-            });
+                PageNumber.Text = $"{currentPage}/{maxPage}";
+            }
+            catch (Exception ex)
+            {
+                SnackbarHost.Show("[ERROR] 读取历史记录失败。", ex.Message, SnackbarType.Error, timeout: 2, closeButton: true);
+            }
         }
     }
 }

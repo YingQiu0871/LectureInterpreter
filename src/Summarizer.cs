@@ -92,12 +92,14 @@ namespace LiveCaptionsTranslator
             lastCheckedHistoryId = 0;
         }
 
-        // A new class starts: sections never reach back into the previous class.
+        // A new class starts: sections never reach back into the previous class, and the checks for a change of
+        // topic that failed in it do not count against this one.
         public static void StartAt(long firstHistoryId)
         {
             lastHistoryId = Math.Max(lastHistoryId, firstHistoryId);
             lastCheckedHistoryId = lastHistoryId;
             lastBoundaryCheck = DateTime.Now;
+            detectionFailures = 0;
         }
 
         // The class was stopped: summarize what is left of it as its last section, however short.

@@ -1,55 +1,71 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="LiveCaptionsTranslator.InfoPage">
+    <UserControl.Styles>
+        <!-- The rows below the text: what it is on the left, in one column; the link on the right, in another -->
+        <Style Selector="Grid.facts > TextBlock.key">
+            <Setter Property="Margin" Value="0,0,16,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        </Style>
+        <Style Selector="HyperlinkButton">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </UserControl.Styles>
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-    <Border Classes="card" Margin="16" Padding="28,24" MaxWidth="640" HorizontalAlignment="Center"
-            VerticalAlignment="Top">
-    <StackPanel Spacing="6">
-        <Image Source="/assets/icon.png" Width="56" Height="56" HorizontalAlignment="Center" />
-        <TextBlock FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,4,0,0"
-                   Text="课堂同传助手" />
-        <TextBlock TextWrapping="Wrap" FontSize="13" LineHeight="21" Margin="0,8,0,0"
-                   Text="课堂同传助手由 @YingQiu0871 基于开源项目 LiveCaptions Translator 改造，增加了课堂分节总结、时间线、双语浮窗、笔记初稿和耳机播报。问题和建议欢迎在本项目的 GitHub Issue 反馈。&#x0A;如果觉得好用，欢迎给本项目和原项目点个 Star！" />
-        <Separator Margin="0,8" />
-        <StackPanel Orientation="Horizontal">
-            <TextBlock FontWeight="SemiBold" Classes="secondary" Text="本项目仓库：" VerticalAlignment="Center" />
-            <HyperlinkButton Padding="0" Content="https://github.com/YingQiu0871/LectureInterpreter"
-                             NavigateUri="https://github.com/YingQiu0871/LectureInterpreter" />
-        </StackPanel>
-        <StackPanel Orientation="Horizontal">
-            <TextBlock FontWeight="SemiBold" Classes="secondary" Text="作者：" VerticalAlignment="Center" />
-            <HyperlinkButton Padding="0" Content="@YingQiu0871"
-                             NavigateUri="https://github.com/YingQiu0871" />
-        </StackPanel>
-        <StackPanel Orientation="Horizontal">
-            <TextBlock FontWeight="SemiBold" Classes="secondary" Text="使用说明：" VerticalAlignment="Center" />
-            <HyperlinkButton Padding="0" Content="https://github.com/YingQiu0871/LectureInterpreter#readme"
-                             NavigateUri="https://github.com/YingQiu0871/LectureInterpreter#readme" />
-        </StackPanel>
-        <StackPanel Orientation="Horizontal">
-            <TextBlock FontWeight="SemiBold" Classes="secondary" Text="原项目仓库：" VerticalAlignment="Center" />
-            <HyperlinkButton Padding="0" Content="https://github.com/SakiRinn/LiveCaptions-Translator"
-                             NavigateUri="https://github.com/SakiRinn/LiveCaptions-Translator" />
-        </StackPanel>
-        <StackPanel Orientation="Horizontal">
-            <TextBlock FontWeight="SemiBold" Classes="secondary" Text="原作者：" VerticalAlignment="Center" />
-            <HyperlinkButton Padding="0" Content="@SakiRinn" NavigateUri="https://github.com/SakiRinn" />
-            <TextBlock Text="（作者）和" VerticalAlignment="Center" />
-            <HyperlinkButton Padding="0" Content="@A-nony-mous" NavigateUri="https://github.com/A-nony-mous" />
-        </StackPanel>
-        <StackPanel Orientation="Horizontal">
-            <TextBlock FontWeight="SemiBold" Classes="secondary" Text="版本：" VerticalAlignment="Center" />
-            <HyperlinkButton x:Name="Version" Padding="0" Content="1.1.1.1"
-                             NavigateUri="https://github.com/YingQiu0871/LectureInterpreter/releases" />
-        </StackPanel>
-        <StackPanel Orientation="Horizontal" Spacing="8">
-            <TextBlock FontWeight="SemiBold" Classes="secondary" Text="更新：" VerticalAlignment="Center" />
-            <TextBlock x:Name="UpdateStatus" VerticalAlignment="Center" />
-            <HyperlinkButton x:Name="UpdateLink" Padding="0" IsVisible="False" />
-            <Button x:Name="CheckUpdateButton" Padding="12,5" Content="检查更新" Click="CheckUpdateButton_Click" />
-        </StackPanel>
-        <CheckBox x:Name="AutoCheckBox" Content="启动时自动检查更新" Click="AutoCheckBox_Click" />
-    </StackPanel>
-    </Border>
+        <Border Classes="card" Margin="16" Padding="24,20" MaxWidth="640" HorizontalAlignment="Center"
+                VerticalAlignment="Top">
+            <StackPanel>
+                <!-- What this is: the picture, the name and the version, in the middle -->
+                <Image Source="/assets/icon.png" Width="48" Height="48" HorizontalAlignment="Center" />
+                <TextBlock Margin="0,8,0,0" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"
+                           Text="课堂同传助手" />
+                <HyperlinkButton x:Name="Version" Margin="0,4,0,0" HorizontalAlignment="Center" FontSize="12"
+                                 Content="1.1.1.1" ToolTip.Tip="查看所有版本"
+                                 NavigateUri="https://github.com/YingQiu0871/LectureInterpreter/releases" />
+                <TextBlock Margin="0,12,0,0" TextWrapping="Wrap" LineHeight="21"
+                           Text="课堂同传助手由 @YingQiu0871 基于开源项目 LiveCaptions Translator 改造，增加了课堂分节总结、时间线、双语浮窗、笔记初稿和耳机播报。问题和建议欢迎在本项目的 GitHub Issue 反馈。&#x0A;如果觉得好用，欢迎给本项目和原项目点个 Star！" />
+
+                <Border Classes="divider" Margin="0,12" />
+
+                <Grid Classes="facts" ColumnDefinitions="Auto,*,Auto" RowDefinitions="26,26,26,26,26,Auto,32,Auto">
+                    <TextBlock Grid.Row="0" Classes="key" Text="本项目仓库" />
+                    <HyperlinkButton Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
+                                     Content="github.com/YingQiu0871/LectureInterpreter"
+                                     NavigateUri="https://github.com/YingQiu0871/LectureInterpreter" />
+                    <TextBlock Grid.Row="1" Classes="key" Text="作者" />
+                    <HyperlinkButton Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Content="@YingQiu0871"
+                                     NavigateUri="https://github.com/YingQiu0871" />
+                    <TextBlock Grid.Row="2" Classes="key" Text="使用说明" />
+                    <HyperlinkButton Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2"
+                                     Content="github.com/YingQiu0871/LectureInterpreter#readme"
+                                     NavigateUri="https://github.com/YingQiu0871/LectureInterpreter#readme" />
+                    <TextBlock Grid.Row="3" Classes="key" Text="原项目仓库" />
+                    <HyperlinkButton Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2"
+                                     Content="github.com/SakiRinn/LiveCaptions-Translator"
+                                     NavigateUri="https://github.com/SakiRinn/LiveCaptions-Translator" />
+                    <TextBlock Grid.Row="4" Classes="key" Text="原作者" />
+                    <StackPanel Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal">
+                        <HyperlinkButton Content="@SakiRinn" NavigateUri="https://github.com/SakiRinn" />
+                        <TextBlock Text="（作者）和" VerticalAlignment="Center" />
+                        <HyperlinkButton Content="@A-nony-mous" NavigateUri="https://github.com/A-nony-mous" />
+                    </StackPanel>
+
+                    <Border Grid.Row="5" Grid.ColumnSpan="3" Classes="divider" Margin="0,10" />
+
+                    <TextBlock Grid.Row="6" Classes="key" Text="更新" />
+                    <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                        <TextBlock x:Name="UpdateStatus" VerticalAlignment="Center" />
+                        <HyperlinkButton x:Name="UpdateLink" IsVisible="False" />
+                    </StackPanel>
+                    <Button x:Name="CheckUpdateButton" Grid.Row="6" Grid.Column="2" Content="检查更新"
+                            Click="CheckUpdateButton_Click" />
+                    <CheckBox x:Name="AutoCheckBox" Grid.Row="7" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,2,0,0"
+                              Content="启动时自动检查更新" Click="AutoCheckBox_Click" />
+                </Grid>
+            </StackPanel>
+        </Border>
     </ScrollViewer>
 </UserControl>

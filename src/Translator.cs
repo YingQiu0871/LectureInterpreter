@@ -56,10 +56,26 @@ namespace LiveCaptionsTranslator
                     committedSentences.Clear();
                     sentencesSeeded = false;
                     heldFragment = string.Empty;
+                    cloudPartial = string.Empty;
+                    lastPreviewLength = 0;
+                    fragmentTimer.Change(Timeout.Infinite, Timeout.Infinite);
                     recentChinese.Clear();
                     if (Caption != null)
                         Caption.SourceWarning = string.Empty;
                 }
+            }
+        }
+
+        // `DisplayLoop` puts a result on screen in several steps; a reset must not fall in between them.
+        private static readonly object displayLock = new();
+
+        // Called when a class starts: the page and the floating windows show nothing of the class before.
+        public static void ResetDisplay()
+        {
+            lock (displayLock)
+            {
+                translationTaskQueue.Reset();
+                Caption?.Reset();
             }
         }
 
@@ -108,6 +124,8 @@ namespace LiveCaptionsTranslator
 
         // LiveCaptions can translate by itself (Windows 11 24H2+). Then it hands over Chinese text, which hides the
         // original and loses sentences, so tell the user when the target is Chinese and so is everything we read.
+        // Only asked for what LiveCaptions delivers: the cloud recognizer has no translation of its own, and the
+        // advice of the warning would not apply to it.
         private static void CheckAlreadyTranslated(string sentence)
         {
             if (Setting?.Lecture.OriginalOnly == true ||
@@ -115,7 +133,7 @@ namespace LiveCaptionsTranslator
                 !(Setting?.TargetLanguage ?? string.Empty).StartsWith("zh", StringComparison.OrdinalIgnoreCase))
             {
                 recentChinese.Clear();
-                Caption.SourceWarning = string.Empty;
+                ClearAlreadyTranslatedWarning();
                 return;
             }
             int letters = sentence.Count(char.IsLetter);
@@ -127,6 +145,13 @@ namespace LiveCaptionsTranslator
             if (recentChinese.Count >= 4 && chinese >= recentChinese.Count - 1)
                 Caption.SourceWarning = ALREADY_CHINESE_WARNING;
             else if (chinese <= 1)
+                ClearAlreadyTranslatedWarning();
+        }
+
+        // Only this warning: whatever else is shown in its place is not for a sentence to take away.
+        private static void ClearAlreadyTranslatedWarning()
+        {
+            if (Caption.SourceWarning == ALREADY_CHINESE_WARNING)
                 Caption.SourceWarning = string.Empty;
         }
 
@@ -196,6 +221,8 @@ namespace LiveCaptionsTranslator
         // and put in front of the next sentence instead of becoming a line of its own.
         private static readonly object cloudLock = new();
         private static string heldFragment = string.Empty;
+        // The sentence being spoken, as far as the cloud recognizer has it (with the held fragment in front).
+        private static string cloudPartial = string.Empty;
         private static readonly System.Threading.Timer fragmentTimer = new(_ => FlushFragment());
         private static readonly TimeSpan FRAGMENT_HOLD = TimeSpan.FromSeconds(4);
 
@@ -215,15 +242,20 @@ namespace LiveCaptionsTranslator
         // Text from the cloud recognizer: partial results while a sentence is spoken, then the final sentence.
         private static void OnCloudRecognized(string text, bool sentenceEnd)
         {
-            if (!ClassSession.IsRunning || Caption == null)
+            if (Caption == null)
                 return;
-            ClassSession.LastCaptionTime = DateTime.Now;
             lock (cloudLock)
             {
+                // Asked under the lock: once "停止" has taken what was heard of the last sentence
+                // (`FinishCurrentSentence`), a result that is still on its way must not add it a second time.
+                if (!ClassSession.IsRunning)
+                    return;
+                ClassSession.LastCaptionTime = DateTime.Now;
                 text = JoinFragment(text);
                 Caption.DisplayOriginalCaption = TextUtil.ShortenDisplaySentence(text, TextUtil.VERYLONG_THRESHOLD);
                 Caption.OverlayOriginalCaption = text;
 
+                cloudPartial = sentenceEnd ? string.Empty : text;
                 if (sentenceEnd)
                 {
                     lastPreviewLength = 0;
@@ -266,9 +298,42 @@ namespace LiveCaptionsTranslator
             lock (committedSentences)
             {
                 Commit(text);
-                CheckAlreadyTranslated(text);
             }
             pendingTextQueue.Enqueue((text, true));
+        }
+
+        // The class was stopped in the middle of a sentence: what was heard of it so far (it is on screen already)
+        // becomes the last line of the transcript instead of being dropped.
+        public static void FinishCurrentSentence(RecognitionEngine engine)
+        {
+            if (Caption == null)
+                return;
+            if (engine == RecognitionEngine.Aliyun)
+            {
+                lock (cloudLock)
+                {
+                    fragmentTimer.Change(Timeout.Infinite, Timeout.Infinite);
+                    string text = (cloudPartial.Length > 0 ? cloudPartial : heldFragment).Trim();
+                    cloudPartial = string.Empty;
+                    heldFragment = string.Empty;
+                    lastPreviewLength = 0;
+                    if (text.Length > 0)
+                        CommitCloudSentence(text);
+                }
+                return;
+            }
+
+            string sentence = (Caption.OriginalCaption ?? string.Empty).Trim();
+            if (sentence.Length == 0 || Array.IndexOf(TextUtil.PUNC_EOS, sentence[^1]) != -1)
+                return;    // Finished sentences were queued when they were read.
+            lock (committedSentences)
+            {
+                if (Encoding.UTF8.GetByteCount(sentence) >= TextUtil.SHORT_THRESHOLD && !IsCommitted(sentence))
+                {
+                    Commit(sentence);
+                    pendingTextQueue.Enqueue((sentence, true));
+                }
+            }
         }
 
         static Translator()
@@ -285,9 +350,16 @@ namespace LiveCaptionsTranslator
             // cloud engine is used.
             if (setting.Lecture.Engine == RecognitionEngine.LiveCaptions)
             {
-                window = LiveCaptionsHandler.LaunchLiveCaptions();
-                LiveCaptionsHandler.FixLiveCaptions(Window);
-                LiveCaptionsHandler.HideLiveCaptions(Window);
+                try
+                {
+                    EnsureLiveCaptions();
+                }
+                catch (Exception ex)
+                {
+                    // E.g. a Windows without Live Captions. The program must still start: the other engine works
+                    // without it, and starting a class says what is wrong.
+                    ErrorLog.Write("LiveCaptions", ex);
+                }
             }
 #endif
         }
@@ -335,176 +407,254 @@ namespace LiveCaptionsTranslator
                 }
             }
 
+            // The window read below may be replaced or closed by other threads at any time (a restart after the
+            // microphone changed, the cloud engine closing LiveCaptions): work on the one read at the start of a round.
+            void Forget(AutomationElement gone)
+            {
+                Interlocked.CompareExchange(ref window, null, gone);
+            }
+
+            int failures = 0;
             while (true)
             {
-                if (Window == null)
+                var liveCaptions = Window;
+                if (liveCaptions == null)
                 {
                     Thread.Sleep(2000);
                     continue;
                 }
-                if (!ClassSession.IsRunning || Setting.Lecture.Engine != RecognitionEngine.LiveCaptions)
+                if (!ClassSession.IsRunning || ClassSession.Engine != RecognitionEngine.LiveCaptions)
                 {
                     Thread.Sleep(500);
                     continue;
                 }
 
-                string fullText = string.Empty;
                 try
                 {
-                    // Check LiveCaptions.exe still alive
-                    _ = Window.Current.Name;
-                    // Get the text recognized by LiveCaptions (10-20ms)
-                    fullText = LiveCaptionsHandler.GetCaptions(Window);
-                }
-                catch (ElementNotAvailableException)
-                {
-                    Window = null;
-                    continue;
-                }
-                if (string.IsNullOrEmpty(fullText))
-                {
-                    Thread.Sleep(IDLE_POLL_MS);
-                    continue;
-                }
-                ClassSession.LastCaptionTime = DateTime.Now;
+                    string fullText = string.Empty;
+                    try
+                    {
+                        // Check LiveCaptions.exe still alive
+                        _ = liveCaptions.Current.Name;
+                        // Get the text recognized by LiveCaptions (10-20ms)
+                        fullText = LiveCaptionsHandler.GetCaptions(liveCaptions);
+                    }
+                    catch (ElementNotAvailableException)
+                    {
+                        Forget(liveCaptions);
+                        continue;
+                    }
+                    if (string.IsNullOrEmpty(fullText))
+                    {
+                        Thread.Sleep(IDLE_POLL_MS);
+                        continue;
+                    }
+                    ClassSession.LastCaptionTime = DateTime.Now;
 
-                int pollMs = idleCount < FAST_POLL_TICKS ? ACTIVE_POLL_MS : IDLE_POLL_MS;
-                // Nothing changed (a pause, or silence): skip the parsing and only count the idle time.
-                if (string.CompareOrdinal(fullText, lastRawText) == 0)
-                {
-                    idleCount += pollMs / 25;
+                    int pollMs = idleCount < FAST_POLL_TICKS ? ACTIVE_POLL_MS : IDLE_POLL_MS;
+                    // Nothing changed (a pause, or silence): skip the parsing and only count the idle time.
+                    if (string.CompareOrdinal(fullText, lastRawText) == 0)
+                    {
+                        idleCount += pollMs / 25;
+                        HandlePause();
+                        Thread.Sleep(pollMs);
+                        continue;
+                    }
+                    lastRawText = fullText;
+
+                    // Preprocess
+                    fullText = RegexPatterns.Acronym().Replace(fullText, "$1$2");
+                    fullText = RegexPatterns.AcronymWithWords().Replace(fullText, "$1 $2");
+                    fullText = RegexPatterns.PunctuationSpace().Replace(fullText, "$1 ");
+                    fullText = RegexPatterns.CJPunctuationSpace().Replace(fullText, "$1");
+                    // Note: For certain languages (such as Japanese), LiveCaptions excessively uses `\n`.
+                    // Replace redundant `\n` within sentences with comma or period.
+                    fullText = TextUtil.ReplaceNewlines(fullText, TextUtil.MEDIUM_THRESHOLD);
+
+                    // Prevent adding the last sentence from previous running to log cards
+                    // before the first sentence is completed.
+                    if (fullText.IndexOfAny(TextUtil.PUNC_EOS) == -1)
+                        ClearContexts();
+
+                    // Get the last sentence.
+                    int lastEOSIndex;
+                    if (Array.IndexOf(TextUtil.PUNC_EOS, fullText[^1]) != -1)
+                        lastEOSIndex = fullText[0..^1].LastIndexOfAny(TextUtil.PUNC_EOS);
+                    else
+                        lastEOSIndex = fullText.LastIndexOfAny(TextUtil.PUNC_EOS);
+                    string latestCaption = fullText.Substring(lastEOSIndex + 1);
+
+                    // If the last sentence is too short, extend it by adding the previous sentence.
+                    // Note: LiveCaptions may generate multiple characters including EOS at once.
+                    if (lastEOSIndex > 0 && Encoding.UTF8.GetByteCount(latestCaption) < TextUtil.SHORT_THRESHOLD)
+                    {
+                        lastEOSIndex = fullText[0..lastEOSIndex].LastIndexOfAny(TextUtil.PUNC_EOS);
+                        latestCaption = fullText.Substring(lastEOSIndex + 1);
+                    }
+
+                    // `OverlayOriginalCaption`: The sentence to be displayed on Overlay Window.
+                    Caption.OverlayOriginalCaption = latestCaption;
+                    for (int historyCount = Math.Min(Setting.DisplaySentences, Caption.ContextCount);
+                         historyCount > 0 && lastEOSIndex > 0;
+                         historyCount--)
+                    {
+                        lastEOSIndex = fullText[0..lastEOSIndex].LastIndexOfAny(TextUtil.PUNC_EOS);
+                        Caption.OverlayOriginalCaption = fullText.Substring(lastEOSIndex + 1);
+                    }
+
+                    // `DisplayOriginalCaption`: The sentence to be displayed on Main Window.
+                    if (string.CompareOrdinal(Caption.DisplayOriginalCaption, latestCaption) != 0)
+                    {
+                        Caption.DisplayOriginalCaption = latestCaption;
+                        // If the last sentence is too long, truncate it when displayed.
+                        Caption.DisplayOriginalCaption =
+                            TextUtil.ShortenDisplaySentence(Caption.DisplayOriginalCaption, TextUtil.VERYLONG_THRESHOLD);
+                    }
+
+                    // Prepare for `OriginalCaption`. If Expanded, only retain the complete sentence.
+                    int lastEOS = latestCaption.LastIndexOfAny(TextUtil.PUNC_EOS);
+                    if (lastEOS != -1)
+                        latestCaption = latestCaption.Substring(0, lastEOS + 1);
+                    // `OriginalCaption`: The sentence to be really translated.
+                    if (string.CompareOrdinal(Caption.OriginalCaption, latestCaption) != 0)
+                    {
+                        Caption.OriginalCaption = latestCaption;
+
+                        idleCount = 0;
+                        pauseHandled = false;
+                        if (Array.IndexOf(TextUtil.PUNC_EOS, Caption.OriginalCaption[^1]) == -1 &&
+                            Encoding.UTF8.GetByteCount(Caption.OriginalCaption) >= TextUtil.SHORT_THRESHOLD)
+                            syncCount++;
+                    }
+                    else
+                        idleCount += pollMs / 25;
+
+                    // Every finished sentence is translated once, including ones that scrolled by between reads.
+                    if (QueueNewSentences(fullText))
+                        syncCount = 0;
+
                     HandlePause();
+
+                    failures = 0;
                     Thread.Sleep(pollMs);
-                    continue;
                 }
-                lastRawText = fullText;
-
-                // Preprocess
-                fullText = RegexPatterns.Acronym().Replace(fullText, "$1$2");
-                fullText = RegexPatterns.AcronymWithWords().Replace(fullText, "$1 $2");
-                fullText = RegexPatterns.PunctuationSpace().Replace(fullText, "$1 ");
-                fullText = RegexPatterns.CJPunctuationSpace().Replace(fullText, "$1");
-                // Note: For certain languages (such as Japanese), LiveCaptions excessively uses `\n`.
-                // Replace redundant `\n` within sentences with comma or period.
-                fullText = TextUtil.ReplaceNewlines(fullText, TextUtil.MEDIUM_THRESHOLD);
-
-                // Prevent adding the last sentence from previous running to log cards
-                // before the first sentence is completed.
-                if (fullText.IndexOfAny(TextUtil.PUNC_EOS) == -1 && Caption.Contexts.Count > 0)
-                    ClearContexts();
-
-                // Get the last sentence.
-                int lastEOSIndex;
-                if (Array.IndexOf(TextUtil.PUNC_EOS, fullText[^1]) != -1)
-                    lastEOSIndex = fullText[0..^1].LastIndexOfAny(TextUtil.PUNC_EOS);
-                else
-                    lastEOSIndex = fullText.LastIndexOfAny(TextUtil.PUNC_EOS);
-                string latestCaption = fullText.Substring(lastEOSIndex + 1);
-
-                // If the last sentence is too short, extend it by adding the previous sentence.
-                // Note: LiveCaptions may generate multiple characters including EOS at once.
-                if (lastEOSIndex > 0 && Encoding.UTF8.GetByteCount(latestCaption) < TextUtil.SHORT_THRESHOLD)
+                catch (Exception ex)
                 {
-                    lastEOSIndex = fullText[0..lastEOSIndex].LastIndexOfAny(TextUtil.PUNC_EOS);
-                    latestCaption = fullText.Substring(lastEOSIndex + 1);
+                    // One bad read must not end the loop: no caption would be read again until the program restarts.
+                    ErrorLog.Write("SyncLoop", ex);
+                    if (++failures >= 5)
+                    {
+                        // LiveCaptions is in a state it does not recover from: `TranslateLoop` starts it again.
+                        failures = 0;
+                        Forget(liveCaptions);
+                    }
+                    Thread.Sleep(500);
                 }
-
-                // `OverlayOriginalCaption`: The sentence to be displayed on Overlay Window.
-                Caption.OverlayOriginalCaption = latestCaption;
-                for (int historyCount = Math.Min(Setting.DisplaySentences, Caption.Contexts.Count);
-                     historyCount > 0 && lastEOSIndex > 0;
-                     historyCount--)
-                {
-                    lastEOSIndex = fullText[0..lastEOSIndex].LastIndexOfAny(TextUtil.PUNC_EOS);
-                    Caption.OverlayOriginalCaption = fullText.Substring(lastEOSIndex + 1);
-                }
-
-                // `DisplayOriginalCaption`: The sentence to be displayed on Main Window.
-                if (string.CompareOrdinal(Caption.DisplayOriginalCaption, latestCaption) != 0)
-                {
-                    Caption.DisplayOriginalCaption = latestCaption;
-                    // If the last sentence is too long, truncate it when displayed.
-                    Caption.DisplayOriginalCaption =
-                        TextUtil.ShortenDisplaySentence(Caption.DisplayOriginalCaption, TextUtil.VERYLONG_THRESHOLD);
-                }
-
-                // Prepare for `OriginalCaption`. If Expanded, only retain the complete sentence.
-                int lastEOS = latestCaption.LastIndexOfAny(TextUtil.PUNC_EOS);
-                if (lastEOS != -1)
-                    latestCaption = latestCaption.Substring(0, lastEOS + 1);
-                // `OriginalCaption`: The sentence to be really translated.
-                if (string.CompareOrdinal(Caption.OriginalCaption, latestCaption) != 0)
-                {
-                    Caption.OriginalCaption = latestCaption;
-
-                    idleCount = 0;
-                    pauseHandled = false;
-                    if (Array.IndexOf(TextUtil.PUNC_EOS, Caption.OriginalCaption[^1]) == -1 &&
-                        Encoding.UTF8.GetByteCount(Caption.OriginalCaption) >= TextUtil.SHORT_THRESHOLD)
-                        syncCount++;
-                }
-                else
-                    idleCount += pollMs / 25;
-
-                // Every finished sentence is translated once, including ones that scrolled by between reads.
-                if (QueueNewSentences(fullText))
-                    syncCount = 0;
-
-                HandlePause();
-
-                Thread.Sleep(pollMs);
             }
         }
 #endif
 
         public static async Task TranslateLoop()
         {
+#if WINDOWS
+            DateTime nextRelaunch = DateTime.MinValue;
+#endif
             while (true)
             {
-#if WINDOWS
-                // Check LiveCaptions.exe still alive. It is only needed (and only kept running, since its own speech
-                // recognition costs power) for a class that uses the system engine.
-                if (Window == null && ClassSession.IsRunning &&
-                    Setting.Lecture.Engine == RecognitionEngine.LiveCaptions)
+                try
                 {
-                    Caption.DisplayTranslatedCaption = "[WARNING] 实时辅助字幕意外关闭，正在重启…";
-                    Window = LiveCaptionsHandler.LaunchLiveCaptions();
-                    LiveCaptionsHandler.FixLiveCaptions(Window);
-                    LiveCaptionsHandler.HideLiveCaptions(Window);
-                    Caption.DisplayTranslatedCaption = "";
-                }
+#if WINDOWS
+                    // Check LiveCaptions.exe still alive. It is only needed (and only kept running, since its own
+                    // speech recognition costs power) for a class that uses the system engine.
+                    if (Window == null && ClassSession.IsRunning &&
+                        ClassSession.Engine == RecognitionEngine.LiveCaptions && DateTime.Now >= nextRelaunch)
+                    {
+                        Caption.DisplayTranslatedCaption = "[WARNING] 实时辅助字幕意外关闭，正在重启…";
+                        try
+                        {
+                            EnsureLiveCaptions();
+                            Caption.DisplayTranslatedCaption = "";
+                        }
+                        catch (Exception ex)
+                        {
+                            // Not again at once: every attempt starts a process and waits for its window.
+                            nextRelaunch = DateTime.Now.AddSeconds(15);
+                            ErrorLog.Write("LiveCaptions", ex);
+                            Caption.DisplayTranslatedCaption = $"[WARNING] 实时辅助字幕没能重启（{ex.Message}），稍后再试…";
+                        }
+                    }
 #endif
 
-                // Translate
-                if (pendingTextQueue.TryDequeue(out var pending))
+                    // Translate. `handling` is raised before the sentence leaves the queue, so that
+                    // `WaitUntilIdle` never sees an empty queue while a sentence is on its way to the log.
+                    Interlocked.Increment(ref handling);
+                    try
+                    {
+                        if (pendingTextQueue.TryDequeue(out var pending))
+                            await Handle(pending.Text, pending.Final);
+                    }
+                    finally
+                    {
+                        Interlocked.Decrement(ref handling);
+                    }
+                }
+                catch (Exception ex)
                 {
-                    var (originalSnapshot, isFinal) = pending;
-
-                    // LiveCaptions also hears our own speech when it plays on the default output device.
-                    if (Speaker.SuppressCaptions)
-                        continue;
-
-                    if (LogOnlyFlag)
-                    {
-                        if (isFinal)
-                            await LogOnly(originalSnapshot);
-                    }
-                    else
-                    {
-                        if (Setting.Lecture.SkipTranslation)
-                        {
-                            Caption.TranslatedCaption = string.Empty;
-                            Caption.DisplayTranslatedCaption = string.Empty;
-                            if (isFinal)
-                                await Log(originalSnapshot, string.Empty);
-                        }
-                        else
-                            translationTaskQueue.Enqueue(token => Task.Run(
-                                () => Translate(originalSnapshot, token), token), originalSnapshot, isFinal);
-                    }
+                    // One bad sentence must not end the loop: nothing would be translated or logged again.
+                    ErrorLog.Write("TranslateLoop", ex);
                 }
 
                 await Task.Delay(ClassSession.IsRunning || !pendingTextQueue.IsEmpty ? 40 : 300);
+            }
+        }
+
+        private static int handling = 0;
+
+        private static async Task Handle(string original, bool isFinal)
+        {
+            // LiveCaptions also hears our own speech when it plays on the default output device.
+            if (Speaker.SuppressCaptions)
+                return;
+
+            if (LogOnlyFlag)
+            {
+                if (isFinal)
+                    await LogOnly(original);
+            }
+            else if (Setting.Lecture.SkipTranslation)
+            {
+                Caption.TranslatedCaption = string.Empty;
+                Caption.DisplayTranslatedCaption = string.Empty;
+                if (isFinal)
+                    await Log(original, string.Empty);
+            }
+            else
+                translationTaskQueue.Enqueue(token => Task.Run(
+                    () => Translate(original, token), token), original, isFinal);
+        }
+
+        // Waits (up to `timeout`) until every sentence recognized so far is in the history: translated, or failed,
+        // and logged. Translations take a moment, so right after a class stops its last sentences are not there yet.
+        public static async Task WaitUntilIdle(TimeSpan timeout)
+        {
+            var deadline = DateTime.UtcNow + timeout;
+            while (true)
+            {
+                var remaining = deadline - DateTime.UtcNow;
+                if (remaining <= TimeSpan.Zero)
+                    return;
+                if (!pendingTextQueue.IsEmpty || Volatile.Read(ref handling) > 0)
+                {
+                    await Task.Delay(40);
+                    continue;
+                }
+                var logged = translationTaskQueue.Logged;
+                if (await Task.WhenAny(logged, Task.Delay(remaining)) != logged)
+                    return;
+                // Nothing new came in while waiting: done.
+                if (pendingTextQueue.IsEmpty && Volatile.Read(ref handling) == 0 &&
+                    ReferenceEquals(logged, translationTaskQueue.Logged))
+                    return;
             }
         }
 
@@ -512,60 +662,86 @@ namespace LiveCaptionsTranslator
         {
             while (true)
             {
-                var (translatedText, isChoke, source) = translationTaskQueue.Output;
-
-                if (Setting.Lecture.SkipTranslation)
+                bool hold = false;
+                try
                 {
-                    Caption.TranslatedCaption = string.Empty;
-                    Caption.DisplayTranslatedCaption = string.Empty;
-                    Caption.OverlayNoticePrefix = string.Empty;
-                    Caption.OverlayCurrentTranslation = string.Empty;
-                }
-                else if (LogOnlyFlag)
-                {
-                    Caption.TranslatedCaption = string.Empty;
-                    Caption.DisplayTranslatedCaption = "[已暂停]";
-                    Caption.OverlayNoticePrefix = "[已暂停]";
-                    Caption.OverlayCurrentTranslation = string.Empty;
-                }
-                else if (!string.IsNullOrEmpty(RegexPatterns.NoticePrefix().Replace(
-                             translatedText, string.Empty).Trim()) &&
-                         string.CompareOrdinal(Caption.TranslatedCaption, translatedText) != 0)
-                {
-                    // Main page
-                    Caption.TranslatedCaption = translatedText;
-                    Caption.DisplayTranslatedCaption =
-                        TextUtil.ShortenDisplaySentence(Caption.TranslatedCaption, TextUtil.VERYLONG_THRESHOLD);
-
-                    // Overlay window
-                    Caption.OverlayTranslationSource = source;
-                    if (Caption.TranslatedCaption.Contains("[ERROR]") || Caption.TranslatedCaption.Contains("[WARNING]"))
-                        Caption.OverlayCurrentTranslation = Caption.TranslatedCaption;
-                    else
+                    lock (displayLock)
                     {
-                        var match = RegexPatterns.NoticePrefixAndTranslation().Match(Caption.TranslatedCaption);
-                        Caption.OverlayNoticePrefix = match.Groups[1].Value.Trim();
-                        Caption.OverlayCurrentTranslation = match.Groups[2].Value.Trim();
+                        hold = ShowNewestTranslation();
                     }
                 }
-                else if (string.CompareOrdinal(Caption.TranslatedCaption, translatedText) == 0)
+                catch (Exception ex)
                 {
-                    // A new original can get the same translation, e.g. two short acknowledgements.
-                    Caption.OverlayTranslationSource = source;
+                    // One bad result must not end the loop: no translation would be shown again.
+                    ErrorLog.Write("DisplayLoop", ex);
                 }
 
-                // If the original sentence is a complete sentence, choke for better visual experience.
-                if (isChoke)
+                // The translation of a finished sentence stays for a moment, so that it can be read before the
+                // preview of the next sentence takes its place. Once for every sentence: while it is the newest
+                // result the loop keeps looking, or the next one would wait for a pause that has long been over.
+                if (hold)
                     await Task.Delay(720);
                 // Translations still arrive for a moment after stopping; after that nothing changes here.
                 await Task.Delay(ClassSession.IsRunning || translationTaskQueue.IsBusy ? 40 : 300);
             }
         }
 
+        // Puts the newest translation on the caption page and the floating windows. Returns whether that was the
+        // translation of a finished sentence which was not on screen yet.
+        private static bool ShowNewestTranslation()
+        {
+            var (translatedText, isFinished, source) = translationTaskQueue.Output;
+
+            if (Setting.Lecture.SkipTranslation)
+            {
+                Caption.TranslatedCaption = string.Empty;
+                Caption.DisplayTranslatedCaption = string.Empty;
+                Caption.OverlayNoticePrefix = string.Empty;
+                Caption.OverlayCurrentTranslation = string.Empty;
+                return false;
+            }
+            if (LogOnlyFlag)
+            {
+                Caption.TranslatedCaption = string.Empty;
+                Caption.DisplayTranslatedCaption = "[已暂停]";
+                Caption.OverlayNoticePrefix = "[已暂停]";
+                Caption.OverlayCurrentTranslation = string.Empty;
+                return false;
+            }
+            if (string.CompareOrdinal(Caption.TranslatedCaption, translatedText) == 0)
+            {
+                // A new original can get the same translation, e.g. two short acknowledgements.
+                Caption.OverlayTranslationSource = source;
+                return false;
+            }
+            if (string.IsNullOrEmpty(RegexPatterns.NoticePrefix().Replace(translatedText, string.Empty).Trim()))
+                return false;
+
+            // Main page
+            Caption.TranslatedCaption = translatedText;
+            Caption.DisplayTranslatedCaption =
+                TextUtil.ShortenDisplaySentence(Caption.TranslatedCaption, TextUtil.VERYLONG_THRESHOLD);
+
+            // Overlay window
+            Caption.OverlayTranslationSource = source;
+            if (Caption.TranslatedCaption.Contains("[ERROR]") || Caption.TranslatedCaption.Contains("[WARNING]"))
+            {
+                Caption.OverlayNoticePrefix = string.Empty;
+                Caption.OverlayCurrentTranslation = Caption.TranslatedCaption;
+            }
+            else
+            {
+                var match = RegexPatterns.NoticePrefixAndTranslation().Match(Caption.TranslatedCaption);
+                Caption.OverlayNoticePrefix = match.Groups[1].Value.Trim();
+                Caption.OverlayCurrentTranslation = match.Groups[2].Value.Trim();
+            }
+            return isFinished;
+        }
+
         public static async Task<(string, bool)> Translate(string text, CancellationToken token = default)
         {
             string translatedText;
-            bool isChoke = Array.IndexOf(TextUtil.PUNC_EOS, text[^1]) != -1;
+            bool isChoke = text.Length > 0 && Array.IndexOf(TextUtil.PUNC_EOS, text[^1]) != -1;
 
             try
             {
@@ -588,9 +764,15 @@ namespace LiveCaptionsTranslator
                     translatedText = $"[{sw.ElapsedMilliseconds,4} ms] " + translatedText;
                 }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
             {
                 throw;
+            }
+            catch (OperationCanceledException)
+            {
+                // Not cancelled from here: the request ran into its own time limit. The sentence gets a result
+                // like any other failure, or it would not be shown and never reach the transcript.
+                return ("[ERROR] 翻译失败：请求超时，请换一个更快的接口或检查网络。", isChoke);
             }
             catch (Exception ex)
             {
@@ -649,83 +831,92 @@ namespace LiveCaptionsTranslator
         public static async Task AddContexts(CancellationToken token = default)
         {
             var lastLog = await SQLiteHistoryLogger.LoadLastTranslation(token);
-            if (lastLog == null)
+            // The row before the first sentence of a class is the end of an earlier class, not context for this one.
+            if (lastLog == null || lastLog.Id <= ClassSession.FirstHistoryId)
                 return;
-
-            if (Caption?.Contexts.Count >= Caption.MAX_CONTEXTS)
-                Caption.Contexts.Dequeue();
-            Caption?.Contexts.Enqueue(lastLog);
-
-            Caption?.OnPropertyChanged("DisplayLogCards");
-            Caption?.OnPropertyChanged("OverlayPreviousTranslation");
+            Caption?.AddContext(lastLog);
         }
 
-        // Closes LiveCaptions when it is not needed (cloud engine), to save the power its recognition uses.
+        // Closes LiveCaptions when it is not needed (cloud engine), to save the power its recognition uses; and
+        // for it to start again with, e.g., another default microphone: `TranslateLoop` starts it again for a
+        // running class, otherwise the next class or the settings page does.
         public static void CloseLiveCaptions()
         {
 #if WINDOWS
-            var current = Window;
-            if (current == null)
-                return;
-            Window = null;
-            try
+            // Not while it is being started, and it is not started while it is being closed: whoever asks for it
+            // in between (`EnsureLiveCaptions`) would be handed the window that is on its way out.
+            lock (launchLock)
             {
-                LiveCaptionsHandler.KillLiveCaptions(current);
-            }
-            catch (Exception)
-            {
-                // Best effort: LiveCaptions may already be closed.
+                var current = Window;
+                if (current == null)
+                    return;
+                try
+                {
+                    LiveCaptionsHandler.KillLiveCaptions(current);
+                }
+                catch (Exception)
+                {
+                    // Best effort: LiveCaptions may already be closed.
+                }
+                // Forgotten, so that nothing works on a window that is gone. (Unless the loop that reads it
+                // has done so already.)
+                Interlocked.CompareExchange(ref window, null, current);
             }
 #endif
         }
 
 #if WINDOWS
-        // Starts LiveCaptions if it is not running (e.g. to show it for its first-time setup).
+        private static readonly object launchLock = new();
+
+        // The window of LiveCaptions, which is started (out of the way) if it is not running: for a class, or
+        // to show it for its first-time setup. One caller at a time: starting it closes every LiveCaptions
+        // there is, the one another caller has just started included.
         public static AutomationElement EnsureLiveCaptions()
         {
-            var current = Window;
-            if (current != null)
+            lock (launchLock)
             {
+                var current = Window;
+                if (current != null)
+                {
+                    try
+                    {
+                        _ = current.Current.Name;
+                        return current;
+                    }
+                    catch (ElementNotAvailableException)
+                    {
+                        // The cached window is gone (closed by hand); start it again.
+                    }
+                }
+                current = LiveCaptionsHandler.LaunchLiveCaptions();
                 try
                 {
-                    _ = current.Current.Name;
-                    return current;
+                    LiveCaptionsHandler.FixLiveCaptions(current);
+                    LiveCaptionsHandler.HideLiveCaptions(current);
                 }
-                catch (ElementNotAvailableException)
+                catch (Exception)
                 {
-                    // The cached window is gone; fall through and look for it again.
+                    // Not kept half set up: it would stay on screen where Windows put it and count as running,
+                    // so that nothing would start it again. The next caller does.
+                    try
+                    {
+                        LiveCaptionsHandler.KillLiveCaptions(current);
+                    }
+                    catch (Exception)
+                    {
+                        // It is gone already.
+                    }
+                    throw;
                 }
-            }
-            current = LiveCaptionsHandler.LaunchLiveCaptions();
-            LiveCaptionsHandler.FixLiveCaptions(current);
-            LiveCaptionsHandler.HideLiveCaptions(current);
-            Window = current;
-            return current;
-        }
-
-        // Restarts LiveCaptions, e.g. after the default microphone changed. `TranslateLoop` relaunches it.
-        public static void RestartLiveCaptions()
-        {
-            var window = Window;
-            if (window == null)
-                return;
-            try
-            {
-                LiveCaptionsHandler.KillLiveCaptions(window);
-            }
-            catch (Exception)
-            {
-                // Best effort: LiveCaptions may already be closed.
+                Window = current;
+                return current;
             }
         }
 #endif
 
         public static void ClearContexts()
         {
-            Caption?.Contexts.Clear();
-
-            Caption?.OnPropertyChanged("DisplayLogCards");
-            Caption?.OnPropertyChanged("OverlayPreviousTranslation");
+            Caption?.ClearContexts();
         }
 
     }

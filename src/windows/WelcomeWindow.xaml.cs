@@ -20,7 +20,7 @@ namespace LiveCaptionsTranslator
 
         private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
         {
-            ShellUtil.Open(e.Uri.AbsoluteUri);
+            ShellUtil.OpenLink(e.Uri.AbsoluteUri);
             e.Handled = true;
         }
     }

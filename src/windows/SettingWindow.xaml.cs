@@ -69,10 +69,9 @@ namespace LiveCaptionsTranslator
                         System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
                 else if (newName != null)
                 {
+                    // Changing the name asks for the settings to be saved, as every changed setting does.
                     configs[configIndex + 1].ConfigName = newName;
-                    configs[configIndex + 1].OnPropertyChanged("ConfigName");
                     RefreshConfigComboBox(apiName);
-                    Translator.Setting.Save();
                 }
             }
         }
@@ -90,6 +89,8 @@ namespace LiveCaptionsTranslator
                     (FindName($"{apiName}DeleteFlyout") as Flyout)?.Show();
                     return;
                 }
+                if (configIndex < 0 || configIndex >= configs.Count)
+                    return;
                 configs.RemoveAt(configIndex);
                 SwitchConfig(apiName, Math.Max(0, Math.Min(configs.Count - 1, configIndex)));
 
@@ -303,9 +304,7 @@ namespace LiveCaptionsTranslator
             }
 
             configs[index].ConfigName = newName;
-            configs[index].OnPropertyChanged("ConfigName");
             RefreshConfigComboBox(apiName);
-            Translator.Setting.Save();
         }
 
         private void ApiStyleComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -324,10 +323,7 @@ namespace LiveCaptionsTranslator
                 return;
 
             if (Translator.Setting[apiName] is OpenAIConfig config && config.ApiStyle != style)
-            {
                 config.ApiStyle = style;
-                Translator.Setting.Save();
-            }
         }
 
         /// <summary>

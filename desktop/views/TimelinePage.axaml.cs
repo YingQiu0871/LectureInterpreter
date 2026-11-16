@@ -25,9 +25,8 @@ namespace LiveCaptionsTranslator
         {
             base.OnAttachedToVisualTree(e);
             Shell.Main?.AutoHeightAdjust(minHeight: MIN_HEIGHT);
-            Summarizer.SectionSummarized += OnSectionSummarized;
-            Summarizer.CurrentPageChanged += OnCurrentPageChanged;
-            ClassSession.StateChanged += OnSessionChanged;
+            Subscribe(false);
+            Subscribe(true);
             ShowSlidesInfo();
             await SelectCurrent();
             isLoaded = true;
@@ -37,9 +36,25 @@ namespace LiveCaptionsTranslator
         {
             base.OnDetachedFromVisualTree(e);
             isLoaded = false;
-            Summarizer.SectionSummarized -= OnSectionSummarized;
-            Summarizer.CurrentPageChanged -= OnCurrentPageChanged;
-            ClassSession.StateChanged -= OnSessionChanged;
+            Subscribe(false);
+        }
+
+        private void Subscribe(bool on)
+        {
+            if (on)
+            {
+                Summarizer.SectionSummarized += OnSectionSummarized;
+                Summarizer.CurrentPageChanged += OnCurrentPageChanged;
+                SlideDeck.LoadingChanged += OnSlidesLoadingChanged;
+                ClassSession.StateChanged += OnSessionChanged;
+            }
+            else
+            {
+                Summarizer.SectionSummarized -= OnSectionSummarized;
+                Summarizer.CurrentPageChanged -= OnCurrentPageChanged;
+                SlideDeck.LoadingChanged -= OnSlidesLoadingChanged;
+                ClassSession.StateChanged -= OnSessionChanged;
+            }
         }
 
         private LectureRecord? SelectedLecture => LectureBox.SelectedItem as LectureRecord;
@@ -128,8 +143,23 @@ namespace LiveCaptionsTranslator
             Dispatcher.UIThread.Post(ShowSlidesInfo);
         }
 
+        private void OnSlidesLoadingChanged()
+        {
+            Dispatcher.UIThread.Post(ShowSlidesInfo);
+        }
+
         private void ShowSlidesInfo()
         {
+            // A file is being read, maybe since before this page was opened, or from the settings page: not a
+            // second one on top of it.
+            LoadSlides.IsEnabled = !SlideDeck.IsLoading;
+            if (SlideDeck.IsLoading)
+            {
+                SlidesInfo.Text = "读取中……";
+                // Nor is the file before it taken away meanwhile: the one being read takes its place.
+                ClearSlides.IsVisible = false;
+                return;
+            }
             if (!SlideDeck.IsLoaded)
             {
                 SlidesInfo.Text = "未载入课件：按语义分节";
@@ -147,6 +177,8 @@ namespace LiveCaptionsTranslator
             if (path == null)
                 return;
 
+            LoadSlides.IsEnabled = false;
+            SlidesInfo.Text = "读取中……";
             try
             {
                 await SlideDeck.Load(path);
