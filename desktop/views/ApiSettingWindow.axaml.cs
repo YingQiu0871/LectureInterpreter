@@ -111,9 +111,15 @@ namespace LiveCaptionsTranslator
                     continue;
                 AddNav(section.Nav, section.Api);
                 Sections.Children.Add(BuildSection(section));
-                SwitchConfig(section.Api, Translator.Setting.ConfigIndices[section.Api]);
+                ShowConfig(section.Api);
             }
             SelectNav(promptButton);
+            // The settings page edits the same configurations: coming back to this window shows them as they are.
+            Activated += (s, e) =>
+            {
+                foreach (string api in refreshers.Keys)
+                    ShowConfig(api);
+            };
         }
 
         private Button AddNav(string text, string tag)
@@ -171,7 +177,12 @@ namespace LiveCaptionsTranslator
                 TextWrapping = TextWrapping.Wrap,
                 Text = Translator.Setting.Prompt,
             };
-            box.TextChanged += (s, e) => Translator.Setting.Prompt = box.Text ?? string.Empty;
+            box.TextChanging += (s, e) =>
+            {
+                string text = box.Text ?? string.Empty;
+                if (text != Translator.Setting.Prompt)
+                    Translator.Setting.Prompt = text;
+            };
             var panel = new StackPanel
             {
                 Margin = new Thickness(15, 0),
@@ -309,7 +320,8 @@ namespace LiveCaptionsTranslator
                 default:
                     {
                         var box = new TextBox { Width = field.Property == "ModelName" ? 160 : 200 };
-                        box.TextChanged += (s, e) =>
+                        // Not `TextChanged`: that one is posted and arrives after `filling` is over.
+                        box.TextChanging += (s, e) =>
                         {
                             if (!filling)
                                 SetProperty(api, field.Property, box.Text ?? string.Empty);
@@ -387,6 +399,8 @@ namespace LiveCaptionsTranslator
                 messageLabels[api].Text = "至少要保留一个配置。";
                 return;
             }
+            if (configIndex < 0 || configIndex >= configs.Count)
+                return;
             configs.RemoveAt(configIndex);
             SwitchConfig(api, Math.Max(0, Math.Min(configs.Count - 1, configIndex)));
 
@@ -400,11 +414,18 @@ namespace LiveCaptionsTranslator
 
             if (Translator.Setting.ConfigIndices[api] != index)
                 Translator.Setting.ConfigIndices[api] = index;
-
-            if (indexLabels.TryGetValue(api, out var indexLabel))
-                indexLabel.Text = $"{index + 1}/{Translator.Setting.Configs[api].Count}";
             if (messageLabels.TryGetValue(api, out var message))
                 message.Text = string.Empty;
+            ShowConfig(api);
+            Translator.Setting.OnPropertyChanged(null);
+        }
+
+        // Shows the configuration in use: its position among the saved ones and its fields.
+        private void ShowConfig(string api)
+        {
+            if (indexLabels.TryGetValue(api, out var indexLabel))
+                indexLabel.Text = $"{Translator.Setting.ConfigIndices.GetValueOrDefault(api) + 1}/" +
+                                  $"{Translator.Setting.Configs[api].Count}";
 
             filling = true;
             try
@@ -416,7 +437,6 @@ namespace LiveCaptionsTranslator
             {
                 filling = false;
             }
-            Translator.Setting.OnPropertyChanged(null);
         }
     }
 }

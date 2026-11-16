@@ -54,8 +54,9 @@
                     <local:StrokeTextBlock x:Name="OriginalCaption" />
                 </Border>
 
-                <WrapPanel x:Name="ControlPanel" Grid.Row="1" Margin="0,0,5,5" HorizontalAlignment="Right"
-                           VerticalAlignment="Bottom" IsVisible="False">
+                <!-- Over the bottom of the text, whichever of the two lines is there -->
+                <WrapPanel x:Name="ControlPanel" Grid.Row="0" Grid.RowSpan="2" Margin="0,0,5,5"
+                           HorizontalAlignment="Right" VerticalAlignment="Bottom" IsVisible="False">
                     <Button Classes="tool" Content="A+" ToolTip.Tip="字号加大" Click="FontIncrease_Click" />
                     <Button Classes="tool" Content="A−" ToolTip.Tip="字号减小" Click="FontDecrease_Click" />
                     <Button Classes="tool" Content="描+" ToolTip.Tip="描边加粗" Click="FontStrokeIncrease_Click" />

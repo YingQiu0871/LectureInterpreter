@@ -27,7 +27,8 @@
                 </ComboBox>
                 <Button x:Name="EndSection" Margin="2,0,0,0" Content="结束本节并总结" ToolTip.Tip="Ctrl+Alt+S"
                         Click="EndSection_Click" />
-                <Button Content="上传课件" ToolTip.Tip="载入后按课件页码分节" Click="LoadSlides_Click" />
+                <Button x:Name="LoadSlides" Content="上传课件" ToolTip.Tip="载入后按课件页码分节"
+                        Click="LoadSlides_Click" />
                 <Button x:Name="ClearSlides" Classes="ghost" ToolTip.Tip="移除课件" IsVisible="False"
                         Click="ClearSlides_Click">
                     <!-- Drawn, not a "✕" character: not every Linux font has that glyph. -->

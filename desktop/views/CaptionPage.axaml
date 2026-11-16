@@ -30,6 +30,10 @@
             <Setter Property="Background" Value="{DynamicResource BrandBrush}" />
             <Setter Property="Foreground" Value="White" />
         </Style>
+        <!-- “显示原文” switched off (while translating): the rows show their translation only -->
+        <Style Selector="ItemsControl.noOriginal TextBlock.original">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
     </UserControl.Styles>
     <Grid x:Name="Root" RowDefinitions="*,Auto">
         <Grid.ColumnDefinitions>
@@ -88,11 +92,9 @@
                                 <TextBlock x:Name="StatusHint" Classes="secondary" FontSize="13" IsHitTestVisible="False"
                                            TextWrapping="Wrap" />
                                 <TextBlock x:Name="OriginalCaption" Classes="secondary" FontSize="12"
-                                           TextWrapping="Wrap"
-                                           Cursor="Hand" ToolTip.Tip="单击复制，Ctrl+滚轮调整字号" />
+                                           TextWrapping="Wrap" Cursor="Hand" />
                                 <TextBlock x:Name="TranslatedCaption" Classes="accent" Margin="0,3,0,0" FontSize="15"
-                                           FontWeight="Medium" TextWrapping="Wrap"
-                                           Cursor="Hand" ToolTip.Tip="单击复制，Ctrl+滚轮调整字号" />
+                                           FontWeight="Medium" TextWrapping="Wrap" Cursor="Hand" />
                             </StackPanel>
                         </Grid>
                         <ToggleButton x:Name="LargeModeButton" Grid.Column="1" Classes="chip" Margin="12,0,0,0"

@@ -91,8 +91,13 @@ namespace LiveCaptionsTranslator.utils
             while (true)
             {
                 signal.WaitOne();
-                while (TryDequeue(out string text))
+                while (true)
                 {
+                    // Before the next text is taken: a stop from here on is meant for that text. (Cleared after
+                    // taking it, a stop in between would be forgotten and the text read all the same.)
+                    stopRequested = false;
+                    if (!TryDequeue(out string text))
+                        break;
                     try
                     {
                         pendingCancel?.Wait(2000);
@@ -101,7 +106,6 @@ namespace LiveCaptionsTranslator.utils
                     {
                         // The cancel only needs to finish before the next speech starts; its failure changes nothing.
                     }
-                    stopRequested = false;
                     try
                     {
                         string deviceId = Lecture?.SpeechDeviceId ?? string.Empty;
@@ -113,8 +117,7 @@ namespace LiveCaptionsTranslator.utils
                     }
                     catch (Exception ex)
                     {
-                        SnackbarHost.Show(SPEECH_FAILED, ex.Message, SnackbarType.Error,
-                            timeout: 3, closeButton: true);
+                        ReportFailure(SPEECH_FAILED, ex.Message, SnackbarType.Error);
                     }
                     finally
                     {

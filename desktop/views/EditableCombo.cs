@@ -54,7 +54,9 @@ namespace LiveCaptionsTranslator
             SetColumn(arrow, 1);
             Children.Add(box);
             Children.Add(arrow);
-            box.TextChanged += (s, e) =>
+            // Not `TextChanged`: that one is posted and arrives after `setting` is over, so that text set by the
+            // code would count as typed.
+            box.TextChanging += (s, e) =>
             {
                 if (!setting)
                     TextEdited?.Invoke(box.Text ?? string.Empty);

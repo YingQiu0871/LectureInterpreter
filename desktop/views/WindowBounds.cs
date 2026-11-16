@@ -61,14 +61,15 @@ namespace LiveCaptionsTranslator
             }
         }
 
-        // Saves the bounds shortly after the last move or resize.
-        public static void Track(Window window, string name)
+        // Saves the bounds shortly after the last move or resize. With `remembered`, what is saved is what that
+        // makes of the bounds (a window that is not in the state it opens in the next time).
+        public static void Track(Window window, string name, Func<Rect, Rect>? remembered = null)
         {
             var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
             timer.Tick += (s, e) =>
             {
                 timer.Stop();
-                Save(window, name);
+                Save(window, name, remembered);
             };
             void Changed()
             {
@@ -83,15 +84,20 @@ namespace LiveCaptionsTranslator
             };
         }
 
-        public static void Save(Window window, string name)
+        public static void Save(Window window, string name, Func<Rect, Rect>? remembered = null)
         {
             var setting = Translator.Setting;
             if (setting == null || window.WindowState != WindowState.Normal || !window.IsVisible)
                 return;
-            setting.WindowBounds[name] = string.Format(CultureInfo.InvariantCulture, "{0}, {1}, {2}, {3}",
-                window.Position.X, window.Position.Y, Math.Round(window.ClientSize.Width, 1),
-                Math.Round(window.ClientSize.Height, 1));
-            setting.Save();
+            var bounds = new Rect(window.Position.X, window.Position.Y, window.ClientSize.Width, window.ClientSize.Height);
+            if (remembered != null)
+                bounds = remembered(bounds);
+            string text = string.Format(CultureInfo.InvariantCulture, "{0}, {1}, {2}, {3}",
+                Math.Round(bounds.X), Math.Round(bounds.Y), Math.Round(bounds.Width, 1), Math.Round(bounds.Height, 1));
+            if (setting.WindowBounds.TryGetValue(name, out string? saved) && saved == text)
+                return;
+            setting.WindowBounds[name] = text;
+            models.Setting.SaveSoon();
         }
     }
 }
