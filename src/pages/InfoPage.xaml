@@ -64,7 +64,11 @@
                     <Run Text="&#x0A;如果觉得好用，欢迎给本项目和原项目点个 Star！" />
                 </TextBlock>
 
-                <Separator Margin="0,12,0,12" />
+                <!--  A line with the same distance above and below (the separator of the theme brings 12 of its own on each side: the page would no longer fit the window).  -->
+                <Border
+                    Height="1"
+                    Margin="0,16,0,16"
+                    Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
 
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -146,7 +150,10 @@
                     </TextBlock>
                 </Grid>
 
-                <Separator Margin="0,12,0,12" />
+                <Border
+                    Height="1"
+                    Margin="0,16,0,16"
+                    Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
 
                 <Grid>
                     <Grid.ColumnDefinitions>

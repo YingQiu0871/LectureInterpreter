@@ -16,7 +16,7 @@
             x:Key="ItemCard"
             BasedOn="{StaticResource PageCard}"
             TargetType="Border">
-            <Setter Property="Padding" Value="14,12,14,12" />
+            <Setter Property="Padding" Value="16,12,16,12" />
             <Setter Property="Cursor" Value="Hand" />
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
@@ -31,7 +31,7 @@
             <Setter Property="Appearance" Value="Transparent" />
             <Setter Property="Padding" Value="6,4,6,4" />
             <Setter Property="FontSize" Value="15" />
-            <Setter Property="MouseOverBackground" Value="#07000000" />
+            <Setter Property="MouseOverBackground" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
         </Style>
         <!--  The box that marks a card for "删除选中": only the box, at the right edge of its card. (Each box also says MinWidth="0" itself: the theme gives a box without words a width of 30, and only the box's own value outranks that.)  -->
         <Style
@@ -58,13 +58,18 @@
             </Grid.ColumnDefinitions>
 
             <!--  Breadcrumb: 课程 › course › lecture  -->
-            <!--  Moved left by the padding of its first button, so the icon stands where the cards begin.  -->
-            <StackPanel
+            <!--  Moved left by the padding of its first button, so the icon stands where the cards begin. The name of the class takes the width that is left, and ends in "…" when that is not enough.  -->
+            <Grid
                 x:Name="Breadcrumb"
                 MaxHeight="34.94"
-                Margin="-7,0,0,0"
-                HorizontalAlignment="Left"
-                Orientation="Horizontal">
+                Margin="-7,0,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
                 <ui:Button
                     x:Name="CrumbHome"
                     Click="CrumbHome_click"
@@ -74,30 +79,35 @@
                     Style="{StaticResource Crumb}" />
                 <TextBlock
                     x:Name="CrumbSep1"
+                    Grid.Column="1"
                     Margin="2,0,2,0"
                     VerticalAlignment="Center"
                     Opacity="0.6"
                     Text="›" />
                 <ui:Button
                     x:Name="CrumbCourse"
+                    Grid.Column="2"
                     MaxWidth="220"
                     Click="CrumbCourse_click"
                     Style="{StaticResource Crumb}" />
                 <TextBlock
                     x:Name="CrumbSep2"
+                    Grid.Column="3"
                     Margin="2,0,2,0"
                     VerticalAlignment="Center"
                     Opacity="0.6"
                     Text="›" />
                 <TextBlock
                     x:Name="CrumbLecture"
+                    Grid.Column="4"
                     MaxWidth="280"
                     Margin="6,0,0,0"
+                    HorizontalAlignment="Left"
                     VerticalAlignment="Center"
                     FontSize="15"
                     FontWeight="SemiBold"
                     TextTrimming="CharacterEllipsis" />
-            </StackPanel>
+            </Grid>
             <!--  Moved right by the padding and the outline of its last button, so the icon ends where the cards end.  -->
             <StackPanel
                 Grid.Column="1"
@@ -112,7 +122,7 @@
                     Content="新建课程"
                     Icon="{ui:SymbolIcon FolderAdd16,
                                          Filled=False}"
-                    MouseOverBackground="#07000000" />
+                    MouseOverBackground="{DynamicResource SubtleFillColorSecondaryBrush}" />
                 <ui:Button
                     x:Name="AllSentences"
                     Margin="4,0,0,0"
@@ -121,7 +131,7 @@
                     Content="全部句子"
                     Icon="{ui:SymbolIcon TextBulletListLtr16,
                                          Filled=False}"
-                    MouseOverBackground="#07000000"
+                    MouseOverBackground="{DynamicResource SubtleFillColorSecondaryBrush}"
                     ToolTip="不分课程，按时间列出所有句子" />
                 <ui:Button
                     x:Name="RenameLecture"
@@ -130,7 +140,7 @@
                     Content="重命名"
                     Icon="{ui:SymbolIcon Rename16,
                                          Filled=False}"
-                    MouseOverBackground="#07000000" />
+                    MouseOverBackground="{DynamicResource SubtleFillColorSecondaryBrush}" />
                 <ui:Button
                     x:Name="NotesDraft"
                     Margin="4,0,0,0"
@@ -139,7 +149,7 @@
                     Content="生成笔记初稿"
                     Icon="{ui:SymbolIcon Notebook16,
                                          Filled=False}"
-                    MouseOverBackground="#07000000"
+                    MouseOverBackground="{DynamicResource SubtleFillColorSecondaryBrush}"
                     ToolTip="结合小节总结、转录和课件（若已上传）生成笔记初稿，保存在转录文件旁边" />
                 <ui:Button
                     x:Name="OpenFile"
@@ -149,7 +159,7 @@
                     Content="打开文件位置"
                     Icon="{ui:SymbolIcon FolderOpen16,
                                          Filled=False}"
-                    MouseOverBackground="#07000000"
+                    MouseOverBackground="{DynamicResource SubtleFillColorSecondaryBrush}"
                     ToolTip="重新生成本节课的 Markdown 文件，并在资源管理器中显示" />
                 <ui:Button
                     x:Name="Export"
@@ -158,7 +168,7 @@
                     Click="Export_click"
                     Icon="{ui:SymbolIcon ArrowDown12,
                                          Filled=False}"
-                    MouseOverBackground="#07000000"
+                    MouseOverBackground="{DynamicResource SubtleFillColorSecondaryBrush}"
                     ToolTip="导出全部句子 (CSV)" />
                 <ui:Button
                     x:Name="Delete"
@@ -167,7 +177,7 @@
                     Click="Delete_click"
                     Icon="{ui:SymbolIcon Delete12,
                                          Filled=False}"
-                    MouseOverBackground="#07000000"
+                    MouseOverBackground="{DynamicResource SubtleFillColorSecondaryBrush}"
                     ToolTip="全部删除" />
                 <ui:Button
                     x:Name="DeleteSelected"
@@ -175,7 +185,7 @@
                     Appearance="Transparent"
                     Click="DeleteSelected_click"
                     Content="删除选中"
-                    MouseOverBackground="#07000000" />
+                    MouseOverBackground="{DynamicResource SubtleFillColorSecondaryBrush}" />
                 <ui:Button
                     x:Name="Refresh"
                     Margin="4,0,0,0"
@@ -183,7 +193,7 @@
                     Click="Refresh_click"
                     Icon="{ui:SymbolIcon ArrowClockwise12,
                                          Filled=False}"
-                    MouseOverBackground="#07000000"
+                    MouseOverBackground="{DynamicResource SubtleFillColorSecondaryBrush}"
                     ToolTip="刷新" />
             </StackPanel>
         </Grid>
@@ -426,7 +436,7 @@
                                                             Text="{Binding Time, StringFormat=HH:mm:ss, Mode=OneWay}" />
                                                         <StackPanel Grid.Column="1">
                                                             <TextBlock
-                                                                FontSize="13"
+                                                                FontSize="12"
                                                                 Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                                                 Text="{Binding SourceText, Mode=OneWay}"
                                                                 TextWrapping="Wrap" />
@@ -471,7 +481,7 @@
                         Click="PageDown_click"
                         Icon="{ui:SymbolIcon chevronLeft12,
                                              Filled=False}"
-                        MouseOverBackground="#07000000"
+                        MouseOverBackground="{DynamicResource SubtleFillColorSecondaryBrush}"
                         ToolTip="上一页" />
 
                     <ui:TextBlock
@@ -488,7 +498,7 @@
                         Click="PageUp_click"
                         Icon="{ui:SymbolIcon chevronRight12,
                                              Filled=False}"
-                        MouseOverBackground="#07000000"
+                        MouseOverBackground="{DynamicResource SubtleFillColorSecondaryBrush}"
                         ToolTip="下一页" />
 
                     <ComboBox

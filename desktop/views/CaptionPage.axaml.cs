@@ -21,6 +21,8 @@ namespace LiveCaptionsTranslator
         private static bool largeMode;
         private const int LARGE_ORIGINAL_SIZE = 15;
         private const int LARGE_TRANSLATED_SIZE = 26;
+        // The least width in which the status of the summaries is still a line of words and not a column of them.
+        private const double MIN_STATUS_WIDTH = 140;
 
         public CaptionPage()
         {
@@ -39,9 +41,8 @@ namespace LiveCaptionsTranslator
 
             Splitter.DragCompleted += (s, e) =>
                 Translator.Setting.MainWindow.SectionPanelWidth = Math.Round(Root.ColumnDefinitions[2].ActualWidth);
-            // The status line shares its row with the button: it ends before it.
-            EndSectionButton.SizeChanged += (s, e) =>
-                StatusHost.Margin = new Thickness(2, 0, EndSectionButton.Bounds.Width + 28, 16);
+            EndSectionButton.SizeChanged += (s, e) => PlaceStatus();
+            RightPane.SizeChanged += (s, e) => PlaceStatus();
 
             // The copy handlers sit on the lists, because their items are made from templates.
             TranscriptList.AddHandler(PointerPressedEvent, TextBlock_Pressed, RoutingStrategies.Bubble);
@@ -119,7 +120,9 @@ namespace LiveCaptionsTranslator
             OriginalCaption.Text = caption.DisplayOriginalCaption;
             TranslatedCaption.Text = caption.DisplayTranslatedCaption;
             StatusHint.Text = caption.StatusHint;
-            StatusHint.IsVisible = string.IsNullOrEmpty(caption.DisplayOriginalCaption);
+            // (It stands where the two lines are: only while both are empty.)
+            StatusHint.IsVisible = string.IsNullOrEmpty(caption.DisplayOriginalCaption) &&
+                                   string.IsNullOrEmpty(caption.DisplayTranslatedCaption);
             WarningText.Text = caption.SourceWarning;
             WarningBorder.IsVisible = caption.IsSourceWarningVisible;
 
@@ -220,6 +223,15 @@ namespace LiveCaptionsTranslator
         {
             OriginalCaption.FontSize = largeMode ? LARGE_ORIGINAL_SIZE : Translator.Setting.MainWindow.OriginalFontSize;
             TranslatedCaption.FontSize = largeMode ? LARGE_TRANSLATED_SIZE : Translator.Setting.MainWindow.TranslatedFontSize;
+        }
+
+        // The status of the summaries stands to the left of the button that ends a section and keeps clear of
+        // it. In a column too narrow for words next to the button it stands above the button.
+        private void PlaceStatus()
+        {
+            bool beside = RightPane.Bounds.Width - EndSectionButton.Bounds.Width - 12 >= MIN_STATUS_WIDTH;
+            StatusHost.Margin = new Thickness(2, 0, beside ? EndSectionButton.Bounds.Width + 28 : 16, 16);
+            SummaryStatus.Margin = new Thickness(0, 0, 0, beside ? 0 : EndSectionButton.Bounds.Height + 8);
         }
 
         // Large-caption mode hides the section column; the current sentence is shown big at the bottom.

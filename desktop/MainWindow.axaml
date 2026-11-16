@@ -149,7 +149,8 @@
                     <!-- Output -->
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,4,0"
                                 ToolTip.Tip="打开 / 关闭耳机播报 (Ctrl+Alt+M)">
-                        <TextBlock Text="耳机播报" FontSize="13" VerticalAlignment="Center" />
+                        <TextBlock Text="耳机播报" FontSize="13" VerticalAlignment="Center"
+                                   PointerReleased="SpeechLabel_PointerReleased" />
                         <ToggleSwitch x:Name="SpeechSwitch" Classes="bare" Margin="8,0,-12,0"
                                       AutomationProperties.Name="耳机播报" Click="SpeechSwitch_Click" />
                     </StackPanel>

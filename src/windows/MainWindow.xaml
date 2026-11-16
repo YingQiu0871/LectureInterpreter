@@ -104,7 +104,9 @@
                             Margin="0,0,8,0"
                             VerticalAlignment="Center"
                             FontSize="13"
-                            Text="耳机播报" />
+                            MouseLeftButtonUp="SpeechLabel_MouseLeftButtonUp"
+                            Text="耳机播报"
+                            ToolTip="打开 / 关闭耳机播报 (Ctrl+Alt+M)" />
                         <ui:ToggleSwitch
                             x:Name="SpeechSwitch"
                             Margin="0,0,12,0"

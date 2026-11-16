@@ -285,6 +285,13 @@ namespace LiveCaptionsTranslator
             Speaker.Muted = SpeechSwitch.IsChecked != true;
         }
 
+        // The name of the switch stands next to it, not in it: a click on the name still works the switch.
+        private void SpeechLabel_PointerReleased(object? sender, PointerReleasedEventArgs e)
+        {
+            if (e.InitialPressMouseButton == MouseButton.Left)
+                SwitchLabel.Press(SpeechSwitch);
+        }
+
         public static void EndSection()
         {
             Summarizer.RequestEndSection();

@@ -48,6 +48,16 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+        <!--  What a test or a save answered, under its button: no empty line before there is an answer.  -->
+        <Style x:Key="Result" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,8,0,0" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Style.Triggers>
+                <Trigger Property="Text" Value="">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
         <!--  A switch: what it does on the left, the switch itself at the right edge of the card.  -->
         <Style x:Key="SwitchRow" TargetType="DockPanel">
             <Setter Property="Margin" Value="0,12,0,0" />
@@ -56,6 +66,8 @@
             <Setter Property="Margin" Value="0,0,12,0" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="TextWrapping" Value="Wrap" />
+            <!--  A click on the name works like one on the switch, as with the words of a check box.  -->
+            <EventSetter Event="MouseLeftButtonUp" Handler="SwitchName_MouseLeftButtonUp" />
         </Style>
         <!--  A slider: its name on the left, the value it stands at on the right, the slider below.  -->
         <Style x:Key="SliderRow" TargetType="DockPanel">
@@ -259,7 +271,7 @@
                                 Icon="{ui:SymbolIcon PlugConnected20,
                                                      Filled=False}" />
                         </StackPanel>
-                        <TextBlock x:Name="TestApiResult" Margin="0,8,0,0" TextWrapping="Wrap" />
+                        <TextBlock x:Name="TestApiResult" Style="{StaticResource Result}" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -528,7 +540,7 @@
                                 IsChecked="{Binding OriginalOnly, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                             <TextBlock Style="{StaticResource SwitchName}" Text="只用课程原语言（不翻译）" />
                         </DockPanel>
-                        <TextBlock Style="{StaticResource Hint}" Text="不翻译，只显示原文；小节总结、段落精修（只纠错不翻译）、笔记初稿、术语表和语音播报都用“输入源”里选的“老师讲课的语言”。适合想直接用外语听课的时候。" />
+                        <TextBlock Style="{StaticResource Hint}" Text="不翻译，只显示原文；小节总结、段落精修（只纠错不翻译）、笔记初稿、术语表和语音播报都用“⓪ 输入源”里选的“老师讲课的语言”。适合想直接用外语听课的时候。" />
 
                         <DockPanel Style="{StaticResource SwitchRow}">
                             <ui:ToggleSwitch

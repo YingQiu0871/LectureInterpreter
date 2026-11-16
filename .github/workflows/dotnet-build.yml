@@ -109,7 +109,7 @@ jobs:
         shell: pwsh
         run: |
           [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-          foreach ($file in "uicheck/error.log", "uicheck/layout.txt") {
+          foreach ($file in "uicheck/data/error.log", "uicheck/layout.txt") {
             if (Test-Path $file) {
               Write-Host "---- $file"
               Get-Content $file -Encoding utf8

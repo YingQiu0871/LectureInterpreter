@@ -84,13 +84,14 @@
             <!-- The sentence being spoken right now: a card of its own, with an accent bar on the left -->
             <Border Grid.Row="1" Classes="card" Margin="0,12,0,0" Padding="0" ClipToBounds="True"
                     Background="{DynamicResource BrandSoftBrush}">
-                <Border Padding="15,12,14,14" BorderThickness="3,0,0,0" BorderBrush="{DynamicResource BrandBrush}">
+                <Border Padding="13,12,16,12" BorderThickness="3,0,0,0" BorderBrush="{DynamicResource BrandBrush}">
                     <Grid ColumnDefinitions="*,Auto">
                         <Grid Grid.Column="0">
+                            <!-- Shown until the first words arrive, so an empty page doesn't look broken: in the middle
+                                 of the card, in the place of the two lines that are still empty -->
+                            <TextBlock x:Name="StatusHint" Classes="secondary" VerticalAlignment="Center" FontSize="13"
+                                       IsHitTestVisible="False" TextWrapping="Wrap" />
                             <StackPanel>
-                                <!-- Shown until the first words arrive, so an empty page doesn't look broken -->
-                                <TextBlock x:Name="StatusHint" Classes="secondary" FontSize="13" IsHitTestVisible="False"
-                                           TextWrapping="Wrap" />
                                 <TextBlock x:Name="OriginalCaption" Classes="secondary" FontSize="12"
                                            TextWrapping="Wrap" Cursor="Hand" />
                                 <TextBlock x:Name="TranslatedCaption" Classes="accent" Margin="0,3,0,0" FontSize="15"
@@ -120,7 +121,7 @@
                 <ItemsControl x:Name="SectionList" Margin="0,0,12,0">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="m:SectionEntry">
-                            <Border Classes="card" Margin="0,0,0,12" Padding="14,12">
+                            <Border Classes="card" Margin="0,0,0,12" Padding="16,12">
                                 <StackPanel>
                                     <StackPanel Orientation="Horizontal" Spacing="7">
                                         <Ellipse Width="7" Height="7" VerticalAlignment="Center"

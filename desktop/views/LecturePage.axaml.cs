@@ -123,6 +123,7 @@ namespace LiveCaptionsTranslator
             LatencySwitch.IsChecked = Translator.Setting.MainWindow.LatencyShow;
             LatencySwitch.IsCheckedChanged += (s, e) =>
                 Translator.Setting.MainWindow.LatencyShow = LatencySwitch.IsChecked == true;
+            SwitchLabel.Attach(this);
 
             if (OperatingSystem.IsLinux())
             {

@@ -14,6 +14,8 @@ namespace LiveCaptionsTranslator
         private static bool bigMode = false;
         private const int BIG_ORIGINAL_FONT_SIZE = 15;
         private const int BIG_TRANSLATED_FONT_SIZE = 26;
+        // The least width in which the status of the summaries is still a line of words and not a column of them.
+        private const double MIN_STATUS_WIDTH = 140;
 
         // The sentences of this class. The page is kept alive between visits, and so is its list.
         private readonly TranscriptView transcript = new();
@@ -31,6 +33,7 @@ namespace LiveCaptionsTranslator
             transcript.Updated += () =>
                 TranscriptEmptyHint.Visibility = transcript.Lines.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             TranscriptScroll.ScrollChanged += TranscriptScroll_ScrollChanged;
+            SectionPanel.SizeChanged += (s, e) => PlaceStatus();
 
             Loaded += async (s, e) =>
             {
@@ -97,10 +100,15 @@ namespace LiveCaptionsTranslator
             ApplyFontSizes();
         }
 
-        // The status of the summaries stands to the left of the button that ends a section: it keeps clear of it.
-        private void EndSectionButton_SizeChanged(object sender, SizeChangedEventArgs e)
+        private void EndSectionButton_SizeChanged(object sender, SizeChangedEventArgs e) => PlaceStatus();
+
+        // The status of the summaries stands to the left of the button that ends a section and keeps clear of
+        // it. In a column too narrow for words next to the button it stands above the button.
+        private void PlaceStatus()
         {
-            StatusHost.Margin = new Thickness(2, 0, EndSectionButton.ActualWidth + 28, 16);
+            bool beside = SectionPanel.ActualWidth - EndSectionButton.ActualWidth - 12 >= MIN_STATUS_WIDTH;
+            StatusHost.Margin = new Thickness(0, 0, beside ? EndSectionButton.ActualWidth + 28 : 16, 16);
+            SummaryStatus.Margin = new Thickness(0, 0, 0, beside ? 0 : EndSectionButton.ActualHeight + 8);
         }
 
         // The page listens to the session only while it is shown. (Taken off before being put on: `Loaded` can

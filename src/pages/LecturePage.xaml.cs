@@ -3,6 +3,8 @@ using System.IO;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using Microsoft.Win32;
 using NAudio.CoreAudioApi;
 
@@ -1109,6 +1111,13 @@ namespace LiveCaptionsTranslator
         private void ResetPrompt_click(object sender, RoutedEventArgs e)
         {
             Translator.Setting.Lecture.SummaryPrompt = LectureState.DEFAULT_SUMMARY_PROMPT;
+        }
+
+        // The name of a switch stands next to it, not in it: a click on the name still works the switch.
+        private void SwitchName_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.Parent is Panel row)
+                SwitchLabel.Press(row.Children.OfType<ToggleButton>().FirstOrDefault());
         }
     }
 }

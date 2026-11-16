@@ -20,6 +20,7 @@
             <Setter Property="FontSize" Value="12" />
             <Setter Property="Padding" Value="8,0" />
             <Setter Property="MinWidth" Value="26" />
+            <Setter Property="MinHeight" Value="0" />
             <Setter Property="Height" Value="24" />
             <Setter Property="Margin" Value="1" />
             <Setter Property="CornerRadius" Value="6" />

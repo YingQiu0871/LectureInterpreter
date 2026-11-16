@@ -116,7 +116,7 @@
                     Click="Export_click"
                     Icon="{ui:SymbolIcon ArrowDown12,
                                          Filled=False}"
-                    MouseOverBackground="#07000000"
+                    MouseOverBackground="{DynamicResource SubtleFillColorSecondaryBrush}"
                     ToolTip="导出这节课的转录 (Markdown)" />
                 <ui:Button
                     x:Name="Refresh"
@@ -125,7 +125,7 @@
                     Click="Refresh_click"
                     Icon="{ui:SymbolIcon ArrowClockwise12,
                                          Filled=False}"
-                    MouseOverBackground="#07000000"
+                    MouseOverBackground="{DynamicResource SubtleFillColorSecondaryBrush}"
                     ToolTip="刷新" />
             </StackPanel>
         </Grid>
@@ -177,6 +177,7 @@
                                 </StackPanel>
                                 <TextBlock
                                     Margin="0,4,0,0"
+                                    FontSize="15"
                                     FontWeight="SemiBold"
                                     Text="{Binding Title}"
                                     TextWrapping="Wrap" />

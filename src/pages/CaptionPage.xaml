@@ -45,7 +45,6 @@
                 Grid.Row="0"
                 MaxWidth="300"
                 Margin="24,16,24,16"
-                FontSize="13"
                 Style="{StaticResource EmptyHint}"
                 Text="开始上课后，每句原文和译文会按顺序列在这里，最新的在最下面。" />
             <ScrollViewer
@@ -118,32 +117,35 @@
                         BorderBrush="{DynamicResource AccentFillColorDefaultBrush}"
                         BorderThickness="3,0,0,0"
                         CornerRadius="12" />
-                    <Grid Margin="16,12,14,14">
+                    <Grid Margin="16,12,16,12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
+                        <!--  Shown until the first words arrive, so an empty page doesn't look broken: in the middle of the card, in the place of the two lines that are still empty (the card keeps its height when they come).  -->
+                        <TextBlock
+                            Grid.Column="0"
+                            VerticalAlignment="Center"
+                            IsHitTestVisible="False"
+                            Opacity="0.6"
+                            Text="{Binding StatusHint}"
+                            TextWrapping="Wrap">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding DisplayOriginalCaption}" Value="" />
+                                                <Condition Binding="{Binding DisplayTranslatedCaption}" Value="" />
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                         <StackPanel Grid.Column="0">
-                            <!--  Shown until LiveCaptions produces its first words, so an empty page doesn't look broken.  -->
-                            <TextBlock
-                                IsHitTestVisible="False"
-                                Opacity="0.6"
-                                Text="{Binding StatusHint}"
-                                TextWrapping="Wrap">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding DisplayOriginalCaption}" Value="">
-                                                <Setter Property="Visibility" Value="Visible" />
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding DisplayOriginalCaption}" Value="{x:Null}">
-                                                <Setter Property="Visibility" Value="Visible" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
                             <TextBlock
                                 x:Name="OriginalCaption"
                                 Background="Transparent"
@@ -212,7 +214,6 @@
                 Style="{StaticResource PageCard}">
                 <TextBlock
                     MaxWidth="300"
-                    FontSize="13"
                     Style="{StaticResource EmptyHint}"
                     Text="这节课还没有小节。开始上课后会自动分节总结，也可以按 Ctrl+Alt+S 手动结束本节。" />
             </Border>
@@ -226,7 +227,7 @@
                         <DataTemplate>
                             <Border
                                 Margin="0,0,0,12"
-                                Padding="14,12,14,12"
+                                Padding="16,12,16,12"
                                 Style="{StaticResource PageCard}">
                                 <StackPanel>
                                     <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
@@ -245,14 +246,13 @@
                                     </StackPanel>
                                     <TextBlock
                                         Margin="0,4,0,0"
-                                        FontSize="14"
+                                        FontSize="15"
                                         FontWeight="SemiBold"
                                         Text="{Binding Title}"
                                         TextWrapping="Wrap" />
                                     <TextBlock
                                         Margin="0,4,0,0"
-                                        FontSize="13"
-                                        LineHeight="20"
+                                        LineHeight="22"
                                         Text="{Binding Body}"
                                         TextWrapping="Wrap" />
                                 </StackPanel>
@@ -268,7 +268,7 @@
             x:Name="StatusHost"
             Grid.Row="1"
             Grid.Column="2"
-            Margin="2,0,128,16"
+            Margin="0,0,128,16"
             VerticalAlignment="Center">
             <TextBlock
                 x:Name="SummaryStatus"
@@ -294,7 +294,6 @@
             Click="EndSectionButton_Click"
             CornerRadius="8"
             Content="结束本节"
-            FontSize="13"
             Icon="{ui:SymbolIcon Flag16,
                                  Filled=False}"
             SizeChanged="EndSectionButton_SizeChanged"

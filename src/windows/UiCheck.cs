@@ -24,8 +24,9 @@ namespace LiveCaptionsTranslator
     // that does not exist, for one, is only noticed when its page is loaded), and the pictures show what a change
     // did to the look.
     //
-    // It works in a temporary data folder of its own with the cloud engine chosen, so it never touches the user's
-    // settings and history, and leaves Live Captions and a copy of the program that is running alone.
+    // It works in a data folder of its own (<folder>/data, new every time) with the cloud engine chosen, so it
+    // never touches the user's settings and history, and leaves Live Captions and a copy of the program that is
+    // running alone. What the program logs while it is checked (error.log) is found there.
     public static class UiCheck
     {
         public static bool Active { get; private set; }
@@ -54,30 +55,57 @@ namespace LiveCaptionsTranslator
             folder = System.IO.Path.GetFullPath(at + 1 < args.Length ? args[at + 1] : "uicheck");
             Directory.CreateDirectory(folder);
 
-            string data = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "lct-uicheck-" + Guid.NewGuid().ToString("N"));
+            string data = System.IO.Path.Combine(folder, "data");
             Directory.CreateDirectory(data);
+            foreach (string old in new[] { "translation_history.db-wal", "translation_history.db-shm", "error.log" })
+                File.Delete(System.IO.Path.Combine(data, old));
             // Both files are there before the data folder is looked for, which would otherwise copy the ones of
             // an old install next to the program. The settings: the cloud engine (Live Captions is not started),
-            // no check for updates, light, and not the first use (the welcome window is opened below).
+            // no check for updates, light, files saved inside the data folder, and not the first use (the
+            // welcome window is opened below).
             File.WriteAllText(System.IO.Path.Combine(data, "setting.json"),
-                "{\"Lecture\":{\"Engine\":1,\"AutoCheckUpdate\":false},\"MainWindow\":{\"Theme\":\"Light\",\"Topmost\":false}}");
+                "{\"Lecture\":{\"Engine\":1,\"AutoCheckUpdate\":false,\"SaveFolder\":" +
+                System.Text.Json.JsonSerializer.Serialize(System.IO.Path.Combine(data, "saved")) +
+                "},\"MainWindow\":{\"Theme\":\"Light\",\"Topmost\":false}}");
             File.WriteAllBytes(System.IO.Path.Combine(data, "translation_history.db"), Array.Empty<byte>());
             Environment.SetEnvironmentVariable("LCT_DATA_DIR", data);
 
             timeLimit = new System.Threading.Timer(_ =>
             {
-                errors.Add($"not finished after {TIME_LIMIT.TotalMinutes:0} minutes");
+                Fail($"not finished after {TIME_LIMIT.TotalMinutes:0} minutes");
                 WriteReport();
                 Environment.Exit(2);
             }, null, TIME_LIMIT, Timeout.InfiniteTimeSpan);
+            // An error that ends the program: the report says so, with what was measured until then.
+            AppDomain.CurrentDomain.UnhandledException += (s, e) =>
+            {
+                Fail("the program ended: " + e.ExceptionObject);
+                WriteReport();
+            };
             return true;
+        }
+
+        private static void Fail(string error)
+        {
+            lock (errors)
+            {
+                errors.Add(error);
+            }
+        }
+
+        private static string[] Errors()
+        {
+            lock (errors)
+            {
+                return errors.ToArray();
+            }
         }
 
         // To be called before the program's own handler of UI errors is set: that one lets the program go on, and
         // the error would not be counted here.
         public static void Attach(Application app)
         {
-            app.DispatcherUnhandledException += (s, e) => errors.Add(e.Exception.ToString());
+            app.DispatcherUnhandledException += (s, e) => Fail(e.Exception.ToString());
             // When there is nothing left to do the main window is up and has shown its first page.
             app.Startup += (s, e) => app.Dispatcher.InvokeAsync(Run, DispatcherPriority.ApplicationIdle);
         }
@@ -109,10 +137,10 @@ namespace LiveCaptionsTranslator
             }
             catch (Exception ex)
             {
-                errors.Add(ex.ToString());
+                Fail(ex.ToString());
             }
             WriteReport();
-            Application.Current.Shutdown(errors.Count == 0 ? 0 : 1);
+            Application.Current.Shutdown(Errors().Length == 0 ? 0 : 1);
         }
 
         private static void WriteReport()
@@ -124,12 +152,11 @@ namespace LiveCaptionsTranslator
                 {
                     report.Append(layout);
                 }
-                report.AppendLine($"== result: {errors.Count} error(s)");
-                foreach (string error in errors.ToArray())
+                string[] found = Errors();
+                report.AppendLine($"== result: {found.Length} error(s)");
+                foreach (string error in found)
                     report.AppendLine(error);
                 File.WriteAllText(System.IO.Path.Combine(folder, "layout.txt"), report.ToString(), new UTF8Encoding(false));
-                if (File.Exists(ErrorLog.FilePath))
-                    File.Copy(ErrorLog.FilePath, System.IO.Path.Combine(folder, "error.log"), true);
             }
             catch (Exception)
             {
@@ -212,8 +239,11 @@ namespace LiveCaptionsTranslator
 
             // Captions: the sentences of a class, the sentence being spoken, the sections.
             var captions = await Open<CaptionPage>(window);
-            (typeof(CaptionPage).GetField("transcript", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?.GetValue(captions) as TranscriptView)?.Apply(lines);
+            // (A page without sentences would pass as well: when the list is not found the check says so.)
+            var sentences = typeof(CaptionPage).GetField("transcript", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?.GetValue(captions) as TranscriptView
+                ?? throw new InvalidOperationException("the list of sentences of the caption page was not found");
+            sentences.Apply(lines);
             if (Translator.Caption != null)
             {
                 Translator.Caption.DisplayOriginalCaption = "Momentum keeps a running average of the past gradients.";
@@ -512,7 +542,7 @@ namespace LiveCaptionsTranslator
             }
             catch (Exception ex)
             {
-                errors.Add($"picture {name}: {ex}");
+                Fail($"picture {name}: {ex}");
             }
         }
     }
