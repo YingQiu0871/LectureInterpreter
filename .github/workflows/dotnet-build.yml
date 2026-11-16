@@ -78,6 +78,44 @@ jobs:
           name: LectureInterpreter
           path: ./publish
 
+      # Opens every page of the program once, with sample records (src/windows/UiCheck.cs). A page that cannot
+      # be opened fails the build. The pictures of the pages are kept as an artifact, and where everything stands
+      # on them is printed below.
+      - name: UI check
+        shell: pwsh
+        timeout-minutes: 8
+        run: |
+          $check = Start-Process -FilePath ./publish/x64/selfcontained/LectureInterpreter.exe -ArgumentList "--uicheck", "uicheck" -PassThru
+          # (Without its handle taken now the exit code cannot be read later.)
+          $null = $check.Handle
+          if (-not $check.WaitForExit(300000)) {
+            $check.Kill()
+            Write-Host "The UI check did not end."
+            exit 1
+          }
+          Write-Host "The UI check ended with $($check.ExitCode)."
+          exit $check.ExitCode
+
+      - name: Upload UI pictures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-check
+          path: ./uicheck
+          if-no-files-found: ignore
+
+      - name: UI layout
+        if: always()
+        shell: pwsh
+        run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          foreach ($file in "uicheck/error.log", "uicheck/layout.txt") {
+            if (Test-Path $file) {
+              Write-Host "---- $file"
+              Get-Content $file -Encoding utf8
+            }
+          }
+
   build-linux:
     name: Build Linux
     runs-on: ubuntu-latest

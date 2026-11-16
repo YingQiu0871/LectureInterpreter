@@ -3,27 +3,27 @@
         x:Class="LiveCaptionsTranslator.WelcomeWindow"
         Title="开始使用"
         Icon="/assets/icon.png"
-        Width="700" Height="470"
+        Width="700" SizeToContent="Height"
         CanResize="False"
         WindowStartupLocation="CenterOwner">
-    <Grid Margin="20" RowDefinitions="*,Auto">
-        <Border Grid.Row="0" Classes="card" Padding="28,22">
+    <Grid Margin="16" RowDefinitions="Auto,Auto">
+        <Border Grid.Row="0" Classes="card" Padding="24,20">
             <StackPanel Spacing="12">
                 <StackPanel Orientation="Horizontal" Spacing="12">
                     <Image Source="/assets/icon.png" Width="40" Height="40" VerticalAlignment="Center" />
-                    <TextBlock VerticalAlignment="Center" FontSize="20" FontWeight="SemiBold" Text="欢迎使用课堂同传助手！" />
+                    <TextBlock VerticalAlignment="Center" FontSize="18" FontWeight="SemiBold" Text="欢迎使用课堂同传助手！" />
                 </StackPanel>
-                <TextBlock x:Name="Steps" Margin="0,6,0,0" FontSize="13" LineHeight="22" TextWrapping="Wrap" />
+                <TextBlock x:Name="Steps" Margin="0,4,0,0" FontSize="13" LineHeight="22" TextWrapping="Wrap" />
                 <StackPanel Orientation="Horizontal">
                     <TextBlock VerticalAlignment="Center" FontSize="13" Classes="secondary"
                                Text="更多说明见原项目文档：" />
                     <HyperlinkButton Padding="0" FontSize="13"
-                                     Content="https://github.com/SakiRinn/LiveCaptions-Translator/wiki"
+                                     Content="github.com/SakiRinn/LiveCaptions-Translator/wiki"
                                      NavigateUri="https://github.com/SakiRinn/LiveCaptions-Translator/wiki" />
                 </StackPanel>
             </StackPanel>
         </Border>
-        <Button Grid.Row="1" Margin="0,16,0,0" Padding="28,0" Height="36" CornerRadius="18"
+        <Button Grid.Row="1" Margin="0,16,0,0" Padding="28,0" Height="36"
                 HorizontalAlignment="Center" VerticalContentAlignment="Center" Classes="accent"
                 Content="我已了解并完成设置" Click="CloseButton_Click" />
     </Grid>

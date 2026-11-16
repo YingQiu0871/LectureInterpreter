@@ -179,15 +179,16 @@ namespace LiveCaptionsTranslator
                 if (!initializing && SpeakModeBox.SelectedIndex >= 0)
                     Lecture.SpeakModeIndex = SpeakModeBox.SelectedIndex;
             };
+            // The name of a slider stands on the left of its row (in the page), its value on the right.
             BindSlider(MaxSectionSlider, () => Lecture.MaxSectionMinutes, v => Lecture.MaxSectionMinutes = v,
-                MaxSectionLabel, v => $"每节最长：{v}分钟");
+                MaxSectionLabel, v => $"{v} 分钟");
             BindSlider(IntervalSlider, () => Lecture.SummaryIntervalMinutes, v => Lecture.SummaryIntervalMinutes = v,
-                IntervalLabel, v => $"按时间分节：每{v}分钟一节");
-            BindSlider(RateSlider, () => Lecture.SpeechRate, v => Lecture.SpeechRate = v, RateLabel, v => $"语速：{v}");
+                IntervalLabel, v => $"每 {v} 分钟一节");
+            BindSlider(RateSlider, () => Lecture.SpeechRate, v => Lecture.SpeechRate = v, RateLabel, v => $"{v}");
             BindSlider(VolumeSlider, () => Lecture.SpeechVolume, v => Lecture.SpeechVolume = v, VolumeLabel,
-                v => $"音量：{v}");
+                v => $"{v}");
             BindSlider(SyncSlider, () => Translator.Setting.MaxSyncInterval, v => Translator.Setting.MaxSyncInterval = v,
-                SyncLabel, v => $"翻译频率：字幕每变化{v}次翻译一次");
+                SyncLabel, v => $"字幕每变化 {v} 次翻译一次");
         }
 
         protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)

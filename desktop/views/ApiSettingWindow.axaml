@@ -3,24 +3,56 @@
         x:Class="LiveCaptionsTranslator.ApiSettingWindow"
         Title="接口配置"
         Icon="/assets/icon.png"
-        Width="950" Height="500"
+        Width="900" Height="520"
         MinWidth="640" MinHeight="320"
         Topmost="True"
         WindowStartupLocation="CenterScreen">
+    <Window.Styles>
+        <!-- The list of APIs on the left: plain text, the one last chosen on a soft accent background (as in the
+             navigation of the main window). -->
+        <Style Selector="Button.navitem">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        </Style>
+        <Style Selector="Button.navitem /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        </Style>
+        <Style Selector="Button.navitem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SegBgBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        </Style>
+        <Style Selector="Button.navitem.current">
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="Button.navitem.current /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource BrandSoftBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource BrandTextBrush}" />
+        </Style>
+        <!-- A number: a box like the text boxes (the arrow keys and the mouse wheel change it by one step). The two
+             buttons of the theme are left out: they are square and paint over the round outline. -->
+        <Style Selector="NumericUpDown">
+            <Setter Property="ShowButtonSpinner" Value="False" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+    </Window.Styles>
     <Grid ColumnDefinitions="Auto,*">
-        <Border Grid.Column="0" BorderThickness="0,0,1,0"
+        <Border Grid.Column="0" Background="{DynamicResource CardBgBrush}" BorderThickness="0,0,1,0"
                 BorderBrush="{DynamicResource CardBorderBrush}">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <StackPanel x:Name="NavPanel" Width="200" Margin="0,0,5,10" />
+                <StackPanel x:Name="NavPanel" Width="184" Margin="8,12" Spacing="4" />
             </ScrollViewer>
         </Border>
-        <Border Grid.Column="1" Margin="4" CornerRadius="8">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <StackPanel Margin="30">
-                    <TextBlock Margin="0,0,0,10" FontSize="20" FontWeight="SemiBold" Text="接口配置" />
-                    <StackPanel x:Name="Sections" Margin="5" />
-                </StackPanel>
-            </ScrollViewer>
-        </Border>
+        <!-- The scroll bar stands in the margin of the page, as in the lists of the main window. -->
+        <ScrollViewer Grid.Column="1" Margin="0,0,4,0" VerticalScrollBarVisibility="Auto">
+            <StackPanel x:Name="Sections" Margin="16,16,12,4" />
+        </ScrollViewer>
     </Grid>
 </Window>

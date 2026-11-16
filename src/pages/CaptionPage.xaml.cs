@@ -76,8 +76,9 @@ namespace LiveCaptionsTranslator
                 SectionColumn.Width = new GridLength(0);
                 SectionPanel.Visibility = Visibility.Collapsed;
                 SectionSplitter.Visibility = Visibility.Collapsed;
+                StatusHost.Visibility = Visibility.Collapsed;
                 Grid.SetRowSpan(LeftPane, 1);
-                LeftPane.Margin = new Thickness(12, 8, 0, 4);
+                LeftPane.Margin = new Thickness(16, 16, 16, 12);
             }
             else
             {
@@ -85,14 +86,21 @@ namespace LiveCaptionsTranslator
                 SectionColumn.Width = new GridLength(Math.Max(Translator.Setting.MainWindow.SectionPanelWidth, 180));
                 SectionPanel.Visibility = Visibility.Visible;
                 SectionSplitter.Visibility = Visibility.Visible;
+                StatusHost.Visibility = Visibility.Visible;
                 Grid.SetRowSpan(LeftPane, 2);
-                LeftPane.Margin = new Thickness(12, 8, 0, 12);
+                LeftPane.Margin = new Thickness(16, 16, 0, 16);
             }
             // The sizes of the large captions are fixed: the tips offer Ctrl + wheel only for the normal ones.
             string tip = bigMode ? "单击复制" : "单击复制，Ctrl+滚轮调整字号";
             OriginalCaption.ToolTip = tip;
             TranslatedCaption.ToolTip = tip;
             ApplyFontSizes();
+        }
+
+        // The status of the summaries stands to the left of the button that ends a section: it keeps clear of it.
+        private void EndSectionButton_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            StatusHost.Margin = new Thickness(2, 0, EndSectionButton.ActualWidth + 28, 16);
         }
 
         // The page listens to the session only while it is shown. (Taken off before being put on: `Loaded` can

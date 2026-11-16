@@ -41,7 +41,9 @@ namespace LiveCaptionsTranslator
 
             SourceInitialized += (s, e) =>
             {
-                RegisterHotKeys();
+                // (Not for the check of the pages: the keys belong to the copy that is in use.)
+                if (!UiCheck.Active)
+                    RegisterHotKeys();
                 HwndSource.FromHwnd(new WindowInteropHelper(this).Handle)?.AddHook(ThemeHook);
             };
             FloatLock.Changed += OnFloatLockChanged;

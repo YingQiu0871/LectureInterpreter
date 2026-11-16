@@ -15,6 +15,7 @@ namespace LiveCaptionsTranslator
     public partial class HistoryPage : UserControl
     {
         public const int MIN_HEIGHT = 420;
+        private const double COURSE_CARD_MIN_WIDTH = 220;
 
         private enum View { Courses, Lectures, Detail, All }
 
@@ -33,6 +34,9 @@ namespace LiveCaptionsTranslator
         {
             InitializeComponent();
             HistoryMaxRow.SelectionChanged += MaxRow_SelectionChanged;
+            // As many columns of courses as fit with at least COURSE_CARD_MIN_WIDTH each; they share the width.
+            CourseScroll.SizeChanged += (s, e) =>
+                CourseList.Columns = Math.Clamp((int)(e.NewSize.Width / (COURSE_CARD_MIN_WIDTH + 12)), 1, 6);
             HistorySearchBox.KeyDown += async (s, e) =>
             {
                 if (e.Key == Key.Enter)
@@ -83,12 +87,21 @@ namespace LiveCaptionsTranslator
             DetailScroll.IsVisible = view == View.Detail;
             AllView.IsVisible = view == View.All;
 
+            // What an empty level says stands in the middle of the page, not inside the list: it is taken away
+            // with the level, and put up again by whoever has loaded the next one.
+            CourseEmptyHint.IsVisible = false;
+            LectureEmptyHint.IsVisible = false;
+            DetailEmptyHint.IsVisible = false;
+
             CrumbSep1.IsVisible = view != View.Courses;
             CrumbCourse.IsVisible = CrumbSep1.IsVisible;
             CrumbCourse.Content = view == View.All ? "全部句子" : currentCourse?.Name ?? string.Empty;
             CrumbSep2.IsVisible = view == View.Detail;
             CrumbLecture.IsVisible = CrumbSep2.IsVisible;
             CrumbLecture.Text = currentLecture?.Name ?? string.Empty;
+            // The last name of the path is where the reader is.
+            CrumbHome.Classes.Set("current", view == View.Courses);
+            CrumbCourse.Classes.Set("current", view is View.Lectures or View.All);
 
             NewCourse.IsVisible = view == View.Courses;
             AllSentences.IsVisible = NewCourse.IsVisible;
@@ -110,7 +123,7 @@ namespace LiveCaptionsTranslator
                 CourseList.Children.Clear();
                 foreach (var course in courses)
                     CourseList.Children.Add(BuildCourseCard(course));
-                CourseEmptyHint.IsVisible = courses.Count == 0;
+                CourseEmptyHint.IsVisible = view == View.Courses && courses.Count == 0;
             }
             catch (Exception ex)
             {
@@ -129,7 +142,8 @@ namespace LiveCaptionsTranslator
                 LectureList.Children.Clear();
                 foreach (var lecture in lectures)
                     LectureList.Children.Add(BuildLectureCard(lecture));
-                LectureEmptyHint.IsVisible = lectures.Count == 0;
+                LectureEmptyHint.IsVisible = view == View.Lectures && ReferenceEquals(currentCourse, course)
+                    && lectures.Count == 0;
             }
             catch (Exception ex)
             {
@@ -161,49 +175,74 @@ namespace LiveCaptionsTranslator
 
         // ---- Cards of the two folder levels (built here because they carry a context menu) ----
 
-        private Border BuildCard(string title, string info, string? tooltip, double width)
+        // Drawn, not characters: not every Linux font has the glyphs.
+        private const string FOLDER_ICON =
+            "M2,6 a2,2 0 0 1 2,-2 h5 l2,2.5 h9 a2,2 0 0 1 2,2 v9.5 a2,2 0 0 1 -2,2 h-16 a2,2 0 0 1 -2,-2 z";
+        private const string DOCUMENT_ICON =
+            "M6,2 h8 l5,5 v13 a2,2 0 0 1 -2,2 h-11 a2,2 0 0 1 -2,-2 v-16 a2,2 0 0 1 2,-2 z M14,2 v5 h5 M8,12 h8 M8,16 h8";
+
+        // A card of one of the two folder levels: a small picture, a name and one line about it. A long name or
+        // line is cut off with "…" inside the card, whatever its width.
+        private Border BuildCard(string icon, string iconBrush, string? iconFill, string title, string info, string? tooltip)
         {
-            var text = new StackPanel
+            var picture = new Avalonia.Controls.Shapes.Path
             {
-                Margin = new Thickness(10, 0, 0, 0),
-                Children =
-                {
-                    new TextBlock { Text = title, FontSize = 14, FontWeight = FontWeight.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis },
-                    new TextBlock { Text = info, Margin = new Thickness(0, 2, 0, 0), FontSize = 12, Classes = { "secondary" } },
-                },
+                Data = Geometry.Parse(icon),
+                Width = 24,
+                Height = 24,
+                StrokeThickness = 1.5,
+                StrokeJoin = PenLineJoin.Round,
+                StrokeLineCap = PenLineCap.Round,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+            // The colours belong to the light or the dark theme: they are looked up for the theme in use, and follow it.
+            picture.Bind(Avalonia.Controls.Shapes.Shape.StrokeProperty, this.GetResourceObservable(iconBrush));
+            if (iconFill != null)
+                picture.Bind(Avalonia.Controls.Shapes.Shape.FillProperty, this.GetResourceObservable(iconFill));
+
+            var name = new TextBlock
+            {
+                Text = title,
+                FontSize = 14,
+                FontWeight = FontWeight.SemiBold,
+                TextTrimming = TextTrimming.CharacterEllipsis,
             };
             if (tooltip != null)
-                ToolTip.SetTip(text.Children[0], tooltip);
-            var card = new Border
+                ToolTip.SetTip(name, tooltip);
+            var text = new StackPanel
             {
-                Classes = { "card" },
-                Padding = new Thickness(14, 10, 14, 12),
-                Cursor = new Cursor(StandardCursorType.Hand),
-                Child = new StackPanel { Orientation = Orientation.Horizontal, Children = { text } },
+                Margin = new Thickness(12, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                Children =
+                {
+                    name,
+                    new TextBlock
+                    {
+                        Text = info,
+                        Margin = new Thickness(0, 2, 0, 0),
+                        FontSize = 12,
+                        Classes = { "secondary" },
+                        TextTrimming = TextTrimming.CharacterEllipsis,
+                    },
+                },
             };
-            if (width > 0)
-                card.Width = width;
-            return card;
+            Grid.SetColumn(text, 1);
+            return new Border
+            {
+                Classes = { "card", "link" },
+                Padding = new Thickness(14, 12),
+                Child = new Grid
+                {
+                    ColumnDefinitions = new ColumnDefinitions("Auto,*"),
+                    Children = { picture, text },
+                },
+            };
         }
 
         private Border BuildCourseCard(CourseEntry course)
         {
-            var card = BuildCard(course.Name, course.Info, course.Name, 200);
+            var card = BuildCard(FOLDER_ICON, "BrandBrush", "BrandSoftBrush", course.Name, course.Info, course.Name);
             card.Margin = new Thickness(0, 0, 12, 12);
-            var icon = new Border
-            {
-                // Drawn, not a "▣" character: not every Linux font has that glyph.
-                Width = 24,
-                Height = 24,
-                Margin = new Thickness(2, 0),
-                CornerRadius = new CornerRadius(6),
-                BorderThickness = new Thickness(3),
-                VerticalAlignment = VerticalAlignment.Center,
-            };
-            // The colour belongs to the light or the dark theme: it is looked up for the theme in use, and follows it.
-            icon.Bind(Border.BorderBrushProperty, this.GetResourceObservable("BrandBrush"));
-            ((StackPanel)card.Child!).Children.Insert(0, icon);
-            ((StackPanel)((StackPanel)card.Child).Children[1]).Width = 140;
             AddCardActions(card, () => ShowLectures(course),
                 "重命名", () => RenameCourse(course), "删除（仅空文件夹）", () => DeleteCourse(course));
             return card;
@@ -211,8 +250,8 @@ namespace LiveCaptionsTranslator
 
         private Border BuildLectureCard(LectureRecord lecture)
         {
-            var card = BuildCard(lecture.Name, lecture.Info, null, 0);
-            card.Margin = new Thickness(0, 0, 0, 10);
+            var card = BuildCard(DOCUMENT_ICON, "TextSecondaryBrush", null, lecture.Name, lecture.Info, lecture.Name);
+            card.Margin = new Thickness(0, 0, 0, 8);
             AddCardActions(card, () => ShowDetail(lecture),
                 "重命名 / 移到其他课程", async () => await RenameLectureAndRefresh(lecture),
                 "删除这节课", () => DeleteLecture(lecture));

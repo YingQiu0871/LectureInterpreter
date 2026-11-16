@@ -27,7 +27,7 @@ namespace LiveCaptionsTranslator
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch,
             VerticalContentAlignment = Avalonia.Layout.VerticalAlignment.Center,
             HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-            Margin = new Thickness(2, 0, 0, 0),
+            Margin = new Thickness(4, 0, 0, 0),
             Focusable = false,
         };
         private IReadOnlyList<string> items = Array.Empty<string>();

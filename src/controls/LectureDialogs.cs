@@ -38,7 +38,7 @@ namespace LiveCaptionsTranslator
                     return null;
                 var dialog = new ContentDialog
                 {
-                    Title = new TextBlock { Text = title, FontSize = 18, FontWeight = FontWeights.Regular },
+                    Title = new TextBlock { Text = title, FontSize = 18, FontWeight = FontWeights.SemiBold },
                     Content = content,
                     PrimaryButtonText = primaryText,
                     SecondaryButtonText = secondaryText ?? string.Empty,
@@ -95,9 +95,10 @@ namespace LiveCaptionsTranslator
                 nameBox.SelectAll();
             };
             var panel = new StackPanel { MinWidth = 340 };
-            panel.Children.Add(new TextBlock { Text = "本节课名称（也用作历史里的标题和文件名）", Margin = new Thickness(0, 0, 0, 4) });
+            // (6 between a name and its field, 12 between two fields: as on the settings page.)
+            panel.Children.Add(new TextBlock { Text = "本节课名称（也用作历史里的标题和文件名）", Margin = new Thickness(0, 0, 0, 6) });
             panel.Children.Add(nameBox);
-            panel.Children.Add(new TextBlock { Text = "放进哪个课程文件夹（可直接输入新课程）", Margin = new Thickness(0, 12, 0, 4) });
+            panel.Children.Add(new TextBlock { Text = "放进哪个课程文件夹（可直接输入新课程）", Margin = new Thickness(0, 12, 0, 6) });
             panel.Children.Add(courseBox);
 
             var result = await Show(title, panel, primaryText, closeText, ContentDialogButton.Primary, discardText);
@@ -128,7 +129,7 @@ namespace LiveCaptionsTranslator
                 box.SelectAll();
             };
             var panel = new StackPanel();
-            panel.Children.Add(new TextBlock { Text = label, Margin = new Thickness(0, 0, 0, 4) });
+            panel.Children.Add(new TextBlock { Text = label, Margin = new Thickness(0, 0, 0, 6) });
             panel.Children.Add(box);
             var result = await Show(title, panel, "确定", "取消", ContentDialogButton.Primary);
             return result == ContentDialogResult.Primary ? box.Text.Trim() : null;

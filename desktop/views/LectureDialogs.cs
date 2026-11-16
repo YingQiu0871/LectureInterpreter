@@ -41,7 +41,7 @@ namespace LiveCaptionsTranslator
             {
                 Orientation = Orientation.Horizontal,
                 HorizontalAlignment = HorizontalAlignment.Right,
-                Margin = new Thickness(0, 16, 0, 0),
+                Margin = new Thickness(0, 20, 0, 0),
                 Children = { primaryButton },
             };
             if (secondary != null)
@@ -61,7 +61,7 @@ namespace LiveCaptionsTranslator
                 MaxWidth = 520,
                 Children =
                 {
-                    new TextBlock { Text = title, FontSize = 18, Margin = new Thickness(0, 0, 0, 12) },
+                    new TextBlock { Text = title, Classes = { "title" } },
                     content,
                     buttons,
                 },
@@ -87,7 +87,7 @@ namespace LiveCaptionsTranslator
 
         public static Task<bool> Confirm(string title, string message, string primary)
         {
-            var text = new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap, MaxWidth = 420 };
+            var text = new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap, MaxWidth = 420, LineHeight = 21 };
             return Ask(title, text, primary);
         }
 
@@ -96,7 +96,7 @@ namespace LiveCaptionsTranslator
             var box = new TextBox { Text = text, MinWidth = 320 };
             var panel = new StackPanel
             {
-                Children = { new TextBlock { Text = label, Margin = new Thickness(0, 0, 0, 4) }, box },
+                Children = { new TextBlock { Text = label, Classes = { "label" }, Margin = new Thickness(0, 0, 0, 6) }, box },
             };
             return await Ask(title, panel, "确定", focus: box) ? box.Text?.Trim() ?? string.Empty : null;
         }
@@ -123,9 +123,14 @@ namespace LiveCaptionsTranslator
                 MinWidth = 340,
                 Children =
                 {
-                    new TextBlock { Text = "本节课名称（也用作历史里的标题和文件名）", Margin = new Thickness(0, 0, 0, 4) },
+                    new TextBlock
+                    {
+                        Text = "本节课名称（也用作历史里的标题和文件名）",
+                        Classes = { "label" },
+                        Margin = new Thickness(0, 0, 0, 6),
+                    },
                     nameBox,
-                    new TextBlock { Text = "放进哪个课程文件夹（可直接输入新课程）", Margin = new Thickness(0, 12, 0, 4) },
+                    new TextBlock { Text = "放进哪个课程文件夹（可直接输入新课程）", Classes = { "label" } },
                     courseBox,
                 },
             };

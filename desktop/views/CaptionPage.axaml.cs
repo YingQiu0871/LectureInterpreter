@@ -39,6 +39,9 @@ namespace LiveCaptionsTranslator
 
             Splitter.DragCompleted += (s, e) =>
                 Translator.Setting.MainWindow.SectionPanelWidth = Math.Round(Root.ColumnDefinitions[2].ActualWidth);
+            // The status line shares its row with the button: it ends before it.
+            EndSectionButton.SizeChanged += (s, e) =>
+                StatusHost.Margin = new Thickness(2, 0, EndSectionButton.Bounds.Width + 28, 16);
 
             // The copy handlers sit on the lists, because their items are made from templates.
             TranscriptList.AddHandler(PointerPressedEvent, TextBlock_Pressed, RoutingStrategies.Bubble);
@@ -228,8 +231,9 @@ namespace LiveCaptionsTranslator
                 : new GridLength(Math.Max(Translator.Setting.MainWindow.SectionPanelWidth, 180));
             Splitter.IsVisible = !largeMode;
             RightPane.IsVisible = !largeMode;
+            StatusHost.IsVisible = !largeMode;
             Grid.SetRowSpan(LeftPane, largeMode ? 1 : 2);
-            LeftPane.Margin = new Thickness(16, 16, largeMode ? 16 : 0, largeMode ? 8 : 16);
+            LeftPane.Margin = new Thickness(16, 16, largeMode ? 16 : 0, largeMode ? 12 : 16);
             // The sizes of the large captions are fixed: the tips offer Ctrl + wheel only for the normal ones.
             string tip = largeMode ? "单击复制" : "单击复制，Ctrl+滚轮调整字号";
             ToolTip.SetTip(OriginalCaption, tip);

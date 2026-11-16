@@ -12,6 +12,60 @@
                 <ui:ThemesDictionary Theme="Dark" />
                 <ui:ControlsDictionary />
             </ResourceDictionary.MergedDictionaries>
+
+            <!--
+                What the pages share, so that they look like parts of one program.
+                Distances: 16 around a page and inside a card, 12 between cards and between the fields of a card,
+                8 between the buttons of a row, 6 between a name and its field.
+                Text: 12 for notes, 15 for the title of a card, the size of the theme (14) for everything else.
+                (Every page sets FontSize="14": a text with a style of its own takes its size from the page, and
+                a page does not take the size of the window around it.)
+                The accent color is kept for the one thing a page is about.
+            -->
+            <Style x:Key="PageCard" TargetType="Border">
+                <Setter Property="Padding" Value="16" />
+                <Setter Property="CornerRadius" Value="12" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+            </Style>
+
+            <!--  The number of a card of the settings page, in a small disc in front of its title.  -->
+            <Style x:Key="Badge" TargetType="ContentControl">
+                <Setter Property="Width" Value="20" />
+                <Setter Property="Height" Value="20" />
+                <Setter Property="Margin" Value="0,0,8,0" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="Focusable" Value="False" />
+                <Setter Property="IsTabStop" Value="False" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ContentControl">
+                            <Grid>
+                                <Ellipse Fill="{DynamicResource AccentFillColorDefaultBrush}" Opacity="0.16" />
+                                <TextBlock
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    FontSize="12"
+                                    FontWeight="SemiBold"
+                                    Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
+                                    Text="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}" />
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!--  What an empty page says, in its middle.  -->
+            <Style x:Key="EmptyHint" TargetType="TextBlock">
+                <Setter Property="MaxWidth" Value="420" />
+                <Setter Property="HorizontalAlignment" Value="Center" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="LineHeight" Value="22" />
+                <Setter Property="TextAlignment" Value="Center" />
+                <Setter Property="TextWrapping" Value="Wrap" />
+                <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

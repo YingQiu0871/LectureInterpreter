@@ -16,6 +16,8 @@ namespace LiveCaptionsTranslator
     public partial class HistoryPage : Page
     {
         public const int MIN_HEIGHT = 420;
+        // A course card is at least this wide: as many columns as fit, and they share the width evenly.
+        private const double COURSE_CARD_MIN_WIDTH = 220;
 
         private enum View { Courses, Lectures, Detail, All }
 
@@ -35,6 +37,12 @@ namespace LiveCaptionsTranslator
         public HistoryPage()
         {
             InitializeComponent();
+
+            // As many columns of course cards as fit. (The list is 2 narrower than the viewer, and every card
+            // leaves 12 to its right.)
+            CourseList.Tag = 3;
+            CourseScroll.SizeChanged += (s, e) =>
+                CourseList.Tag = Math.Clamp((int)((e.NewSize.Width - 2) / (COURSE_CARD_MIN_WIDTH + 12)), 1, 6);
 
             ScrollHelper.UseOwnScrollViewer(this, CourseScroll, LectureScroll, DetailScroll);
             Loaded += async (s, e) =>
@@ -74,7 +82,14 @@ namespace LiveCaptionsTranslator
             LectureScroll.Visibility = view == View.Lectures ? Visibility.Visible : Visibility.Collapsed;
             DetailScroll.Visibility = view == View.Detail ? Visibility.Visible : Visibility.Collapsed;
             AllView.Visibility = view == View.All ? Visibility.Visible : Visibility.Collapsed;
+            // What an empty level says stands in the middle of the page, not in its list: taken away with it.
+            CourseEmptyHint.Visibility = Visibility.Collapsed;
+            LectureEmptyHint.Visibility = Visibility.Collapsed;
+            DetailEmptyHint.Visibility = Visibility.Collapsed;
 
+            // The level that is shown is the one in bold.
+            CrumbHome.FontWeight = view == View.Courses ? FontWeights.SemiBold : FontWeights.Normal;
+            CrumbCourse.FontWeight = view is View.Lectures or View.All ? FontWeights.SemiBold : FontWeights.Normal;
             CrumbSep1.Visibility = view == View.Courses ? Visibility.Collapsed : Visibility.Visible;
             CrumbCourse.Visibility = CrumbSep1.Visibility;
             CrumbCourse.Content = view == View.All ? "全部句子" : currentCourse?.Name ?? string.Empty;
@@ -102,7 +117,8 @@ namespace LiveCaptionsTranslator
             {
                 var courses = await LectureStore.LoadCourses();
                 CourseList.ItemsSource = courses;
-                CourseEmptyHint.Visibility = courses.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+                // (Another level may have been opened while the courses were read.)
+                CourseEmptyHint.Visibility = view == View.Courses && courses.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             }
             catch (Exception ex)
             {
@@ -120,7 +136,9 @@ namespace LiveCaptionsTranslator
             {
                 var lectures = await LectureStore.LoadLectures(course.Id);
                 LectureList.ItemsSource = lectures;
-                LectureEmptyHint.Visibility = lectures.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+                LectureEmptyHint.Visibility = view == View.Lectures && ReferenceEquals(currentCourse, course) && lectures.Count == 0
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
             }
             catch (Exception ex)
             {

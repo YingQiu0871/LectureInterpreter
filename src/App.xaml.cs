@@ -20,7 +20,12 @@ namespace LiveCaptionsTranslator
 
         App()
         {
-            if (!IsFirstInstance())
+            // `--uicheck <folder>` (see UiCheck): the pages are opened one after the other, measured and drawn.
+            // It has settings and a history of its own, so it may run next to a copy that is in use.
+            bool uiCheck = UiCheck.Prepare(Environment.GetCommandLineArgs());
+            if (uiCheck)
+                UiCheck.Attach(this);
+            if (!uiCheck && !IsFirstInstance())
             {
                 // Without a window to bring to the front the other copy is only just starting, or it is closing
                 // (it tidies up for a moment after its window is gone). When it has ended shortly after, this

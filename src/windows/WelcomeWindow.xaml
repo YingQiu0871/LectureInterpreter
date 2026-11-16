@@ -21,6 +21,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <ui:TitleBar
@@ -30,21 +31,26 @@
             ShowMinimize="False">
             <ui:TitleBar.Header>
                 <ui:TextBlock Padding="15,0,0,0" VerticalAlignment="Center">
-                    Getting Started
+                    开始使用
                 </ui:TextBlock>
             </ui:TitleBar.Header>
         </ui:TitleBar>
 
-        <StackPanel Grid.Row="1" Background="{DynamicResource ApplicationBackgroundBrush}">
+        <!--  The same background under the words and under the button; the button stands at the bottom, as far from the edge as the title from the top.  -->
+        <Border
+            Grid.Row="1"
+            Grid.RowSpan="2"
+            Background="{DynamicResource ApplicationBackgroundBrush}" />
+        <StackPanel Grid.Row="1">
             <TextBlock
-                Margin="28,24,28,8"
+                Margin="24,20,24,4"
                 HorizontalAlignment="Left"
-                FontSize="22"
-                FontWeight="Bold"
+                FontSize="18"
+                FontWeight="SemiBold"
                 Text="欢迎使用课堂同传助手！"
                 TextAlignment="Left" />
             <ui:TextBlock
-                Margin="28,10,28,10"
+                Margin="24,8,24,8"
                 LineHeight="22"
                 TextAlignment="Left"
                 TextWrapping="Wrap">
@@ -55,7 +61,7 @@
                 <Run FontWeight="Bold" Text="⚙️ 齿轮" />
                 <Run Text="图标打开设置菜单，选择" />
                 <Run FontWeight="Bold" Text="“位置 &gt; 叠加在屏幕上”" />
-                <Run Text="。&#x0A;3. 在本工具“设置”页“⓪ 输入来源”里点击" />
+                <Run Text="。&#x0A;3. 在本工具“设置”页的“⓪ 输入源”里点击" />
                 <Run FontWeight="Bold" Text="“隐藏系统实时辅助字幕”" />
                 <Run Text="按钮，把实时辅助字幕窗口藏起来。&#x0A;" />
                 <Run Text="&#x0A;程序已经自动跳到设置页，并打开了实时辅助字幕。" />
@@ -69,15 +75,17 @@
                 <Run FontWeight="DemiBold" TextDecorations="Underline" Text="源语言" />
                 <Run Text="，请在设置页点“显示”调出实时辅助字幕，在它里面修改。" />
             </ui:TextBlock>
-
-            <ui:Button
-                Margin="0,10,0,0"
-                Padding="30,10,30,10"
-                HorizontalAlignment="Center"
-                Appearance="Primary"
-                CornerRadius="18"
-                Click="CloseButton_Click"
-                Content="我已了解并完成设置" />
         </StackPanel>
+
+        <ui:Button
+            Grid.Row="2"
+            Margin="0,8,0,20"
+            Padding="28,8,28,8"
+            HorizontalAlignment="Center"
+            Appearance="Primary"
+            Click="CloseButton_Click"
+            Content="我已了解并完成设置"
+            CornerRadius="8"
+            FontWeight="SemiBold" />
     </Grid>
 </ui:FluentWindow>

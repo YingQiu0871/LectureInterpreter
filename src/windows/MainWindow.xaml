@@ -99,14 +99,18 @@
                             VerticalAlignment="Center"
                             Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
 
-                        <!--  Output  -->
-                        <ui:ToggleSwitch
-                            x:Name="SpeechSwitch"
+                        <!--  Output: what the switch is for, then the switch (as in the settings page)  -->
+                        <TextBlock
                             Margin="0,0,8,0"
                             VerticalAlignment="Center"
-                            Click="SpeechSwitch_Click"
-                            Content="耳机播报"
                             FontSize="13"
+                            Text="耳机播报" />
+                        <ui:ToggleSwitch
+                            x:Name="SpeechSwitch"
+                            Margin="0,0,12,0"
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="耳机播报"
+                            Click="SpeechSwitch_Click"
                             ToolTip="打开 / 关闭耳机播报 (Ctrl+Alt+M)" />
                         <ui:Button
                             x:Name="CaptionLogButton"
