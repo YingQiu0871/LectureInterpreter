@@ -36,9 +36,15 @@ namespace LiveCaptionsTranslator.utils
                 var root = doc.RootElement;
                 if (root.ValueKind == System.Text.Json.JsonValueKind.Array && root.GetArrayLength() > 0)
                     root = root[0];
-                if (root.ValueKind != System.Text.Json.JsonValueKind.Object ||
-                    !root.TryGetProperty("error", out var error))
+                if (root.ValueKind != System.Text.Json.JsonValueKind.Object)
                     return string.Empty;
+                // DashScope's native APIs put {"code", "message"} at the top level.
+                if (!root.TryGetProperty("error", out var error))
+                    return root.TryGetProperty("message", out var top) &&
+                           top.ValueKind == System.Text.Json.JsonValueKind.String &&
+                           !string.IsNullOrWhiteSpace(top.GetString())
+                        ? OneLine(top.GetString()!)
+                        : string.Empty;
                 string? message = error.ValueKind == System.Text.Json.JsonValueKind.Object &&
                                   error.TryGetProperty("message", out var m) &&
                                   m.ValueKind == System.Text.Json.JsonValueKind.String
@@ -46,14 +52,61 @@ namespace LiveCaptionsTranslator.utils
                     : error.ValueKind == System.Text.Json.JsonValueKind.String ? error.GetString() : null;
                 if (string.IsNullOrWhiteSpace(message))
                     return string.Empty;
-                message = string.Join(' ', message.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                    .Select(l => l.Trim()));
-                return message.Length > 200 ? message[..200] + "…" : message;
+                return OneLine(message);
             }
             catch (System.Text.Json.JsonException)
             {
                 return string.Empty;
             }
+        }
+
+        // HTTP 402: the provider wants payment. Alibaba Bailian does not use this status; DeepSeek and OpenRouter do,
+        // so name the server that answered and keep its own words.
+        public static string PaymentRequiredMessage(string? host, string? body = null)
+        {
+            string who = string.IsNullOrEmpty(host) ? "接口服务商" : $"服务器 {host} ";
+            string detail = ErrorDetail(body);
+            return $"{who}要求付费（HTTP 402），通常是这个服务商的账户余额不足" +
+                   (detail.Length > 0 ? $"（原文：{detail.TrimEnd('.', '。')}）" : string.Empty) +
+                   "。请到这个服务商的控制台充值，或检查“接口地址”是不是你想用的服务商" +
+                   "（阿里云百炼不会返回 402，DeepSeek 余额为 0 时会返回 402）。";
+        }
+
+        public static string? HostOf(string? apiUrl)
+        {
+            if (string.IsNullOrWhiteSpace(apiUrl))
+                return null;
+            string url = apiUrl.Trim();
+            if (!url.Contains("://"))
+                url = "https://" + url;
+            return Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Host.Length > 0 ? uri.Host : null;
+        }
+
+        // The provider's own message for an error body, as one short line: error.message, else the raw body
+        // (not HTML), plus the host that answered. Empty parts are left out; the result starts with "：" or is empty.
+        public static string ProviderError(string? body, string? apiUrl)
+        {
+            string detail = ErrorDetail(body);
+            if (detail.Length == 0 && !string.IsNullOrWhiteSpace(body))
+            {
+                string trimmed = body.Trim();
+                if (!trimmed.StartsWith('<'))
+                {
+                    detail = OneLine(trimmed);
+                }
+            }
+            string? host = HostOf(apiUrl);
+            string result = detail.TrimEnd('.', '。');
+            if (host != null)
+                result += $"（服务器：{host}）";
+            return result.Length > 0 ? "：" + result : string.Empty;
+        }
+
+        private static string OneLine(string text)
+        {
+            string line = string.Join(' ', text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(l => l.Trim()));
+            return line.Length > 200 ? line[..200] + "…" : line;
         }
 
         // Some models wrap a whole Markdown answer in one code fence.

@@ -33,6 +33,21 @@ namespace LiveCaptionsTranslator
                               $"({System.Runtime.InteropServices.RuntimeInformation.RuntimeIdentifier})");
             Console.WriteLine($"Data folder: {AppPaths.DataDirectory}");
 
+            Check("provider error text", () =>
+            {
+                string e = TextUtil.ProviderError("{\"error\":{\"message\":\"Insufficient Balance\"}}",
+                    "https://api.deepseek.com/v1/chat/completions");
+                if (e != "：Insufficient Balance（服务器：api.deepseek.com）")
+                    throw new Exception("detail: " + e);
+                if (TextUtil.ProviderError("<html>x</html>", "not a url") != string.Empty)
+                    throw new Exception("html or bad url not skipped");
+                if (!TextUtil.PaymentRequiredMessage("openrouter.ai", "{\"error\":{\"message\":\"Insufficient credits\"}}").Contains("openrouter.ai 要求付费（HTTP 402），通常是这个服务商的账户余额不足（原文：Insufficient credits）"))
+                    throw new Exception("402 message lacks host");
+                if (TextUtil.ErrorDetail("{\"code\":\"Arrearage\",\"message\":\"Access denied.\"}") != "Access denied.")
+                    throw new Exception("top-level message not read");
+                return e;
+            });
+
             Check("settings", () =>
             {
                 var setting = Translator.Setting ?? throw new InvalidOperationException("no settings");
