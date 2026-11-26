@@ -401,12 +401,13 @@ namespace LiveCaptionsTranslator
 
             using var response = await Post(config, requestData);
             string body = await response.Content.ReadAsStringAsync();
-            if (!response.IsSuccessStatusCode)
-            {
-                string snippet = body.Length > 200 ? body[..200] + "…" : body;
+            if (response.StatusCode == System.Net.HttpStatusCode.PaymentRequired)
                 throw new HttpRequestException(
-                    $"HTTP {(int)response.StatusCode} {response.StatusCode}：{snippet}", null, response.StatusCode);
-            }
+                    TextUtil.PaymentRequiredMessage(TextUtil.HostOf(config.ApiUrl), body), null, response.StatusCode);
+            if (!response.IsSuccessStatusCode)
+                throw new HttpRequestException(
+                    $"HTTP {(int)response.StatusCode} {response.StatusCode}" + TextUtil.ProviderError(body, config.ApiUrl),
+                    null, response.StatusCode);
 
             var responseObj = JsonSerializer.Deserialize<OpenAIConfig.Response>(body);
             string output = responseObj?.choices?.FirstOrDefault()?.message?.content?.Trim() ?? string.Empty;
@@ -501,14 +502,13 @@ namespace LiveCaptionsTranslator
                     throw new HttpRequestException(TextUtil.ArrearageMessage, null, response.StatusCode);
                 if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
                     throw new HttpRequestException(TextUtil.RateLimitMessage, null, response.StatusCode);
+                if (response.StatusCode == System.Net.HttpStatusCode.PaymentRequired)
+                    throw new HttpRequestException(
+                        TextUtil.PaymentRequiredMessage(TextUtil.HostOf(config.ApiUrl), responseString), null, response.StatusCode);
                 if (!response.IsSuccessStatusCode)
-                {
-                    string detail = response.StatusCode is System.Net.HttpStatusCode.BadRequest
-                        or System.Net.HttpStatusCode.Forbidden ? TextUtil.ErrorDetail(responseString) : string.Empty;
                     throw new HttpRequestException(
                         $"HTTP Error - {(int)response.StatusCode} {response.StatusCode}" +
-                        (detail.Length > 0 ? "：" + detail : string.Empty), null, response.StatusCode);
-                }
+                        TextUtil.ProviderError(responseString, config.ApiUrl), null, response.StatusCode);
 
                 var responseObj = JsonSerializer.Deserialize<OpenAIConfig.Response>(responseString);
                 string output = responseObj?.choices?.FirstOrDefault()?.message?.content ?? string.Empty;

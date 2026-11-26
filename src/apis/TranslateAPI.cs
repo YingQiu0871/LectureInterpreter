@@ -113,7 +113,7 @@ namespace LiveCaptionsTranslator.apis
                     var mtResponse = await client.SendAsync(request, token);
                     string body = await mtResponse.Content.ReadAsStringAsync();
                     if (!mtResponse.IsSuccessStatusCode)
-                        return FormatOpenAIError(mtResponse.StatusCode, body);
+                        return FormatOpenAIError(mtResponse.StatusCode, body, config.ApiUrl);
 
                     var responseObj = JsonSerializer.Deserialize<OpenAIConfig.Response>(body);
                     if (responseObj?.choices == null || responseObj.choices.Count == 0)
@@ -235,9 +235,9 @@ namespace LiveCaptionsTranslator.apis
                 return $"[ERROR] 翻译失败：{ex.Message}";
             }
 
+            string responseString = await response.Content.ReadAsStringAsync();
             if (response.IsSuccessStatusCode)
             {
-                string responseString = await response.Content.ReadAsStringAsync();
                 var responseObj = JsonSerializer.Deserialize<OpenAIConfig.Response>(responseString);
                 var output = responseObj?.choices?.FirstOrDefault()?.message?.content;
                 output = output == null ? null : RegexPatterns.ModelThinking().Replace(output, "");
@@ -245,21 +245,16 @@ namespace LiveCaptionsTranslator.apis
             }
             else if (response.StatusCode == HttpStatusCode.Unauthorized)
                 return "[ERROR] 翻译失败：API Key 无效（HTTP 401），请在“设置”页里重新粘贴 API Key 并点“测试连接”。";
-            else if (response.StatusCode == HttpStatusCode.Forbidden &&
-                     TextUtil.IsQuotaExhausted(await response.Content.ReadAsStringAsync()))
+            else if (response.StatusCode == HttpStatusCode.PaymentRequired)
+                return $"[ERROR] 翻译失败：{TextUtil.PaymentRequiredMessage(TextUtil.HostOf(config.ApiUrl), responseString)}";
+            else if (response.StatusCode == HttpStatusCode.Forbidden && TextUtil.IsQuotaExhausted(responseString))
                 return $"[ERROR] 翻译失败：{TextUtil.QuotaExhaustedMessage}";
-            else if (response.StatusCode == HttpStatusCode.BadRequest &&
-                     TextUtil.IsArrears(await response.Content.ReadAsStringAsync()))
+            else if (response.StatusCode == HttpStatusCode.BadRequest && TextUtil.IsArrears(responseString))
                 return $"[ERROR] 翻译失败：{TextUtil.ArrearageMessage}";
             else if (response.StatusCode == HttpStatusCode.TooManyRequests)
                 return $"[ERROR] 翻译失败：{TextUtil.RateLimitMessage}";
-            else if (response.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Forbidden)
-            {
-                string detail = TextUtil.ErrorDetail(await response.Content.ReadAsStringAsync());
-                return HttpError(response) + (detail.Length > 0 ? "：" + detail : string.Empty);
-            }
             else
-                return HttpError(response);
+                return HttpError(response) + TextUtil.ProviderError(responseString, config.ApiUrl);
         }
 
         // The sentences before this one and their translations as chat turns, oldest first as in a conversation.
@@ -366,12 +361,14 @@ namespace LiveCaptionsTranslator.apis
             return terms.Count > 0 ? terms : null;
         }
 
-        private static string FormatOpenAIError(HttpStatusCode status, string body)
+        private static string FormatOpenAIError(HttpStatusCode status, string body, string? apiUrl)
         {
             if (status == HttpStatusCode.Unauthorized)
                 return "[ERROR] 翻译失败：API Key 无效（HTTP 401），请在“设置”页里重新粘贴 API Key 并点“测试连接”。";
             if (status == HttpStatusCode.TooManyRequests)
                 return $"[ERROR] 翻译失败：{TextUtil.RateLimitMessage}";
+            if (status == HttpStatusCode.PaymentRequired)
+                return $"[ERROR] 翻译失败：{TextUtil.PaymentRequiredMessage(TextUtil.HostOf(apiUrl), body)}";
             if (status == HttpStatusCode.Forbidden && TextUtil.IsQuotaExhausted(body))
                 return $"[ERROR] 翻译失败：{TextUtil.QuotaExhaustedMessage}";
             if (status == HttpStatusCode.NotFound)
@@ -381,11 +378,10 @@ namespace LiveCaptionsTranslator.apis
             {
                 if (TextUtil.IsArrears(body))
                     return $"[ERROR] 翻译失败：{TextUtil.ArrearageMessage}";
-                return "[ERROR] 翻译失败：请求参数被接口拒绝（HTTP 400）。请检查模型名称、接口地址和请求协议。";
+                return "[ERROR] 翻译失败：请求参数被接口拒绝（HTTP 400）" + TextUtil.ProviderError(body, apiUrl) +
+                       "。请检查模型名称、接口地址和请求协议。";
             }
-            if (body.Length > 0 && body.Length < 400)
-                return $"[ERROR] 翻译失败（HTTP {(int)status}）：{body}";
-            return $"[ERROR] 翻译失败（HTTP {(int)status}）。";
+            return $"[ERROR] 翻译失败（HTTP {(int)status}）" + TextUtil.ProviderError(body, apiUrl);
         }
 
         public static async Task<string> Ollama(string text, CancellationToken token = default)
@@ -572,8 +568,10 @@ namespace LiveCaptionsTranslator.apis
                                          .GetString() ?? string.Empty;
                 return RegexPatterns.ModelThinking().Replace(output, "");
             }
-            else
-                return HttpError(response);
+            string errorBody = await response.Content.ReadAsStringAsync();
+            if (response.StatusCode == HttpStatusCode.PaymentRequired)
+                return $"[ERROR] 翻译失败：{TextUtil.PaymentRequiredMessage(TextUtil.HostOf(apiUrl), errorBody)}";
+            return HttpError(response) + TextUtil.ProviderError(errorBody, apiUrl);
         }
 
         public static async Task<string> Google(string text, CancellationToken token = default)
