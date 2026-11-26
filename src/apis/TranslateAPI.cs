@@ -568,8 +568,10 @@ namespace LiveCaptionsTranslator.apis
                                          .GetString() ?? string.Empty;
                 return RegexPatterns.ModelThinking().Replace(output, "");
             }
-            else
-                return HttpError(response);
+            string errorBody = await response.Content.ReadAsStringAsync();
+            if (response.StatusCode == HttpStatusCode.PaymentRequired)
+                return $"[ERROR] 翻译失败：{TextUtil.PaymentRequiredMessage(TextUtil.HostOf(apiUrl), errorBody)}";
+            return HttpError(response) + TextUtil.ProviderError(errorBody, apiUrl);
         }
 
         public static async Task<string> Google(string text, CancellationToken token = default)
